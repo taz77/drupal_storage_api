@@ -1,0 +1,5 @@
+; $Id$
+name = Storage API
+description = "Storage module."
+package = Storage
+dependencies = mimedetect

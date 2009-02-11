@@ -1,0 +1,1227 @@
+<?php
+// $Id$
+
+// Copyright 2008-2009 Jonathan Brown
+
+
+define('_STORAGE_API_STORAGE_ONLY', 0);
+define('_STORAGE_API_SERVING', 1);
+define('_STORAGE_API_ACCESS_CONTROL', 2);
+
+require_once drupal_get_path('module', 'storage_api') . '/views.inc';
+
+
+function storage_api_menu($may_cache) {
+
+  if($may_cache) {
+  
+    $items[] = array(
+      'path' => 'admin/build/storage',
+      'title' => t('Storage'),
+      'access' => user_access('administer site configuration')
+    );
+
+    $items[] = array(
+      'path' => 'admin/build/storage/services',
+      'title' => t('Services'),
+      'access' => user_access('administer site configuration'),
+      'callback' => '_storage_api_services',
+      'weight' => 0
+    );
+    
+    $items[] = array(
+      'path' => 'admin/build/storage/containers',
+      'title' => t('Containers'),
+      'access' => user_access('administer site configuration'),
+      'callback' => '_storage_api_containers',
+      'weight' => 1
+    );
+
+    $items[] = array(
+      'path' => 'admin/build/storage/classes',
+      'title' => t('Classes'),
+      'access' => user_access('administer site configuration'),
+      'callback' => '_storage_api_classes_list',
+      'weight' => 2
+    );
+  }
+  else {
+  
+    if(arg(0) == 'admin' && arg(1) == 'build' && arg(2) == 'storage') {
+    
+      _storage_api_update_services();
+    
+      $path = drupal_get_path('module', 'storage_api');
+      require_once './' . $path . '/admin.inc';
+      
+      $items = _storage_api_admin_menu_items();
+    }
+
+    $items[] = array(
+      'path' => 'system/storage_api/serve/' . arg(3),
+      'type' => MENU_CALLBACK,
+      'callback' => '_storage_api_serve_callback',
+      'callback arguments' => array(arg(3)),
+      'access' => TRUE
+    );
+  }
+  
+  return $items;
+}
+
+
+function storage_api_db_insert_id() {
+  global $db_type, $active_db;
+
+  switch ($db_type) {
+    case 'mysql':
+      return mysql_insert_id($active_db);
+    case 'mysqli':
+      return mysqli_insert_id($active_db);
+  }
+}
+
+
+function storage_api_db_insert($table, $fields = NULL, $data = NULL) {
+
+  if(is_array($fields)) {
+    foreach($fields as $field => $format) {
+      if(isset($data[$field])) {
+        $sql_params[] = $field . ' = ' . $format;
+        $sql_values[] = $data[$field];
+      }
+    }
+  }
+
+  if(count($sql_params)) {
+    $sql_params = 'SET ' . implode(',', $sql_params);
+
+    db_query("
+      INSERT INTO {{$table}}
+      $sql_params
+    ",
+      $sql_values
+    );
+  }
+  else {
+    db_query("
+      INSERT INTO {{$table}}
+      () VALUES ()
+    ");
+  }
+
+  return storage_api_db_insert_id();
+}
+
+
+function _storage_api_update_services() {
+
+  $modules = module_implements('storage_service_info');
+
+  $code_service_ids = array();
+
+  foreach($modules as $module)
+    $code_service_ids[] = substr($module, 8);
+
+
+  $result = db_query("
+    SELECT service_id
+    FROM {storage_services}
+  ");
+  
+  $db_service_ids = array();
+
+  while($service = db_fetch_array($result)) {
+
+    if(!in_array($service['service_id'], $code_service_ids)) {
+
+      db_query("
+        DELETE FROM {storage_services}
+        WHERE service_id = '%s'
+      ",
+        $service['service_id']
+      );
+    }
+    else {
+      $db_service_ids[] = $service['service_id'];
+    }
+  }
+  
+  
+  foreach($code_service_ids as $service_id) {
+  
+    if(!in_array($service_id, $db_service_ids)) {
+    
+      db_query("
+        INSERT INTO {storage_services}
+        SET service_id = '%s'
+      ",
+        $service_id
+      );
+    }
+  }
+}  
+
+
+function _storage_api_service_invoke() {
+  $args = func_get_args();
+  
+  $args[0] = 'storage_' . $args[0];
+  $args[1] = 'storage_' . $args[1];
+  
+  return call_user_func_array('module_invoke', $args);
+}
+
+
+function _storage_api_service_invoke_all() {
+  $args = func_get_args();
+  
+  array_unshift($args, NULL);
+  $args[1] = 'storage_' . $args[1];
+  
+  foreach(module_implements($args[1], TRUE) as $module) {
+    $args[0] = $module;
+    $return[substr($module, 8)] = call_user_func_array('module_invoke', $args);
+  }
+  
+  return $return;
+}
+
+
+function _storage_api_log_serving($file, $container_id) {
+  global $user;
+  static $servings;
+  
+  
+  // don't log the same serving twice in a single drupal instance
+  
+  if($servings[$file['file_id']][$container_id])
+    return;
+
+  $servings[$file['file_id']][$container_id] = TRUE;
+
+
+  db_query("
+    INSERT INTO {storage_servings}
+    SET file_id = %d,
+      container_id = %d,
+      size = %d,
+      uid = %d,
+      sid = '%s',
+      ip_addr = %d,
+      timestamp = %d,
+      referrer = '%s'
+  ",
+    $file['file_id'],
+    $container_id,
+    $file['size'],
+    $user->uid,
+    session_id(),
+    ip2long($_SERVER['REMOTE_ADDR']),
+    $_SERVER['REQUEST_TIME'],
+    substr($_SERVER['HTTP_REFERER'], 0, 255)
+  );
+  
+  db_query("
+    UPDATE {storage_files}
+    SET servings = servings + 1
+    WHERE file_id = %d
+  ",
+    $file['file_id']
+  );
+}
+
+
+function _storage_api_access_control($file) {
+
+  $results = module_invoke_all('storage_access_alter', $file['module'], $file['type'], $file['file_id']);
+  
+  foreach($results as $result) {
+  
+    if(isset($result))
+      return $result;
+  }
+  
+  if($file['module']) {
+  
+    $result = module_invoke($file['module'], 'storage_access', $file['type'], $file['file_id']);
+    
+    if(isset($result))
+      return $result;
+  }
+  
+  if($file['nid']) {
+  
+    return node_access('view', node_load($file['nid']));
+  }
+  
+  return TRUE;
+}
+
+
+function _storage_api_serve($file_id, $get_url = FALSE) {
+
+  $file = storage_api_file_load($file_id);
+  
+  if(!$file) {
+
+    if($get_url) {
+      return;
+    }
+    else {
+      header('HTTP/1.1 404 Not Found');
+      exit();
+    }
+  }
+  
+  if($file['options']['access_control']) {
+    if(!_storage_api_access_control($file)) {
+    
+      if($get_url) {
+        return;
+      }
+      else {
+        header('HTTP/1.1 403 Forbidden');
+        exit();
+      }
+    }
+  }
+  
+  $container = db_fetch_array(db_query("
+  
+    (
+    
+      SELECT {storage_containers}.*, {storage_object_instances}.reference, 
+        {storage_class_containers}.weight, 'object' AS type
+      FROM {storage_object_instances}
+      INNER JOIN {storage_class_containers}
+        ON {storage_object_instances}.container_id = {storage_class_containers}.container_id
+      INNER JOIN {storage_containers}
+        ON {storage_object_instances}.container_id = {storage_containers}.container_id
+      INNER JOIN {storage_services}
+        ON {storage_containers}.service_id = {storage_services}.service_id
+      WHERE {storage_object_instances}.object_id = %d
+        AND {storage_class_containers}.class_id = %d
+        AND {storage_class_containers}.serving >= 1
+        AND {storage_containers}.suspended = 0
+        AND {storage_services}.suspended = 0
+        
+    ) UNION ALL (
+    
+      SELECT {storage_containers}.*, {storage_file_instances}.reference, 
+        {storage_class_containers}.weight, 'file' AS type
+      FROM {storage_file_instances}
+      INNER JOIN {storage_class_containers}
+        ON {storage_file_instances}.container_id = {storage_class_containers}.container_id
+      INNER JOIN {storage_containers}
+        ON {storage_file_instances}.container_id = {storage_containers}.container_id
+      INNER JOIN {storage_services}
+        ON {storage_containers}.service_id = {storage_services}.service_id
+      WHERE {storage_file_instances}.file_id = %d
+        AND {storage_class_containers}.class_id = %d
+        AND {storage_class_containers}.serving >= 1
+        AND {storage_containers}.suspended = 0
+        AND {storage_services}.suspended = 0
+
+    )
+    ORDER BY weight, container_id
+    LIMIT 1
+  ",
+    $file['object_id'],
+    $file['class_id'],
+    $file['file_id'],
+    $file['class_id']
+  ));
+  
+
+  if($container) {
+    $container['settings'] = unserialize($container['settings']);
+  }
+  else {
+    if($file['options']['serve_source_url'] && $file['source_url']) {
+      $url = $file['source_url'];
+    }
+    else {
+    
+      if($get_url) {
+        return;
+      }
+      else {
+        header('HTTP/1.1 503 Service Unavailable');
+        exit();
+      }
+    }
+  }
+  
+  if($get_url) {
+
+    $info = _storage_api_service_invoke($container['service_id'], 'service_info');
+    
+    if($info['direct'])
+      return;
+  }
+
+  _storage_api_log_serving($file, $container['container_id']);
+  
+  switch($container['type']) {
+  
+    case 'object':    // this may not return
+      $url = _storage_api_service_invoke($container['service_id'], 'object_instance_serve', 
+        $container, $file);
+      break;
+    
+    case 'file':
+      $url = _storage_api_service_invoke($container['service_id'], 'file_instance_serve',
+        $container, $file);
+      break;
+  }
+  
+  if($get_url) {
+    return $url;
+  }
+  
+  // this will definitely not return
+  drupal_goto($url);    // 302 redirect (don't cache)
+}
+
+
+function _storage_api_serve_callback($file_id) {
+  
+  _storage_api_serve($file_id);
+}
+
+
+function _storage_api_serve_path($file) {
+  
+  return 'system/storage_api/serve/' . $file['file_id'] . ($file['filename'] ? ('/' . $file['filename']) : '');
+}
+
+
+function storage_api_serve_url($file, $absolute = FALSE) {
+
+  if(!$file['options']['redirect']) {
+
+    $url = _storage_api_serve($file['file_id'], TRUE);
+    
+    if($url)
+      return $url;
+  }
+  
+  return url(_storage_api_serve_path($file), NULL, NULL, $absolute);
+}
+
+
+function storage_api_new_selector_id() {
+
+  return storage_api_db_insert('storage_selectors');
+}
+
+
+function storage_api_selector_item($selector_id, $title = '', $description = '') {
+  
+  $selector = array(
+    '#tree' => TRUE
+  );
+  
+  $result = db_query("
+    SELECT *
+    FROM {storage_classes}
+    ORDER BY name, class_id
+  ");
+
+  while($class = db_fetch_array($result)) {
+    $classes[$class['class_id']] = $class['name'];
+  }
+  
+  $selector['class_id'] = array(
+    '#type' => 'select',
+    '#title' => $title,
+    '#description' => $description,
+    '#options' => $classes
+  );
+  
+  $selector['selector_id'] = array(
+    '#type' => 'value',
+    '#value' => $selector_id
+  );
+
+  $current_class_id = db_result(db_query("
+  
+    SELECT class_id
+    FROM {storage_selectors}
+    WHERE selector_id = %d
+  ",
+    $selector_id
+  ));
+
+  $selector['class_id']['#default_value'] = $current_class_id;
+  
+  $selector['current_class_id'] = array(
+    '#type' => 'value',
+    '#value' => $current_class_id
+  );
+  
+  return $selector;
+}
+
+
+function storage_api_selector_submit($form_item) {
+
+  if($form_item['current_class_id'] != $form_item['class_id']) {
+
+    db_query("
+      UPDATE {storage_selectors}
+      SET class_id = %d
+      WHERE selector_id = %d
+    ",
+      $form_item['class_id'],
+      $form_item['selector_id']
+    );
+
+    db_query("
+      UPDATE {storage_files}
+      SET check_me = 1
+      WHERE selector_id = %d
+    ",
+      $form_item['selector_id']
+    );
+  }
+}
+
+
+function storage_api_selector_delete($selector_id) {
+  
+  db_query("
+    DELETE FROM {storage_selectors}
+    WHERE selector_id = %d
+  ",
+    $selector_id
+  );
+}
+
+
+function _storage_api_get_lowest_container($selector_id) {
+
+  $container = db_fetch_array(db_query("
+    SELECT {storage_containers}.*
+    FROM {storage_selectors}
+    INNER JOIN {storage_class_containers}
+      ON {storage_selectors}.class_id = {storage_class_containers}.class_id
+    INNER JOIN {storage_containers}
+      ON {storage_class_containers}.container_id = {storage_containers}.container_id
+    INNER JOIN {storage_services}
+      ON {storage_containers}.service_id = {storage_services}.service_id
+    WHERE {storage_selectors}.selector_id = %d
+      AND {storage_containers}.suspended = 0
+      AND {storage_services}.suspended = 0
+    ORDER BY {storage_class_containers}.weight DESC
+    LIMIT 1
+  ",
+    $selector_id
+  ));
+  
+  if(!$container)
+    return FALSE;
+
+  $container['settings'] = unserialize($container['settings']);
+  
+  return $container;
+}
+
+
+function _storage_api_get_object_id($filepath) {
+
+  $fileinfo = @stat($filepath);
+  
+  if(!$fileinfo)
+    return FALSE;
+
+  $md5 = '0x' . hash_file('md5', $filepath);
+  $whirlpool = '0x' . hash_file('whirlpool', $filepath);
+  
+  $object_id = db_result(db_query("
+    SELECT object_id
+    FROM {storage_objects}
+    WHERE size = %d
+      AND md5 = %s
+      AND whirlpool = %s
+  ",
+    $fileinfo['size'],
+    $md5,
+    $whirlpool
+  ));
+  
+  if(!$object_id) {
+    
+    db_query("
+      INSERT INTO {storage_objects}
+      SET size = %d,
+        md5 = %s,
+        whirlpool = %s,
+        mimetype = '%s'
+    ",
+      $fileinfo['size'],
+      $md5,
+      $whirlpool,
+      mimedetect_mime(array('filepath' => $filepath))
+    );
+    
+    $object_id = storage_api_db_insert_id();
+    $new_object = TRUE;
+  }
+  
+  return $object_id;
+}
+
+
+function _storage_api_create_object_instance($container, $file) {
+
+  $success = _storage_api_service_invoke($container['service_id'], 'object_instance_create', 
+    $container, $file);
+  
+  if(!$success)
+    return FALSE;
+    
+  db_query("
+    INSERT INTO {storage_object_instances}
+    SET object_id = %d,
+      container_id = %d,
+      reference = '%s'
+  ",
+    $file['object_id'],
+    $container['container_id'],
+    $success !== TRUE ? $success : ''
+  );
+  
+  return TRUE;
+}
+
+
+function _storage_api_create_file_instance($container, $file) {
+
+  $success = _storage_api_service_invoke($container['service_id'], 'file_instance_create', 
+    $container, $file);
+  
+  if(!$success)
+    return FALSE;
+    
+  db_query("
+    INSERT INTO {storage_file_instances}
+    SET file_id = %d,
+      container_id = %d,
+      reference = '%s'
+  ",
+    $file['file_id'],
+    $container['container_id'],
+    $success !== TRUE ? $success : ''
+  );
+  
+  return TRUE;
+}
+
+
+function _storage_api_object_instance_exists($object_id, $container_id) {
+
+  return db_result(db_query("
+    SELECT COUNT(*)
+    FROM {storage_object_instances}
+    WHERE object_id = %d
+      AND container_id = %d
+  ",
+    $object_id,
+    $container_id
+  ));
+}
+
+
+function _storage_api_file_instance_exists($file_id, $container_id) {
+
+  return db_result(db_query("
+    SELECT COUNT(*)
+    FROM {storage_file_instances}
+    WHERE file_id = %d
+      AND container_id = %d
+  ",
+    $file_id,
+    $container_id
+  ));
+}
+
+
+function storage_api_inherit_servings($new_file_id, $old_file_id) {
+
+  if(!$old_file_id)
+    return;
+
+  db_query("
+    UPDATE {storage_servings}
+    SET file_id = %d
+    WHERE file_id = %d
+  ",
+    $new_file_id,
+    $old_file_id
+  );
+  
+  $old_servings = db_result(db_query("
+    SELECT servings
+    FROM {storage_files}
+    WHERE file_id = %d
+  ",
+    $old_file_id
+  ));
+
+  db_query("
+    UPDATE {storage_files}
+    SET servings = servings + %d
+    WHERE file_id = %d
+  ",
+    $old_servings,
+    $new_file_id
+  );
+}
+
+
+function storage_api_add_file_from_filepath($filepath, $selector_id, $options = array()) {
+  
+  // find the container with the lowest priority in the class
+  
+  $container = _storage_api_get_lowest_container($selector_id);
+  
+  if(!$container)
+    return FALSE;
+
+  $object_id = _storage_api_get_object_id($filepath);
+
+  $fields = array(
+    'filename' => "'%s'",
+    'force_download' => '%d',
+    'object_id' => '%d',
+    'selector_id' => '%d',
+    'check_me' => '%d',
+    'module' => "'%s'",
+    'type' => "'%s'",
+    'obtained' => '%d'
+  );
+  
+  $data = $options;
+  $data['object_id'] = $object_id;
+  $data['selector_id'] = $selector_id;
+  $data['check_me'] = TRUE;
+  
+  if(!$data['obtained'])
+    $data['obtained'] = $_SERVER['REQUEST_TIME'];
+  
+  $file_id = storage_api_db_insert('storage_files', $fields, $data);
+  
+  $file = storage_api_file_load($file_id);
+  $file['filepath'] = $filepath;
+  $file['keep_me'] = $options['keep_me'];
+  
+
+  // we need write access to the directory for it to be deleted
+
+  if(!$options['keep_me']) {
+  
+    if(!is_writable(dirname($filepath)))
+      $options['keep_me'] = TRUE;
+  }
+  
+  $service_info = _storage_api_service_invoke($container['service_id'], 'service_info');
+
+  if(!(!$service_info['dynamic'] && $container['serving'] && $options['force_download'])) {
+
+    if(!$new_object) {
+      $exists = _storage_api_object_instance_exists($object_id, $container['container_id']);
+    }
+    
+    if(!$exists) {
+      $failure = !_storage_api_create_object_instance($container, $file);
+    }
+  }
+  else {
+    $failure = !_storage_api_create_file_instance($container, $file);
+  }
+  
+  if($failure) {
+    storage_api_remove_file($file_id);
+    return FALSE;
+  }
+  
+  if(!$options['keep_me']) {
+    @unlink($filepath);
+  }
+  
+  $message = t('File added') . ($file['filename'] ? (': ' . $file['filename'] . ' ') : '') . '. <br />';
+  $message .= _storage_api_file_log_info($file);
+  
+  $link = $file['nid'] ? l(t('view'), 'node/' . $file['nid']) : NULL;
+
+  watchdog('storage_api', $message, WATCHDOG_NOTICE, $link);
+
+  return $file_id;
+}
+
+
+function _storage_api_file_log_info($file) {
+
+  $info = $file['module'] ? ('module: ' . $file['module'] . ', ') : '';
+  $info .= $file['type'] ? ('type: ' . $file['type'] . ', ') : '';
+  $info .= 'class: ' . $file['name'] . ', <br />';
+  $info .= 'file_id: ' . $file['file_id'];
+  $info .= $file['object_id'] ? (', object_id: ' . $file['object_id']) : '';
+  $info .= $file['size'] ? (', size: ' . storage_format_size($file['size'])) : '';
+
+  return $info;  
+}
+
+
+function storage_api_add_file_from_url($url, $selector_id, $options = array()) {
+
+  $fields = array(
+    'filename' => "'%s'",
+    'force_download' => '%d',
+    'object_id' => '%d',
+    'selector_id' => '%d',
+    'check_me' => '%d',
+    'module' => "'%s'",
+    'type' => "'%s'",
+    'source_url' => "'%s'"
+  );
+  
+  if(!$options['filename'])
+    $options['filename'] = basename($url);
+    
+  $options['source_url'] = $url;
+  $options['selector_id'] = $selector_id;
+  $options['check_me'] = TRUE;
+  
+  $file_id = storage_api_db_insert('storage_files', $fields, $options);
+  $file = storage_api_file_load($file_id);
+  
+  $message = t('File added from url: ') . $url . ' . <br />';
+  $message .= _storage_api_file_log_info($file);
+  
+  watchdog('storage_api', $message);
+
+  return $file_id;
+}
+
+
+function _storage_api_acquire_from_url($url) {
+
+  // need to handle ftp
+
+  $filepath = tempnam(file_directory_temp(), '');
+  $fp = fopen($filepath, "w");
+
+  $options = array(
+    CURLOPT_FOLLOWLOCATION => TRUE,
+    CURLOPT_AUTOREFERER => TRUE,
+    CURLOPT_CONNECTTIMEOUT => 30,
+    CURLOPT_LOW_SPEED_LIMIT => 256,
+    CURLOPT_LOW_SPEED_TIME => 60,
+    CURLOPT_FILE => $fp
+  );
+
+  $ch = curl_init($url);
+  curl_setopt_array($ch, $options);
+  $result = curl_exec($ch);
+  fclose ($fp);
+  $info = curl_getinfo($ch);
+  curl_close($ch);
+  
+  switch((int)($info['http_code'] / 100)) {
+  
+    case 2:
+      return $filepath;
+      
+    case 4:
+      @unlink($filepath);
+      return FALSE;         // hard failure
+      
+    default:
+      @unlink($filepath);
+      return NULL;          // soft failure
+  }
+}
+
+
+function _storage_api_delete_object($object_id) {
+
+  // do any files use this object?
+  
+  if(db_result(db_query("
+    SELECT COUNT(*)
+    FROM {storage_files}
+    WHERE object_id = %d
+  ",
+    $object_id
+  ))) {
+    return;
+  }
+  
+  db_query("
+    DELETE FROM {storage_objects}
+    WHERE object_id = %d
+  ",
+    $object_id
+  );
+}
+
+
+function _storage_api_acquire_from_source_url(&$file) {
+
+  if($_SERVER['REQUEST_TIME'] < $data['next_acquire_time'])
+    return;
+    
+  $filepath = _storage_api_acquire_from_url($file['source_url']);
+  
+  if($filepath) {
+    $object_id = _storage_api_get_object_id($filepath);
+
+    if(!$file['object_id']) {
+      $file['object_id'] = $object_id;
+      $file['obtained'] = $_SERVER['REQUEST_TIME'];
+    }
+    
+    if($file['object_id'] != $object_id) {    // the file has changed
+
+      _storage_api_delete_object($object_id);
+      @unlink($filepath);
+      $filepath = FALSE;
+    }
+    else {
+      unset($file['data']['next_acquire_time']);
+      unset($file['data']['next_acquire_delay']);
+
+      db_query("
+        UPDATE {storage_files}
+        SET object_id = %d,
+          obtained = %d,
+          data = '%s'
+        WHERE file_id = %d
+      ",
+        $file['object_id'],
+        $file['obtained'],
+        serialize($file['data']),
+        $file['file_id']
+      );
+
+      $message = t('Acquired file from url: ') . $file['source_url'] . ' . <br />';
+      $message .= _storage_api_file_log_info($file);
+      
+      $link = $file['nid'] ? l(t('view'), 'node/' . $file['nid']) : NULL;
+    
+      watchdog('storage_api', $message, WATCHDOG_NOTICE, $link);
+
+      return $filepath;
+    }
+  }
+  
+  if($filepath === FALSE) {   // hard failure
+
+    unset($data['next_acquire_time']);
+    unset($data['next_acquire_delay']);
+
+    db_query("
+      UPDATE {storage_files}
+      SET source_url = '',
+        data = '%s'
+      WHERE file_id = %d
+    ",
+      serialize($data),
+      $file['file_id']
+    );
+    
+    $file['source_url'] = '';
+
+    $message = t('Failed acquiring file from url: ') . $file['source_url'] . ' . <br />';
+    $message .= _storage_api_file_log_info($file);
+    
+    $link = $file['nid'] ? l(t('view'), 'node/' . $file['nid']) : NULL;
+    
+    watchdog('storage_api', $message, WATCHDOG_WARNING, $link);
+
+    return FALSE;
+  }
+  
+  
+  // soft failure
+  
+  if($data['next_acquire_time']) {
+  
+    $data['next_acquire_time'] += $data['next_acquire_delay'];
+    $data['next_acquire_delay'] *= 2;
+  }
+  else {
+    $data['next_acquire_time'] = $_SERVER['REQUEST_TIME'] + 60;
+    $data['next_acquire_delay'] = 120;
+  }
+  
+  db_query("
+    UPDATE {storage_files}
+    SET data = '%s'
+    WHERE file_id = %d
+  ",
+    serialize($data),
+    $file['file_id']
+  );
+}
+
+
+function storage_api_get_local_filepath(&$file, &$keep_me) {
+
+  $container = db_fetch_array(db_query("
+  
+    (
+    
+      SELECT {storage_containers}.*, {storage_object_instances}.reference, 
+        {storage_class_containers}.weight, 'object' AS type
+      FROM {storage_object_instances}
+      INNER JOIN {storage_class_containers}
+        ON {storage_object_instances}.container_id = {storage_class_containers}.container_id
+      INNER JOIN {storage_containers}
+        ON {storage_object_instances}.container_id = {storage_containers}.container_id
+      INNER JOIN {storage_services}
+        ON {storage_containers}.service_id = {storage_services}.service_id
+      WHERE {storage_object_instances}.object_id = %d
+        AND {storage_class_containers}.class_id = %d
+        AND {storage_containers}.suspended = 0
+        AND {storage_services}.suspended = 0
+        
+    ) UNION ALL (
+    
+      SELECT {storage_containers}.*, {storage_file_instances}.reference, 
+        {storage_class_containers}.weight, 'file' AS type
+      FROM {storage_file_instances}
+      INNER JOIN {storage_class_containers}
+        ON {storage_file_instances}.container_id = {storage_class_containers}.container_id
+      INNER JOIN {storage_containers}
+        ON {storage_file_instances}.container_id = {storage_containers}.container_id
+      INNER JOIN {storage_services}
+        ON {storage_containers}.service_id = {storage_services}.service_id
+      WHERE {storage_file_instances}.file_id = %d
+        AND {storage_class_containers}.class_id = %d
+        AND {storage_containers}.suspended = 0
+        AND {storage_services}.suspended = 0
+        
+    )    
+    ORDER BY weight DESC, container_id
+    LIMIT 1
+  ",
+    $file['object_id'],
+    $file['class_id'],
+    $file['file_id'],
+    $file['class_id']
+  ));
+  
+  if($container) {
+  
+    $container['settings'] = unserialize($container['settings']);
+
+    switch($container['type']) {
+    
+      case 'object':
+        $filepath = _storage_api_service_invoke($container['service_id'], 'object_instance_get_filepath', 
+          $container, $file);
+        break;
+      
+      case 'file':
+        $filepath = _storage_api_service_invoke($container['service_id'], 'file_instance_get_filepath', 
+          $container, $file);
+        break;
+    }
+
+    $service_info = _storage_api_service_invoke($container['service_id'], 'service_info');
+    $keep_me = $service_info['local'];
+  }
+  else if($file['source_url']) {
+
+    $filepath = _storage_api_acquire_from_source_url($file);
+    $keep_me = FALSE;
+  }
+
+  return $filepath;
+}
+
+
+function storage_api_file_load($file_id) {
+
+  if(!$file_id)
+    return NULL;
+
+  $file = db_fetch_array(db_query("
+    SELECT *
+    FROM {storage_files}
+    LEFT JOIN {storage_objects}
+      ON {storage_files}.object_id = {storage_objects}.object_id
+    LEFT JOIN {storage_selectors}
+      ON {storage_files}.selector_id = {storage_selectors}.selector_id
+    LEFT JOIN {storage_classes}
+      ON {storage_selectors}.class_id = {storage_classes}.class_id
+    WHERE {storage_files}.file_id = %d
+  ",
+    $file_id
+  ));
+  
+  $file['data'] = unserialize($file['data']);
+  $file['options'] = unserialize($file['options']);
+  
+  return $file;
+}
+
+
+function storage_api_remove_file($file_id) {
+
+  if(!$file_id)
+    return;
+  
+  $file = storage_api_file_load($file_id);
+  
+  if(!$file)
+    return;
+  
+  db_query("
+    UPDATE {storage_files}
+    SET selector_id = NULL,
+      check_me = 1
+    WHERE file_id = %d
+  ",
+    $file_id
+  );
+  
+  $message = t('File removed') . ($file['filename'] ? (': ' . $file['filename']) : ' ') . '. <br />';
+  $message .= _storage_api_file_log_info($file);
+  
+  watchdog('storage_api', $message);
+}
+
+
+function storage_api_add_file_from_upload($source, $selector_id, $options = array()) {
+
+  $file = file_check_upload($source);
+
+  if(!$file)
+    return;
+  
+  $file = drupal_clone($file);    // stop nasty prob with upload module on PHP 5
+
+  unset($_SESSION['file_uploads'][$source]);
+
+  if(!$options['filename'])
+    $options['filename'] = $file->filename;
+
+  return storage_api_add_file_from_filepath($file->filepath, $selector_id, $options);
+}
+
+
+function storage_api_http_headers($file) {
+
+  $headers[] = 'Content-Type: ' . $file['mimetype'];
+  $headers[] = 'Content-Length: ' . $file['size'];
+  $headers[] = 'Content-MD5: ' . base64_encode($file['md5']);
+  $headers[] = 'Last-Modified: ' . date(DATE_RFC1123, $file['obtained']);
+  $headers[] = 'Cache-control: max-age=' . 60 * 60 * 24 * 365;  // the file will stay fresh for a whole year
+  
+  if($file['force_download'])
+    $headers[] = 'Content-Disposition: attachment; filename="' . $file['filename'] . '"';
+
+  return $headers;
+}
+
+
+function storage_api_set_http_headers($file) {
+
+  // unset the headers we don't want (they still get sent unfortunately)
+
+  header('Set-Cookie:');
+  header('Expires:');
+  
+  
+  foreach(storage_api_http_headers($file) as $header) {
+    header($header);
+  }
+}
+
+
+function _storage_bcmath() {
+
+  // crappy bcmath replacements
+
+  if(!function_exists('bcdiv'))
+  {
+    function bcdiv($left_operand, $right_operand, $scale = 0)
+    {
+      return round($left_operand / $right_operand, $scale);
+    }
+  }
+
+  if(!function_exists('bccomp'))
+  {
+    function bccomp($left_operand, $right_operand, $scale = 0)
+    {
+      if($left_operand == $right_operand)
+        return 0;
+        
+      if($left_operand > $right_operand)
+        return 1;
+        
+      return -1;
+    }
+  }
+}
+
+
+// http://en.wikipedia.org/wiki/Kilobyte
+
+function storage_format_size($count) {
+
+  if($count < 1000) {
+    return format_plural($count, '1 byte', '@count bytes');
+  }
+  
+  _storage_bcmath();
+  
+  $count = bcdiv($count, 1000, 2);
+  $u = 0;
+  
+  while(bccomp($count, 1000) >= 0) {
+
+    $count = bcdiv($count, 1000, 2);
+    $u++;
+  }
+
+  $units = array('kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB');
+  
+  return $count . ' ' . $units[$u];
+}
+
+
+function storage_api_form_alter($form_id, &$form) {
+
+  switch($form_id) {
+  
+    case 'system_modules':
+
+      $form['#submit']['_storage_api_update_services'] = array();
+      break;
+  }
+}
+
+
+function storage_api_enable() {
+
+  // in case the service modules are enabled simultaneously as the form_alter above wont have taken affect
+
+  _storage_api_update_services();
+}
+
+
+function storage_api_cron() {
+
+  $path = drupal_get_path('module', 'storage_api');
+  require_once './' . $path . '/cron.inc';
+  
+  _storage_api_cron();
+}
+

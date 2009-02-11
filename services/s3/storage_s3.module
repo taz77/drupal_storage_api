@@ -1,0 +1,269 @@
+<?php
+// $Id$
+
+// Copyright 2008-2009 Jonathan Brown
+
+
+function storage_s3_storage_service_info() {
+  
+  $info = array(
+    'name' => t('Amazon S3'),
+    'dynamic' => FALSE,
+    'local' => FALSE,
+    'direct' => FALSE,
+    'help_destroy' => TRUE
+  );
+  
+  return $info;
+}
+
+
+function _storage_s3_request($access_key_id, $secret_access_key, $method, 
+  $bucket = NULL, $object_name = NULL, $file = NULL) {
+  
+  $date = date(DATE_RFC1123, $_SERVER['REQUEST_TIME']);
+
+  $components = array(
+    $method,
+    base64_encode($file['md5']),
+    $file['mimetype'],
+    $date
+  );
+
+  $headers[] = 'Date: ' . $date;
+
+  $options = array(
+    CURLOPT_RETURNTRANSFER => TRUE,
+    CURLOPT_AUTOREFERER => TRUE,
+    CURLOPT_FOLLOWLOCATION => TRUE
+  );
+
+  switch($method) {
+  
+    case 'PUT':
+      $options[CURLOPT_PUT] = TRUE;
+      
+      if($file) {
+        $fp = fopen($file['filepath'], 'r');
+        $options[CURLOPT_INFILE] = $fp;
+        $options[CURLOPT_INFILESIZE] = $file['size'];
+        
+        $headers = array_merge($headers, storage_api_http_headers($file));
+
+        $headers[] = 'x-amz-acl: public-read';
+        $components[] = 'x-amz-acl:public-read';
+      }
+      else {
+        $options[CURLOPT_INFILESIZE] = 0;
+        $headers[] = 'Expect:';
+      }
+        
+      break;
+      
+    case 'HEAD':
+      $options[CURLOPT_NOBODY] = TRUE;
+      break;
+      
+    case 'GET':
+      if($object_name) {
+        $result['filepath'] = tempnam(file_directory_temp(), '');
+        $fp = fopen($result['filepath'], 'w');
+        $options[CURLOPT_FILE] = $fp;
+      }
+      break;
+      
+    case 'DELETE':
+      $options[CURLOPT_CUSTOMREQUEST] = 'DELETE';
+      break;
+  }
+  
+  if($bucket)
+    $object_name = '/' . $object_name;
+  
+  $components[] = '/' . $bucket . $object_name;
+  
+  $signature = base64_encode(hash_hmac('sha1', utf8_encode(implode("\n", $components)), $secret_access_key, TRUE));
+  $headers[] = 'Authorization: AWS ' . $access_key_id . ':' . $signature;
+
+  $options[CURLOPT_HTTPHEADER] = $headers;
+  
+  if($bucket)  
+    $bucket .= '.';
+  
+  $ch = curl_init('http://' . $bucket . 's3.amazonaws.com' . $object_name);
+  curl_setopt_array($ch, $options);
+  $result['xml'] = curl_exec($ch);
+  $result += curl_getinfo($ch);
+  curl_close($ch);
+  
+  if($fp)
+    fclose($fp);
+    
+  if($result['filepath'] && $result['http_code'] != 200) {
+    @unlink($result['filepath']);
+    unset($result['filepath']);
+  }
+  
+  if($result['xml']) {
+    $result['simplexml'] = simplexml_load_string($result['xml']);
+  }
+  
+  return $result;
+}
+
+
+function storage_s3_storage_container_settings_form() {
+
+  $items['access_key_id'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Access Key ID'),
+    '#required' => TRUE,
+    '#validated' => TRUE
+  );
+  
+  $items['secret_access_key'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Secret Access Key'),
+    '#required' => TRUE,
+    '#validated' => TRUE
+  );
+
+  $items['bucket'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Bucket name'),
+    '#required' => TRUE,
+    '#validated' => TRUE
+  );
+
+  $items['prefix'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Prefix'),
+  );
+
+  return $items;
+}
+
+
+function storage_s3_storage_container_validate($container) {
+
+  if(!$container['settings']['access_key_id']) {
+    form_set_error('settings][access_key_id', t('Access Key ID field is required.'));
+  }
+
+  if(!$container['settings']['secret_access_key']) {
+    form_set_error('settings][secret_access_key', t('Secret Access Key field is required.'));
+  }
+  
+  if(!$container['settings']['bucket']) {
+    form_set_error('settings][bucket', t('Bucket name field is required.'));
+  }
+  
+  if(form_get_errors())
+    return;
+
+  $result = _storage_s3_request($container['settings']['access_key_id'], $container['settings']['secret_access_key'],
+    'GET');   // HEAD doesn't work
+    
+  if($result['http_code'] != 200) {
+    $msg = t('Failed to authenticate with Amazon S3.');
+    
+    if($result['simplexml']->Message)
+      $msg .= t(' Message returned: <i>') . $result['simplexml']->Message . '</i>';
+    
+    form_set_error('settings', $msg);
+    return;
+  }
+
+  $result = _storage_s3_request($container['settings']['access_key_id'], $container['settings']['secret_access_key'],
+    'HEAD', $container['settings']['bucket']);
+
+  if($result['http_code'] == 403) {
+    form_set_error('settings][bucket', t('The bucket is not available.'));
+    return;
+  }
+}
+
+
+function storage_s3_storage_container_create($container) {
+
+  _storage_s3_request($container['settings']['access_key_id'], $container['settings']['secret_access_key'],
+    'PUT', $container['settings']['bucket']);
+}
+
+
+function storage_s3_storage_container_info($container) {
+
+  $info = array(
+    t('Bucket') => $container['settings']['bucket'],
+    t('Prefix') => $container['settings']['prefix']
+  );
+
+  return $info;
+}
+
+
+function storage_s3_storage_object_instance_create($container, $file) {
+  
+  $result = _storage_s3_request($container['settings']['access_key_id'], $container['settings']['secret_access_key'],
+    'PUT', $container['settings']['bucket'], 'object-' . $file['object_id'], $file);
+  
+  return $result['http_code'] == 200;
+}
+
+
+function storage_s3_storage_object_instance_destroy($container, $object_id) {
+  
+  $result = _storage_s3_request($container['settings']['access_key_id'], $container['settings']['secret_access_key'],
+    'DELETE', $container['settings']['bucket'], 'object-' . $object_id);
+  
+  return $result['http_code'] == 204;
+}
+
+
+function storage_s3_storage_object_instance_get_filepath($container, $file) {
+  
+  $result = _storage_s3_request($container['settings']['access_key_id'], $container['settings']['secret_access_key'],
+    'GET', $container['settings']['bucket'], 'object-' . $file['object_id']);
+
+  return $result['filepath'];
+}
+
+
+function storage_s3_storage_object_instance_serve($container, $file) {
+
+  return 'http://' . $container['settings']['bucket'] . '.s3.amazonaws.com/' . 'object-' . $file['object_id'];
+}
+
+
+function storage_s3_storage_file_instance_create($container, $file) {
+  
+  $result = _storage_s3_request($container['settings']['access_key_id'], $container['settings']['secret_access_key'],
+    'PUT', $container['settings']['bucket'], 'file-' . $file['file_id'], $file);
+  
+  return $result['http_code'] == 200;
+}
+
+
+function storage_s3_storage_file_instance_destroy($container, $file_id) {
+  
+  $result = _storage_s3_request($container['settings']['access_key_id'], $container['settings']['secret_access_key'],
+    'DELETE', $container['settings']['bucket'], 'file-' . $file_id);
+  
+  return $result['http_code'] == 204;
+}
+
+
+function storage_s3_storage_file_instance_get_filepath($container, $file) {
+  
+  $result = _storage_s3_request($container['settings']['access_key_id'], $container['settings']['secret_access_key'],
+    'GET', $container['settings']['bucket'], 'file-' . $file['file_id']);
+
+  return $result['filepath'];
+}
+
+
+function storage_s3_storage_file_instance_serve($container, $file) {
+
+  return 'http://' . $container['settings']['bucket'] . '.s3.amazonaws.com/' . 'file-' . $file['file_id'];
+}
+

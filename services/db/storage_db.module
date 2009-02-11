@@ -1,0 +1,191 @@
+<?php
+// $Id$
+
+// Copyright 2008-2009 Jonathan Brown
+
+
+function storage_db_storage_service_info() {
+  
+  $info = array(
+    'name' => t('Database'),
+    'dynamic' => TRUE,
+    'local' => FALSE,
+    'direct' => TRUE
+  );
+  
+  return $info;
+}
+
+
+function storage_db_storage_container_settings_form() {
+  global $db_url;
+  
+  if(is_array($db_url)) {
+  
+    foreach($db_url as $key => $url)
+      $options[$key] = $key;
+  
+    $items['db'] = array(
+      '#type' => 'select',
+      '#title' => t('Database'),
+      '#options' => $options,
+      '#required' => TRUE,
+      '#validated' => TRUE
+    );
+  }
+  else {
+    $items['db'] = array(
+      '#type' => 'value',
+      '#value' => 'default'
+    );
+  }
+
+  $items['table'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Table'),
+    '#description' => t('Without prefix or {}, e.g. \'storage_contents\'.'),
+    '#required' => TRUE,
+    '#validated' => TRUE
+  );
+  
+  return $items;
+}
+
+
+function storage_db_storage_container_validate($container) {
+
+  if(!$container['settings']['table']) {
+    form_set_error('settings][path', t('Database table field is required.'));
+    return;
+  }
+}
+
+
+function storage_db_storage_container_create($container) {
+
+  db_set_active($container['settings']['db']);
+  
+  $success = db_query("
+    CREATE TABLE {%s} (
+      object_id INT UNSIGNED NOT NULL,
+      contents LONGBLOB NOT NULL,
+      PRIMARY KEY (object_id)
+    )
+  ",
+    $container['settings']['table']
+  );
+  
+  db_set_active();
+  
+  return $success;
+}
+
+
+function storage_db_storage_container_info($container) {
+
+  $info[t('Database')] = $container['settings']['db'];
+  $info[t('Table')] = $container['settings']['table'];
+
+  return $info;
+}
+
+
+function storage_db_storage_container_destroy($container) {
+  
+  db_set_active($container['settings']['db']);
+
+  $success = db_query("  
+    DROP TABLE {%s}
+  ",
+    $container['settings']['table']
+  );
+  
+  db_set_active();
+  
+  return $success;
+}
+
+
+function storage_db_storage_object_instance_create($container, $file) {
+  
+  db_set_active($container['settings']['db']);
+  
+  $success = db_query("
+    INSERT INTO {%s}
+    SET object_id = %d,
+      contents = 0x%s
+  ",
+    $container['settings']['table'],
+    $file['object_id'],
+    bin2hex(file_get_contents($file['filepath']))
+  );
+  
+  db_set_active();
+  
+  return $success;
+}
+
+
+function storage_db_storage_object_instance_destroy($container, $object_id) {
+  
+  db_set_active($container['settings']['db']);
+  
+  $success = db_query("
+    DELETE FROM {%s}
+    WHERE object_id = %d
+  ",
+    $container['settings']['table'],
+    $object_id
+  );
+
+  db_set_active();
+  
+  return $success;
+}
+
+
+function storage_db_storage_object_instance_get_filepath($container, $file) {
+  
+  $filepath = tempnam(file_directory_temp(), '');
+  
+  db_set_active($container['settings']['db']);
+
+  $success = file_put_contents($filepath,
+    db_result(db_query("
+      SELECT contents
+      FROM {%s}
+      WHERE object_id = %d
+    ",
+      $container['settings']['table'],
+      $file['object_id']
+    ))
+  );
+
+  db_set_active();
+  
+  if(!$success) {
+    @unlink($filepath);
+    return FALSE;
+  }
+
+  return $filepath;
+}
+
+
+function storage_db_storage_object_instance_serve($container, $file, $reference) {
+  storage_api_set_http_headers($file);
+  
+  db_set_active($container['settings']['db']);
+
+  echo db_result(db_query("
+    SELECT contents
+    FROM {%s}
+    WHERE object_id = %d
+  ",
+    $container['settings']['table'],
+    $file['object_id']
+  ));
+  
+  exit();
+}
+

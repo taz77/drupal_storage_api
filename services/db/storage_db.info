@@ -1,0 +1,5 @@
+; $Id$
+name = Database
+description = "Database storage service."
+package = Storage
+dependencies = storage_api

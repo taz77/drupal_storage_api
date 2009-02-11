@@ -1,0 +1,105 @@
+<?php
+// $Id$
+
+// Copyright 2008-2009 Jonathan Brown
+
+
+function storage_fs_drupal_storage_service_info() {
+  
+  $info = array(
+    'name' => t('Filesystem / Drupal'),
+    'dynamic' => TRUE,
+    'local' => TRUE,
+    'direct' => TRUE
+  );
+  
+  return $info;
+}
+
+
+function storage_fs_drupal_storage_container_settings_form() {
+
+  $items['path'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Directory path'),
+    '#default_value' => file_directory_path(),
+    '#maxlength' => 255,
+//    '#description' => t('A file system path where the files will be stored. This directory has to exist and be writable by Drupal. If the download method is set to public this directory has to be relative to the Drupal installation directory, and be accessible over the web. When download method is set to private this directory should not be accessible over the web. Changing this location after the site has been in use will cause problems so only change this setting on an existing site if you know what you are doing.'),
+//    '#after_build' => array('system_check_directory'),
+    '#required' => TRUE,
+    '#validated' => TRUE
+  );
+  
+  return $items;
+}
+
+
+function storage_fs_drupal_storage_container_validate($container) {
+
+  if(!$container['settings']['path']) {
+    form_set_error('settings][path', t('Directory path field is required.'));
+    return;
+  }
+  
+  return TRUE;
+}
+
+
+function storage_fs_drupal_storage_container_create($container) {
+
+  if(!file_check_directory($container['settings']['path'], FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS)) {
+  
+    return FALSE;
+  }
+  
+  return TRUE;
+}
+
+
+function storage_fs_drupal_storage_container_info($container) {
+
+  $info['Directory path'] = $container['settings']['path'];
+  $info['Free space'] = format_size(disk_free_space($container['settings']['path']));
+
+  return $info;
+}
+
+
+function storage_fs_drupal_storage_container_destroy($container) {
+  
+  return TRUE;
+}
+
+
+function storage_fs_drupal_storage_object_instance_create($container, $file) {
+  
+  if(!$file['keep_me'])
+    $success = @rename($file['filepath'], $container['settings']['path'] . '/' . $file['object_id']);
+  else
+    $success = @copy($file['filepath'], $container['settings']['path'] . '/' . $file['object_id']);
+  
+  return $success;
+}
+
+
+function storage_fs_drupal_storage_object_instance_destroy($container, $object_id) {
+  
+  @unlink($container['settings']['path'] . '/' . $object_id);
+  
+  return TRUE;
+}
+
+
+function storage_fs_drupal_storage_object_instance_get_filepath($container, $file) {
+  
+  return $container['settings']['path'] . '/' . $file['object_id'];
+}
+
+
+function storage_fs_drupal_storage_object_instance_serve($container, $file) {
+  storage_api_set_http_headers($file);
+
+  @readfile($container['settings']['path'] . '/' . $file['object_id']);
+  exit();
+}
+
