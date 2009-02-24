@@ -2,4 +2,7 @@
 name = Database
 description = "Database storage service."
 package = Storage
-dependencies = storage_api
+dependencies[] = storage_api
+core = 6.x
+php = 5.2
+

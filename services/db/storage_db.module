@@ -34,10 +34,7 @@ function storage_db_storage_container_settings_form() {
     );
   }
   else {
-    $items['db'] = array(
-      '#type' => 'value',
-      '#value' => 'default'
-    );
+    $items['#db'] = 'default';
   }
 
   $items['table'] = array(

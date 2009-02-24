@@ -2,4 +2,7 @@
 name = Amazon S3
 description = "Amazon S3 storage service."
 package = Storage
-dependencies = storage_api
+dependencies[] = storage_api
+core = 6.x
+php = 5.2
+

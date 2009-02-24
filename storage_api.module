@@ -11,74 +11,309 @@ define('_STORAGE_API_ACCESS_CONTROL', 2);
 require_once drupal_get_path('module', 'storage_api') . '/views.inc';
 
 
-function storage_api_menu($may_cache) {
+function storage_api_menu() {
 
-  if($may_cache) {
+  $items['system/storage_api/serve/%storage_api_file'] = array(
+    'type' => MENU_CALLBACK,
+    'page callback' => '_storage_api_serve_callback',
+    'page arguments' => array(3),
+    'access callback' => TRUE
+  );
   
-    $items[] = array(
-      'path' => 'admin/build/storage',
-      'title' => t('Storage'),
-      'access' => user_access('administer site configuration')
-    );
 
-    $items[] = array(
-      'path' => 'admin/build/storage/services',
-      'title' => t('Services'),
-      'access' => user_access('administer site configuration'),
-      'callback' => '_storage_api_services',
-      'weight' => 0
-    );
-    
-    $items[] = array(
-      'path' => 'admin/build/storage/containers',
-      'title' => t('Containers'),
-      'access' => user_access('administer site configuration'),
-      'callback' => '_storage_api_containers',
-      'weight' => 1
-    );
+  $items['admin/build/storage'] = array(
+    'title' => 'Storage',
+    'access arguments' => array('administer site configuration'),
+    'description' => 'Configure storage.',
+    'page callback' => 'system_admin_menu_block_page',
+    'file' => 'system.admin.inc',
+    'file path' => drupal_get_path('module', 'system')
+  );
 
-    $items[] = array(
-      'path' => 'admin/build/storage/classes',
-      'title' => t('Classes'),
-      'access' => user_access('administer site configuration'),
-      'callback' => '_storage_api_classes_list',
-      'weight' => 2
-    );
-  }
-  else {
+
+  $items['admin/build/storage/services'] = array(
+    'title' => 'Services',
+    'description' => 'Configure storage services.',
+    'access arguments' => array('administer site configuration'),
+    'page callback' => '_storage_api_services',
+    'weight' => 0,
+    'file' => 'admin.inc'
+  );
   
-    if(arg(0) == 'admin' && arg(1) == 'build' && arg(2) == 'storage') {
-    
-      _storage_api_update_services();
-    
-      $path = drupal_get_path('module', 'storage_api');
-      require_once './' . $path . '/admin.inc';
-      
-      $items = _storage_api_admin_menu_items();
-    }
-
-    $items[] = array(
-      'path' => 'system/storage_api/serve/' . arg(3),
-      'type' => MENU_CALLBACK,
-      'callback' => '_storage_api_serve_callback',
-      'callback arguments' => array(arg(3)),
-      'access' => TRUE
-    );
-  }
+  $items['admin/build/storage/services/%storage_api_service'] = array(
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_CALLBACK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('storage_api_service_form', 4),
+    'file' => 'admin.inc',
+  );
   
+  $items['admin/build/storage/services/%storage_api_service/suspend'] = array(
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_CALLBACK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('storage_api_service_suspend_form', 4),
+    'file' => 'admin.inc'
+  );
+  
+  $items['admin/build/storage/services/%storage_api_service/unsuspend'] = array(
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_CALLBACK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('storage_api_service_unsuspend_form', 4),
+    'file' => 'admin.inc'
+  );
+  
+  
+  $items['admin/build/storage/containers'] = array(
+    'title' => 'Containers',
+    'description' => 'Configure storage containers.',
+    'access arguments' => array('administer site configuration'),
+    'page callback' => '_storage_api_containers',
+    'weight' => 1,
+    'file' => 'admin.inc'
+  );
+
+  $items['admin/build/storage/containers/list'] = array(
+    'title' => 'List',
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => -1,
+    'file' => 'admin.inc'
+  );
+  
+  $items['admin/build/storage/containers/create'] = array(
+    'title' => 'Create container',
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_LOCAL_TASK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('storage_api_create_container_form'),
+    'file' => 'admin.inc'
+  );
+  
+  $items['admin/build/storage/containers/%storage_api_container'] = array(
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_CALLBACK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('storage_api_container_form', 4),
+    'file' => 'admin.inc'
+  );
+  
+  $items['admin/build/storage/containers/%storage_api_container/view'] = array(
+    'title' => 'View',
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => 0,
+    'file' => 'admin.inc'
+  );
+  
+  $items['admin/build/storage/containers/%storage_api_container/suspend'] = array(
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_CALLBACK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('storage_api_container_suspend_form', 4),
+    'file' => 'admin.inc',
+  );
+  
+  $items['admin/build/storage/containers/%storage_api_container/unsuspend'] = array(
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_CALLBACK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('storage_api_container_unsuspend_form', 4),
+    'file' => 'admin.inc'
+  );
+  
+  $items['admin/build/storage/containers/%storage_api_container/destroy'] = array(
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_CALLBACK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('storage_api_container_destroy_form', 4),
+    'file' => 'admin.inc'
+  );
+  
+  $items['admin/build/storage/containers/%storage_api_container/edit'] = array(
+    'title' => 'Edit',
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_LOCAL_TASK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('storage_api_container_edit_form', 4),
+    'weight' => 1,
+    'file' => 'admin.inc'
+  );
+
+  
+  $items['admin/build/storage/classes'] = array(
+    'title' => 'Classes',
+    'description' => 'Configure storage classes.',
+    'access arguments' => array('administer site configuration'),
+    'page callback' => '_storage_api_classes_list',
+    'weight' => 2,
+    'file' => 'admin.inc'
+  );
+
+  $items['admin/build/storage/classes/list'] = array(
+    'title' => 'List',
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => -1,
+    'file' => 'admin.inc'
+  );
+
+  $items['admin/build/storage/classes/create'] = array(
+    'title' => 'Create class',
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_LOCAL_TASK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('storage_api_create_class_form'),
+    'file' => 'admin.inc'
+  );
+
+  $items['admin/build/storage/classes/%storage_api_class'] = array(
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_CALLBACK,
+    'page callback' => '_storage_api_class',
+    'page arguments' => array(4),
+    'file' => 'admin.inc'
+  );
+  
+  $items['admin/build/storage/classes/%storage_api_class/view'] = array(
+    'title' => 'View',
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => 0,
+    'file' => 'admin.inc'
+  );
+  
+  $items['admin/build/storage/classes/%storage_api_class/edit'] = array(
+    'title' => 'Edit',
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_LOCAL_TASK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('storage_api_class_edit_form', 4),
+    'weight' => 1,
+    'file' => 'admin.inc'
+  );
+  
+  $items['admin/build/storage/classes/%storage_api_class/destroy'] = array(
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_CALLBACK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('storage_api_class_destroy_form', 4),
+    'file' => 'admin.inc'
+  );
+  
+  $items['admin/build/storage/classes/%storage_api_class/add'] = array(
+    'title' => 'Add container',
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_LOCAL_TASK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('storage_api_class_add_container_form', 4),
+    'weight' => 2,
+    'file' => 'admin.inc'
+  );
+  
+  $items['admin/build/storage/classes/%storage_api_class/remove/%storage_api_container'] = array(
+    'title' => 'Remove container',
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_CALLBACK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('storage_api_class_remove_container_form', 4, 6),
+    'file' => 'admin.inc'
+  );
+
   return $items;
 }
 
 
-function storage_api_db_insert_id() {
-  global $db_type, $active_db;
+function storage_api_file_load($file_id) {
 
-  switch ($db_type) {
-    case 'mysql':
-      return mysql_insert_id($active_db);
-    case 'mysqli':
-      return mysqli_insert_id($active_db);
-  }
+  if(!$file_id)
+    return FALSE;
+
+  $file = db_fetch_array(db_query("
+    SELECT *
+    FROM {storage_files}
+    LEFT JOIN {storage_objects}
+      ON {storage_files}.object_id = {storage_objects}.object_id
+    LEFT JOIN {storage_selectors}
+      ON {storage_files}.selector_id = {storage_selectors}.selector_id
+    LEFT JOIN {storage_classes}
+      ON {storage_selectors}.class_id = {storage_classes}.class_id
+    WHERE {storage_files}.file_id = %d
+  ",
+    $file_id
+  ));
+  
+  if(!$file)
+    return FALSE;
+  
+  $file['data'] = unserialize($file['data']);
+  $file['options'] = unserialize($file['options']);
+  
+  return $file;
+}
+
+
+function storage_api_service_load($service_id) {
+
+  if(!$service_id)
+    return FALSE;
+
+  $service = db_fetch_array(db_query("
+    SELECT *
+    FROM {storage_services}
+    WHERE service_id = '%s'
+  ",
+    $service_id
+  ));
+  
+  if(!$service)
+    return FALSE;
+  
+  $info = _storage_api_service_invoke($service_id, 'service_info');
+
+  return $service + $info;
+}
+
+
+function storage_api_container_load($container_id) {
+
+  if(!$container_id)
+    return FALSE;
+    
+  $container = db_fetch_array(db_query("
+    SELECT *
+    FROM {storage_containers}
+    WHERE container_id = %d
+  ",
+    $container_id
+  ));
+  
+  if(!$container)
+    return FALSE;
+  
+  $container['settings'] = unserialize($container['settings']);
+
+  return $container;
+}
+
+
+function storage_api_class_load($class_id) {
+
+  $class = db_fetch_array(db_query("
+    SELECT *
+    FROM {storage_classes}
+    WHERE class_id = %d
+  ",
+    $class_id
+  ));
+  
+  if(!$class)
+    return FALSE;
+  
+  $class['options'] = unserialize($container['options']);
+  
+  return $class;
 }
 
 
@@ -110,7 +345,7 @@ function storage_api_db_insert($table, $fields = NULL, $data = NULL) {
     ");
   }
 
-  return storage_api_db_insert_id();
+  return db_last_insert_id($table, $serial_field);    // todo: determine $serial_field for postgres
 }
 
 
@@ -217,7 +452,7 @@ function _storage_api_log_serving($file, $container_id) {
     $file['size'],
     $user->uid,
     session_id(),
-    ip2long($_SERVER['REMOTE_ADDR']),
+    ip2long(ip_address()),
     $_SERVER['REQUEST_TIME'],
     substr($_SERVER['HTTP_REFERER'], 0, 255)
   );
@@ -259,31 +494,40 @@ function _storage_api_access_control($file) {
 }
 
 
-function _storage_api_serve($file_id, $get_url = FALSE) {
+function _storage_api_service_unavailable() {
+  drupal_set_header('HTTP/1.1 503 Service Unavailable');
+  watchdog('service unavailable', check_plain($_GET['q']), NULL, WATCHDOG_WARNING);
 
-  $file = storage_api_file_load($file_id);
-  
-  if(!$file) {
-
-    if($get_url) {
-      return;
-    }
-    else {
-      header('HTTP/1.1 404 Not Found');
-      exit();
-    }
+  // Keep old path for reference.
+  if (!isset($_REQUEST['destination'])) {
+    $_REQUEST['destination'] = $_GET['q'];
   }
-  
+
+  $path = drupal_get_normal_path(variable_get('site_503', ''));
+  if ($path && $path != $_GET['q']) {
+    // Set the active item in case there are tabs to display or other
+    // dependencies on the path.
+    menu_set_active_item($path);
+    $return = menu_execute_active_handler($path);
+  }
+
+  if (empty($return) || $return == MENU_NOT_FOUND || $return == MENU_ACCESS_DENIED) {
+    drupal_set_title(t('Service unavailable'));
+    $return = t('The requested page is not currently available.');
+  }
+  print theme('page', $return);
+}
+
+
+function _storage_api_serve($file, $get_url = FALSE) {
+
   if($file['options']['access_control']) {
     if(!_storage_api_access_control($file)) {
     
-      if($get_url) {
-        return;
-      }
-      else {
-        header('HTTP/1.1 403 Forbidden');
-        exit();
-      }
+      if(!$get_url)
+        drupal_access_denied();
+
+      return;
     }
   }
   
@@ -343,13 +587,10 @@ function _storage_api_serve($file_id, $get_url = FALSE) {
     }
     else {
     
-      if($get_url) {
-        return;
-      }
-      else {
-        header('HTTP/1.1 503 Service Unavailable');
-        exit();
-      }
+      if(!$get_url)
+        _storage_api_service_unavailable();
+
+      return;
     }
   }
   
@@ -385,9 +626,9 @@ function _storage_api_serve($file_id, $get_url = FALSE) {
 }
 
 
-function _storage_api_serve_callback($file_id) {
+function _storage_api_serve_callback($file) {
   
-  _storage_api_serve($file_id);
+  _storage_api_serve($file);    // must be called with only one argument
 }
 
 
@@ -401,13 +642,13 @@ function storage_api_serve_url($file, $absolute = FALSE) {
 
   if(!$file['options']['redirect']) {
 
-    $url = _storage_api_serve($file['file_id'], TRUE);
+    $url = _storage_api_serve($file, TRUE);
     
     if($url)
       return $url;
   }
   
-  return url(_storage_api_serve_path($file), NULL, NULL, $absolute);
+  return url(_storage_api_serve_path($file), array('absolute' => $absolute));
 }
 
 
@@ -566,7 +807,7 @@ function _storage_api_get_object_id($filepath) {
       mimedetect_mime(array('filepath' => $filepath))
     );
     
-    $object_id = storage_api_db_insert_id();
+    $object_id = db_last_insert_id('storage_objects', 'object_id');
     $new_object = TRUE;
   }
   
@@ -682,7 +923,7 @@ function storage_api_inherit_servings($new_file_id, $old_file_id) {
 
 
 function storage_api_add_file_from_filepath($filepath, $selector_id, $options = array()) {
-  
+
   // find the container with the lowest priority in the class
   
   $container = _storage_api_get_lowest_container($selector_id);
@@ -751,7 +992,7 @@ function storage_api_add_file_from_filepath($filepath, $selector_id, $options = 
     @unlink($filepath);
   }
   
-  $message = t('File added') . ($file['filename'] ? (': ' . $file['filename'] . ' ') : '') . '. <br />';
+  $message = 'File added' . ($file['filename'] ? (': ' . $file['filename'] . ' ') : '') . '. <br />';
   $message .= _storage_api_file_log_info($file);
   
   $link = $file['nid'] ? l(t('view'), 'node/' . $file['nid']) : NULL;
@@ -798,7 +1039,7 @@ function storage_api_add_file_from_url($url, $selector_id, $options = array()) {
   $file_id = storage_api_db_insert('storage_files', $fields, $options);
   $file = storage_api_file_load($file_id);
   
-  $message = t('File added from url: ') . $url . ' . <br />';
+  $message = 'File added from url: ' . $url . ' . <br />';
   $message .= _storage_api_file_log_info($file);
   
   watchdog('storage_api', $message);
@@ -907,7 +1148,7 @@ function _storage_api_acquire_from_source_url(&$file) {
         $file['file_id']
       );
 
-      $message = t('Acquired file from url: ') . $file['source_url'] . ' . <br />';
+      $message = 'Acquired file from url: ' . $file['source_url'] . ' . <br />';
       $message .= _storage_api_file_log_info($file);
       
       $link = $file['nid'] ? l(t('view'), 'node/' . $file['nid']) : NULL;
@@ -935,7 +1176,7 @@ function _storage_api_acquire_from_source_url(&$file) {
     
     $file['source_url'] = '';
 
-    $message = t('Failed acquiring file from url: ') . $file['source_url'] . ' . <br />';
+    $message = 'Failed acquiring file from url: ' . $file['source_url'] . ' . <br />';
     $message .= _storage_api_file_log_info($file);
     
     $link = $file['nid'] ? l(t('view'), 'node/' . $file['nid']) : NULL;
@@ -1045,32 +1286,6 @@ function storage_api_get_local_filepath(&$file, &$keep_me) {
 }
 
 
-function storage_api_file_load($file_id) {
-
-  if(!$file_id)
-    return NULL;
-
-  $file = db_fetch_array(db_query("
-    SELECT *
-    FROM {storage_files}
-    LEFT JOIN {storage_objects}
-      ON {storage_files}.object_id = {storage_objects}.object_id
-    LEFT JOIN {storage_selectors}
-      ON {storage_files}.selector_id = {storage_selectors}.selector_id
-    LEFT JOIN {storage_classes}
-      ON {storage_selectors}.class_id = {storage_classes}.class_id
-    WHERE {storage_files}.file_id = %d
-  ",
-    $file_id
-  ));
-  
-  $file['data'] = unserialize($file['data']);
-  $file['options'] = unserialize($file['options']);
-  
-  return $file;
-}
-
-
 function storage_api_remove_file($file_id) {
 
   if(!$file_id)
@@ -1090,28 +1305,10 @@ function storage_api_remove_file($file_id) {
     $file_id
   );
   
-  $message = t('File removed') . ($file['filename'] ? (': ' . $file['filename']) : ' ') . '. <br />';
+  $message = 'File removed' . ($file['filename'] ? (': ' . $file['filename']) : ' ') . '. <br />';
   $message .= _storage_api_file_log_info($file);
   
   watchdog('storage_api', $message);
-}
-
-
-function storage_api_add_file_from_upload($source, $selector_id, $options = array()) {
-
-  $file = file_check_upload($source);
-
-  if(!$file)
-    return;
-  
-  $file = drupal_clone($file);    // stop nasty prob with upload module on PHP 5
-
-  unset($_SESSION['file_uploads'][$source]);
-
-  if(!$options['filename'])
-    $options['filename'] = $file->filename;
-
-  return storage_api_add_file_from_filepath($file->filepath, $selector_id, $options);
 }
 
 
@@ -1197,13 +1394,23 @@ function storage_format_size($count) {
 }
 
 
-function storage_api_form_alter($form_id, &$form) {
+function storage_api_theme() {
+
+  return array(
+    'storage_api_class_edit_form' => array(
+      'arguments' => array('content' => NULL),
+    ),
+  );
+}
+
+
+function storage_api_form_alter(&$form, $form_state, $form_id) {
 
   switch($form_id) {
   
     case 'system_modules':
 
-      $form['#submit']['_storage_api_update_services'] = array();
+      $form['#submit'][] = '_storage_api_update_services';
       break;
   }
 }

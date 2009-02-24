@@ -4,162 +4,7 @@
 // Copyright 2008-2009 Jonathan Brown
 
 
-function _storage_api_admin_menu_items() {
-
-  $items[] = array(
-    'path' => 'admin/build/storage/services/' . arg(4),
-    'access' => user_access('administer site configuration'),
-    'type' => MENU_CALLBACK,
-    'callback' => 'drupal_get_form',
-    'callback arguments' => array('storage_api_service_form', arg(4)),
-  );
-  $items[] = array(
-    'path' => 'admin/build/storage/services/' . arg(4) . '/suspend',
-    'access' => user_access('administer site configuration'),
-    'type' => MENU_CALLBACK,
-    'callback' => 'drupal_get_form',
-    'callback arguments' => array('storage_api_service_suspend_form', arg(4)),
-  );
-  $items[] = array(
-    'path' => 'admin/build/storage/services/' . arg(4) . '/unsuspend',
-    'access' => user_access('administer site configuration'),
-    'type' => MENU_CALLBACK,
-    'callback' => 'drupal_get_form',
-    'callback arguments' => array('storage_api_service_unsuspend_form', arg(4)),
-  );
-  
-  $items[] = array(
-    'path' => 'admin/build/storage/containers/list',
-    'title' => t('List'),
-    'access' => user_access('administer site configuration'),
-    'type' => MENU_DEFAULT_LOCAL_TASK,
-    'weight' => -1
-  );
-  $items[] = array(
-    'path' => 'admin/build/storage/containers/create',
-    'title' => t('Create container'),
-    'access' => user_access('administer site configuration'),
-    'type' => MENU_LOCAL_TASK,
-    'callback' => 'drupal_get_form',
-    'callback arguments' => array('storage_api_create_container_form')
-  );
-  
-  if(is_numeric(arg(4))) {
-    $items[] = array(
-      'path' => 'admin/build/storage/containers/' . arg(4),
-      'access' => user_access('administer site configuration'),
-      'type' => MENU_CALLBACK,
-      'callback' => 'drupal_get_form',
-      'callback arguments' => array('storage_api_container_form', arg(4)),
-    );
-    $items[] = array(
-      'path' => 'admin/build/storage/containers/' . arg(4) . '/view',
-      'title' => t('View'),
-      'access' => user_access('administer site configuration'),
-      'type' => MENU_DEFAULT_LOCAL_TASK,
-      'weight' => 0
-    );
-    $items[] = array(
-      'path' => 'admin/build/storage/containers/' . arg(4) . '/suspend',
-      'access' => user_access('administer site configuration'),
-      'type' => MENU_CALLBACK,
-      'callback' => 'drupal_get_form',
-      'callback arguments' => array('storage_api_container_suspend_form', arg(4)),
-    );
-    $items[] = array(
-      'path' => 'admin/build/storage/containers/' . arg(4) . '/unsuspend',
-      'access' => user_access('administer site configuration'),
-      'type' => MENU_CALLBACK,
-      'callback' => 'drupal_get_form',
-      'callback arguments' => array('storage_api_container_unsuspend_form', arg(4)),
-    );
-    $items[] = array(
-      'path' => 'admin/build/storage/containers/' . arg(4) . '/destroy',
-      'access' => user_access('administer site configuration'),
-      'type' => MENU_CALLBACK,
-      'callback' => 'drupal_get_form',
-      'callback arguments' => array('storage_api_container_destroy_form', arg(4)),
-    );
-    $items[] = array(
-      'path' => 'admin/build/storage/containers/' . arg(4) . '/edit',
-      'title' => t('Edit'),
-      'access' => user_access('administer site configuration'),
-      'type' => MENU_LOCAL_TASK,
-      'callback' => 'drupal_get_form',
-      'callback arguments' => array('storage_api_container_edit_form', arg(4)),
-      'weight' => 1
-    );
-  }
-  
-  $items[] = array(
-    'path' => 'admin/build/storage/classes/list',
-    'title' => t('List'),
-    'access' => user_access('administer site configuration'),
-    'type' => MENU_DEFAULT_LOCAL_TASK,
-    'weight' => -1
-  );
-  $items[] = array(
-    'path' => 'admin/build/storage/classes/create',
-    'title' => t('Create class'),
-    'access' => user_access('administer site configuration'),
-    'type' => MENU_LOCAL_TASK,
-    'callback' => 'drupal_get_form',
-    'callback arguments' => array('storage_api_create_class_form')
-  );
-
-  if(is_numeric(arg(4))) {
-    $items[] = array(
-      'path' => 'admin/build/storage/classes/' . arg(4),
-      'access' => user_access('administer site configuration'),
-      'type' => MENU_CALLBACK,
-      'callback' => '_storage_api_class',
-      'callback arguments' => array(arg(4))
-    );
-    $items[] = array(
-      'path' => 'admin/build/storage/classes/' . arg(4) . '/view',
-      'title' => t('View'),
-      'access' => user_access('administer site configuration'),
-      'type' => MENU_DEFAULT_LOCAL_TASK,
-      'weight' => 0
-    );
-    $items[] = array(
-      'path' => 'admin/build/storage/classes/' . arg(4) . '/edit',
-      'title' => t('Edit'),
-      'access' => user_access('administer site configuration'),
-      'type' => MENU_LOCAL_TASK,
-      'callback' => 'drupal_get_form',
-      'callback arguments' => array('storage_api_class_edit_form', arg(4)),
-      'weight' => 1
-    );
-    $items[] = array(
-      'path' => 'admin/build/storage/classes/' . arg(4) . '/destroy',
-      'access' => user_access('administer site configuration'),
-      'type' => MENU_CALLBACK,
-      'callback' => 'drupal_get_form',
-      'callback arguments' => array('storage_api_class_destroy_form', arg(4)),
-    );
-    $items[] = array(
-      'path' => 'admin/build/storage/classes/' . arg(4) . '/add',
-      'title' => t('Add container'),
-      'access' => user_access('administer site configuration'),
-      'type' => MENU_LOCAL_TASK,
-      'callback' => 'drupal_get_form',
-      'callback arguments' => array('storage_api_class_add_container_form', arg(4)),
-      'weight' => 2
-    );
-    $items[] = array(
-      'path' => 'admin/build/storage/classes/' . arg(4) . '/remove/' . arg(6),
-      'title' => t('Remove container'),
-      'access' => user_access('administer site configuration'),
-      'type' => MENU_CALLBACK,
-      'callback' => 'drupal_get_form',
-      'callback arguments' => array('storage_api_class_remove_container_form', arg(4), arg(6)),
-    );
-  }
-  
-  return $items;
-}
-
+_storage_api_update_services();
 
 function _storage_api_trash_icon() {
 
@@ -173,22 +18,6 @@ function _storage_api_trash_icon() {
 // Services
 //
 
-
-
-function _storage_api_load_service($service_id) {
-
-  $service = db_fetch_array(db_query("
-    SELECT *
-    FROM {storage_services}
-    WHERE service_id = '%s'
-  ",
-    $service_id
-  ));
-  
-  $info = _storage_api_service_invoke($service_id, 'service_info');
-
-  return $service + $info;
-}
 
 
 function _storage_api_get_service_names() {
@@ -270,15 +99,7 @@ function _storage_api_services() {
 }
 
 
-function storage_api_service_form($service_id) {
-
-  $service = _storage_api_load_service($service_id);
-  
-  if(!$service) {
-    drupal_not_found();
-    die();
-  }
-  
+function storage_api_service_form($form_state, $service) {
 
   drupal_set_title(t('Storage service: ') . $service['name']);
 
@@ -288,22 +109,19 @@ function storage_api_service_form($service_id) {
     '#value' => '<p>' . $output . '</p>'
   );
   
-  $form['service_id'] = array(
-    '#type' => 'value',
-    '#value' => $service_id
-  );
-  
-  if($service['suspended']) {
+  if(!$service['suspended']) {
 
-    $form['unsuspend'] = array(
+    $form['suspend'] = array(
       '#type' => 'submit',
-      '#value' => t('Unsuspend')
+      '#value' => t('Suspend'),
+      '#submit' => array('storage_api_service_form_suspend')
     );
   }
   else {
-    $form['suspend'] = array(
+    $form['unsuspend'] = array(
       '#type' => 'submit',
-      '#value' => t('Suspend')
+      '#value' => t('Unsuspend'),
+      '#submit' => array('storage_api_service_form_unsuspend')
     );
   }
 
@@ -311,94 +129,74 @@ function storage_api_service_form($service_id) {
 }
 
 
-function storage_api_service_form_submit($form_id, $form_values) {
-  
-  switch($form_values['op']) {
-    
-    case t('Suspend'):
+function storage_api_service_form_suspend($form, &$form_state) {
+  $service = $form['#parameters'][2];
 
-      return 'admin/build/storage/services/' . $form_values['service_id'] . '/suspend';
-
-
-    case t('Unsuspend'):
-    
-      return 'admin/build/storage/services/' . $form_values['service_id'] . '/unsuspend';
-
-  }
+  $form_state['redirect'] = 'admin/build/storage/services/' . $service['service_id'] . '/suspend';
 }
 
 
-function storage_api_service_suspend_form($service_id) {
+function storage_api_service_form_unsuspend($form, &$form_state) {
+  $service = $form['#parameters'][2];
 
-  $name = _storage_api_get_service_name($service_id);
-
-  $form['service_id'] = array(
-    '#type' => 'value',
-    '#value' => $service_id
-  );
-
-  return confirm_form($form, 'Are you sure you want to suspend storage service <i>' . $name . '</i> ?', 
-    'admin/build/storage/services/' . $service_id, t(''));
+  $form_state['redirect'] = 'admin/build/storage/services/' . $service['service_id'] . '/unsuspend';
 }
 
 
-function storage_api_service_suspend_form_submit($form_id, $form_values) {
-  
-  $name = _storage_api_get_service_name($form_values['service_id']);
+function storage_api_service_suspend_form($form_state, $service) {
 
+  return confirm_form($form, 'Are you sure you want to suspend storage service <i>' . $service['name'] . '</i> ?', 
+    'admin/build/storage/services/' . $service['service_id'], t(''));
+}
+
+
+function storage_api_service_suspend_form_submit($form, &$form_state) {
+
+  $service = $form['#parameters'][2];
+  
   db_query("
     UPDATE {storage_services}
     SET suspended = 1
     WHERE service_id = '%s'
   ",
-    $form_values['service_id']
+    $service['service_id']
   );
   
-  $path = 'admin/build/storage/services/' . $form_values['service_id']; 
-
-  $message = 'Storage service <i>' . $name . '</i> has been suspended.';
+  $message = 'Storage service <i>' . $service['name'] . '</i> has been suspended.';
+  $path = 'admin/build/storage/services/' . $service['service_id']; 
 
   drupal_set_message($message);
   watchdog('storage_api', $message, WATCHDOG_NOTICE, l(t('view'), $path));
 
-  return $path;
+  $form_state['redirect'] = $path;
 }
 
 
-function storage_api_service_unsuspend_form($service_id) {
+function storage_api_service_unsuspend_form($form_state, $service) {
 
-  $name = _storage_api_get_service_name($service_id);
-
-  $form['service_id'] = array(
-    '#type' => 'value',
-    '#value' => $service_id
-  );
-
-  return confirm_form($form, 'Are you sure you want to unsuspend storage service <i>' . $name . '</i> ?', 
-    'admin/build/storage/services/' . $service_id, t(''));
+  return confirm_form($form, 'Are you sure you want to unsuspend storage service <i>' . $service['name'] . '</i> ?', 
+    'admin/build/storage/services/' . $service['service_id'], t(''));
 }
 
 
-function storage_api_service_unsuspend_form_submit($form_id, $form_values) {
-  
-  $name = _storage_api_get_service_name($form_values['service_id']);
+function storage_api_service_unsuspend_form_submit($form, &$form_state) {
 
   db_query("
     UPDATE {storage_services}
     SET suspended = 0
     WHERE service_id = '%s'
   ",
-    $form_values['service_id']
+    $form['#parameters'][2]['service_id']
   );
   
-  $path = 'admin/build/storage/services/' . $form_values['service_id'];
+  $path = 'admin/build/storage/services/' . $form['#parameters'][2]['service_id']; 
 
-  $message = 'Storage service <i>' . $name . '</i> has been unsuspended.';
-  
+  $message = 'Storage service <i>' . $form['#parameters'][2]['name'] . '</i> has been unsuspended.';
+
   drupal_set_message($message);
   watchdog('storage_api', $message, WATCHDOG_NOTICE, l(t('view'), $path));
-  
-  return $path;
+
+  $form_state['redirect'] = $path;
 }
 
 
@@ -407,22 +205,6 @@ function storage_api_service_unsuspend_form_submit($form_id, $form_values) {
 // Containers
 //
 
-
-
-function _storage_api_load_container($container_id) {
-
-  $container = db_fetch_array(db_query("
-    SELECT *
-    FROM {storage_containers}
-    WHERE container_id = %d
-  ",
-    $container_id
-  ));
-  
-  $container['settings'] = unserialize($container['settings']);
-
-  return $container;
-}
 
 
 function _storage_api_containers() {
@@ -481,16 +263,21 @@ function _storage_api_containers() {
 }
 
 
-function storage_api_create_container_form($form_values = NULL) {
+function storage_api_create_container_form($form_state) {
 
-  if(!isset($form_values)) {
+  if(!isset($form_state)) {
     $step = 1;
   }
   else {
-    if($form_values['op'] == t('Back'))
-      $step = $form_values['step'] - 1;
-    else
-      $step = $form_values['step'] + 1;
+    if($form_state['clicked_button']['#value'] == 'Back') {
+      $step = $form_state['values']['step'] - 1;
+    }
+    else {
+      $step = $form_state['values']['step'];
+      
+      if(!form_get_errors())
+        $step++;
+    }
   }
 
   $form['step'] = array(
@@ -505,23 +292,27 @@ function storage_api_create_container_form($form_values = NULL) {
       $form['name'] = array(
         '#title' => t('Name'),
         '#type' => 'textfield',
-        '#required' => TRUE
+        '#required' => TRUE,
+        '#default_value' => $form_state['storage']['name']
       );
       
       $form['service_id'] = array(
         '#type' => 'select',
         '#title' => t('Service'),
-        '#options' => _storage_api_get_service_names()
+        '#options' => _storage_api_get_service_names(),
+        '#default_value' => $form_state['storage']['service_id']
       );
       
       $form['serving'] = array(
         '#type' => 'checkbox',
-        '#title' => t('Serving')
+        '#title' => t('Serving'),
+        '#default_value' => $form_state['storage']['serving']
       );
       
       $form['access_control'] = array(
         '#type' => 'checkbox',
-        '#title' => t('Enforce access control')
+        '#title' => t('Enforce access control'),
+        '#default_value' => $form_state['storage']['access_control']
       );
 
       $form['next'] = array(
@@ -534,42 +325,22 @@ function storage_api_create_container_form($form_values = NULL) {
       
     case 2:
     
-      $service_name = _storage_api_get_service_name($form_values['service_id']);
+      $service_name = _storage_api_get_service_name($form_state['values']['service_id']);
     
       $form[] = array(
-        '#value' => '<p>Name: ' . $form_values['name'] . 
+        '#value' => '<p>Name: ' . $form_state['values']['name'] . 
           '<br />Service: ' . $service_name . 
-          '<br />Serving: ' . ($form_values['serving'] ? t('Yes') : t('No')) . 
-          '<br />Access control: ' . ($form_values['access_control'] ? t('Yes') : t('No')) . '</p>'
+          '<br />Serving: ' . ($form_state['values']['serving'] ? t('Yes') : t('No')) . 
+          '<br />Access control: ' . ($form_state['values']['access_control'] ? t('Yes') : t('No')) . '</p>'
       );
     
-      $form['name'] = array(
-        '#type' => 'hidden',
-        '#value' => $form_values['name']
-      );
-      
-      $form['service_id'] = array(
-        '#type' => 'hidden',
-        '#value' => $form_values['service_id']
-      );
-
-      $form['serving'] = array(
-        '#type' => 'hidden',
-        '#value' => $form_values['serving']
-      );
-      
-      $form['access_control'] = array(
-        '#type' => 'hidden',
-        '#value' => $form_values['access_control']
-      );
-      
       $form['settings'] = array(
         '#type' => 'fieldset',
         '#title' => $service_name . t(' settings'),
         '#tree' => TRUE
       );
       
-      $form['settings'] += _storage_api_service_invoke($form_values['service_id'], 'container_settings_form');
+      $form['settings'] += _storage_api_service_invoke($form_state['values']['service_id'], 'container_settings_form');
       
       $form['back'] = array(
         '#type' => 'button',
@@ -584,39 +355,45 @@ function storage_api_create_container_form($form_values = NULL) {
       break;
   }
   
-  $form['#multistep'] = TRUE;
-//  $form['#redirect'] = FALSE;
-
   return $form;
 }
 
 
-function storage_api_create_container_form_validate($form_id, $form_values) {
+function storage_api_create_container_form_validate($form, &$form_state) {
 
-  switch($form_values['step']) {
+  if($form_state['clicked_button']['#value'] == 'Back')
+    return;
+
+  switch($form_state['values']['step']) {
   
     case 1:
+
+      if($form_state['values']['serving'] && $form_state['values']['access_control'])
+        $form_state['values']['serving'] = _STORAGE_API_ACCESS_CONTROL;
+    
+      $form_state['storage'] = array(
+        'name' => $form_state['values']['name'],
+        'service_id' => $form_state['values']['service_id'],
+        'serving' => $form_state['values']['serving']
+      );
+      
       break;
       
       
     case 2:
     
-      if($form_values['serving'] && $form_values['access_control'])
-        $form_values['serving'] = _STORAGE_API_ACCESS_CONTROL;
+      $form_state['storage']['settings'] = $form_state['values']['settings'];
     
-      _storage_api_service_invoke($form_values['service_id'], 'container_validate', $form_values);
+      _storage_api_service_invoke($form_state['storage']['service_id'], 'container_validate', $form_state['storage']);
 
       break;
   }
 }
 
 
-function storage_api_create_container_form_submit($form_id, $form_values) {
+function storage_api_create_container_form_submit($form, &$form_state) {
 
-  if($form_values['serving'] && $form_values['access_control'])
-    $form_values['serving'] = _STORAGE_API_ACCESS_CONTROL;
-    
-  _storage_api_service_invoke($form_values['service_id'], 'container_create', $form_values);
+  _storage_api_service_invoke($form_state['storage']['service_id'], 'container_create', $form_state['storage']);
 
   db_query("
     INSERT INTO {storage_containers}
@@ -625,27 +402,27 @@ function storage_api_create_container_form_submit($form_id, $form_values) {
       serving = %d,
       settings = '%s'
   ",
-    $form_values['name'],
-    $form_values['service_id'],
-    $form_values['serving'],
-    serialize($form_values['settings'])
+    $form_state['storage']['name'],
+    $form_state['storage']['service_id'],
+    $form_state['storage']['serving'],
+    serialize($form_state['storage']['settings'])
   );
   
-  $container_id = storage_api_db_insert_id();
+  $container_id = db_last_insert_id('storage_containers', 'container_id');
   $path = 'admin/build/storage/containers/' . $container_id;
   
-  $message = 'Storage container <i>' . $form_values['name'] . '</i> has been created.';
+  $message = 'Storage container <i>' . $form_state['storage']['name'] . '</i> has been created.';
 
   drupal_set_message($message);
   watchdog('storage_api', $message, WATCHDOG_NOTICE, l(t('view'), $path));
 
-  return $path;
+  unset($form_state['storage']);
+  $form_state['rebuild'] = FALSE;
+  $form_state['redirect'] = $path;
 }
 
 
-function storage_api_container_form($container_id) {
-
-  $container = _storage_api_load_container($container_id);
+function storage_api_container_form($form_state, $container) {
 
   drupal_set_title(t('Storage container: ') . $container['name']);
 
@@ -663,73 +440,62 @@ function storage_api_container_form($container_id) {
     '#value' => '<p>' . implode("<br />\n", $output) . '</p>'
   );
   
-  $form['container_id'] = array(
-    '#type' => 'value',
-    '#value' => $container_id
-  );
-  
-  if($container['suspended']) {
+  if(!$container['suspended']) {
 
-    $form['unsuspend'] = array(
+    $form['suspend'] = array(
       '#type' => 'submit',
-      '#value' => t('Unsuspend')
+      '#value' => t('Suspend'),
+      '#submit' => array('storage_api_container_form_suspend')
     );
   }
   else {
-    $form['suspend'] = array(
+    $form['unsuspend'] = array(
       '#type' => 'submit',
-      '#value' => t('Suspend')
+      '#value' => t('Unsuspend'),
+      '#submit' => array('storage_api_container_form_unsuspend')
     );
   }
 
   $form['destroy'] = array(
     '#type' => 'submit',
-    '#value' => t('Destroy')
+    '#value' => t('Destroy'),
+    '#submit' => array('storage_api_container_form_destroy')
   );
 
   return $form;
 }
 
 
-function storage_api_container_form_submit($form_id, $form_values) {
-  
-  switch($form_values['op']) {
-    
-    case t('Suspend'):
+function storage_api_container_form_suspend($form, &$form_state) {
+  $container = $form['#parameters'][2];
 
-      return 'admin/build/storage/containers/' . $form_values['container_id'] . '/suspend';
-
-
-    case t('Unsuspend'):
-    
-      return 'admin/build/storage/containers/' . $form_values['container_id'] . '/unsuspend';
-
-
-    case t('Destroy'):
-    
-      return 'admin/build/storage/containers/' . $form_values['container_id'] . '/destroy';
-
-  }
+  $form_state['redirect'] = 'admin/build/storage/containers/' . $container['container_id'] . '/suspend';
 }
 
 
-function storage_api_container_suspend_form($container_id) {
+function storage_api_container_form_unsuspend($form, &$form_state) {
+  $container = $form['#parameters'][2];
 
-  $container = _storage_api_load_container($container_id);
+  $form_state['redirect'] = 'admin/build/storage/containers/' . $container['container_id'] . '/unsuspend';
+}
 
-  $form['container_id'] = array(
-    '#type' => 'value',
-    '#value' => $container_id
-  );
+
+function storage_api_container_form_destroy($form, &$form_state) {
+  $container = $form['#parameters'][2];
+
+  $form_state['redirect'] = 'admin/build/storage/containers/' . $container['container_id'] . '/destroy';
+}
+
+
+function storage_api_container_suspend_form($form_state, $container) {
 
   return confirm_form($form, 'Are you sure you want to suspend storage container <i>' . $container['name'] . '</i> ?', 
-    'admin/build/storage/containers/' . $container_id, t(''));
+    'admin/build/storage/containers/' . $container['container_id'], t(''));
 }
 
 
-function storage_api_container_suspend_form_submit($form_id, $form_values) {
-  
-  $container = _storage_api_load_container($form_values['container_id']);
+function storage_api_container_suspend_form_submit($form, &$form_state) {
+  $container = $form['#parameters'][2];
 
   db_query("
     UPDATE {storage_containers}
@@ -746,27 +512,19 @@ function storage_api_container_suspend_form_submit($form_id, $form_values) {
   drupal_set_message($message);
   watchdog('storage_api', $message, WATCHDOG_NOTICE, l(t('view'), $path));
 
-  return $path;
+  $form_state['redirect'] = $path;
 }
 
 
-function storage_api_container_unsuspend_form($container_id) {
-
-  $container = _storage_api_load_container($container_id);
-
-  $form['container_id'] = array(
-    '#type' => 'value',
-    '#value' => $container_id
-  );
+function storage_api_container_unsuspend_form($form_state, $container) {
 
   return confirm_form($form, 'Are you sure you want to unsuspend storage container <i>' . 
-    $container['name'] . '</i> ?', 'admin/build/storage/containers/' . $container_id, t(''));
+    $container['name'] . '</i> ?', 'admin/build/storage/containers/' . $container['container_id'], t(''));
 }
 
 
-function storage_api_container_unsuspend_form_submit($form_id, $form_values) {
-  
-  $container = _storage_api_load_container($form_values['container_id']);
+function storage_api_container_unsuspend_form_submit($form, &$form_state) {
+  $container = $form['#parameters'][2];
 
   db_query("
     UPDATE {storage_containers}
@@ -783,27 +541,19 @@ function storage_api_container_unsuspend_form_submit($form_id, $form_values) {
   drupal_set_message($message);
   watchdog('storage_api', $message, WATCHDOG_NOTICE, l(t('view'), $path));
   
-  return $path;
+  $form_state['redirect'] = $path;
 }
 
 
-function storage_api_container_destroy_form($container_id) {
-
-  $container = _storage_api_load_container($container_id);
-
-  $form['container_id'] = array(
-    '#type' => 'value',
-    '#value' => $container_id
-  );
+function storage_api_container_destroy_form($form_state, $container) {
 
   return confirm_form($form, 'Are you sure you want to destroy storage container <i>' . 
-    $container['name'] . '</i> ?', 'admin/build/storage/containers/' . $container_id, t(''));
+    $container['name'] . '</i> ?', 'admin/build/storage/containers/' . $container['container_id'], t(''));
 }
 
 
-function storage_api_container_destroy_form_submit($form_id, $form_values) {
-  
-  $container = _storage_api_load_container($form_values['container_id']);
+function storage_api_container_destroy_form_submit($form, &$form_state) {
+  $container = $form['#parameters'][2];
 
   db_query("
     DELETE FROM {storage_containers}
@@ -840,19 +590,17 @@ function storage_api_container_destroy_form_submit($form_id, $form_values) {
   drupal_set_message($message);
   watchdog('storage_api', $message);
 
-  return 'admin/build/storage/containers';
+  $form_state['redirect'] = 'admin/build/storage/containers';
 }
 
 
-function storage_api_container_edit_form($container_id) {
+function storage_api_container_edit_form($form_state, $container) {
 
-  $container = _storage_api_load_container($container_id);
-  
   drupal_set_title(t('Storage container: ') . $container['name'] . 
     ' (' . _storage_api_get_service_name($container['service_id']) . ')');
   
   $form['name'] = array(
-    '#title' => t('Name'),
+    '#title' => 'Name',
     '#type' => 'textfield',
     '#required' => TRUE,
     '#default_value' => $container['name']
@@ -863,32 +611,28 @@ function storage_api_container_edit_form($container_id) {
     
   $form['settings']['#tree'] = TRUE;
 */  
-  $form['container_id'] = array(
-    '#type' => 'value',
-    '#value' => $container_id
-  );
-
   $form['submit'] = array(
     '#type' => 'submit',
-    '#value' => t('Save')
+    '#value' => 'Save'
   );
   
   return $form;
 }
 
 
-function storage_api_container_edit_form_submit($form_id, $form_values) {
+function storage_api_container_edit_form_submit($form, &$form_state) {
+  $container = $form['#parameters'][2];
 
   db_query("
     UPDATE {storage_containers}
     SET name = '%s'
     WHERE container_id = %d
   ",
-    $form_values['name'],
-    $form_values['container_id']
+    $form_state['values']['name'],
+    $container['container_id']
   );
   
-  return 'admin/build/storage/containers/' . $form_values['container_id'];
+  $form_state['redirect'] = 'admin/build/storage/containers/' . $container['container_id'];
 }
 
 
@@ -896,6 +640,7 @@ function storage_api_container_edit_form_submit($form_id, $form_values) {
 //
 // Classes
 //
+
 
 
 function _storage_api_class_name($class_id) {
@@ -999,40 +744,30 @@ function storage_api_create_class_form() {
 }
 
 
-function storage_api_create_class_form_submit($form_id, $form_values) {
+function storage_api_create_class_form_submit($form, &$form_state) {
 
   db_query("
     INSERT INTO {storage_classes}
     SET name = '%s',
       options = '%s'
   ",
-    $form_values['name'],
-    serialize($form_values['options'])
+    $form_state['values']['name'],
+    serialize($form_state['values']['options'])
   );
   
-  $class_id = storage_api_db_insert_id();
+  $class_id = db_last_insert_id('storage_classes', 'class_id');
   $path = 'admin/build/storage/classes/' . $class_id . '/add';
   
-  $message = 'Storage class <i>' . $form_values['name'] . '</i> has been created.';
+  $message = 'Storage class <i>' . $form_state['values']['name'] . '</i> has been created.';
 
   drupal_set_message($message);
   watchdog('storage_api', $message, WATCHDOG_NOTICE, l(t('view'), $path));
 
-  return $path;
+  $form_state['redirect'] = $path;
 }
 
 
-function _storage_api_class($class_id) {
-
-  $class = db_fetch_array(db_query("
-    SELECT *
-    FROM {storage_classes}
-    WHERE class_id = %d
-  ",
-    $class_id
-  ));
-  
-  $class['options'] = unserialize($container['options']);
+function _storage_api_class($class) {
 
   drupal_set_title(t('Storage class: ') . $class['name']);
   
@@ -1079,7 +814,7 @@ function _storage_api_class($class_id) {
     WHERE {storage_class_containers}.class_id = %d
     ORDER BY {storage_class_containers}.weight, {storage_containers}.container_id
   ",
-    $class_id, $class_id, $class_id
+    $class['class_id'], $class['class_id'], $class['class_id']
   );
 
   while($container = db_fetch_array($result)) {
@@ -1103,27 +838,12 @@ function _storage_api_class($class_id) {
 }
 
 
-function storage_api_class_edit_form($class_id) {
-
-  $class = db_fetch_array(db_query("
-    SELECT *
-    FROM {storage_classes}
-    WHERE class_id = %d
-  ",
-    $class_id
-  ));
-  
-  $class['options'] = unserialize($class['options']);
+function storage_api_class_edit_form($form_state, $class) {
 
   drupal_set_title(t('Storage class: ') . $class['name']);
 
   $form = _storage_api_class_form_elements($class);
   
-  $form['class_id'] = array(
-    '#type' => 'value',
-    '#value' => $class_id
-  );
-
   $result = db_query("
     SELECT {storage_containers}.container_id, {storage_containers}.name, {storage_containers}.service_id, 
       {storage_class_containers}.weight, {storage_class_containers}.serving
@@ -1133,7 +853,7 @@ function storage_api_class_edit_form($class_id) {
     WHERE class_id = %d
     ORDER BY {storage_class_containers}.weight, {storage_containers}.container_id
   ",
-    $class_id
+    $class['class_id']
   );
 
   $form['container_ids'] = array('#tree' => TRUE);
@@ -1144,10 +864,7 @@ function storage_api_class_edit_form($class_id) {
 
   while($container = db_fetch_array($result)) {
   
-    $form['container_ids'][] = array(
-      '#type' => 'value',
-      '#value' => $container['container_id']
-    );
+    $form['#container_ids'][] = $container['container_id'];
 
     $form['names'][$container['container_id']] = array(
       '#value' => l($container['name'], 
@@ -1156,7 +873,9 @@ function storage_api_class_edit_form($class_id) {
     
     $form['weights'][$container['container_id']] = array(
       '#type' => 'weight', 
-      '#default_value' => $container['weight']
+      '#default_value' => $container['weight'],
+      '#attributes' => array('class' => "my-elements-weight")
+
     );
 
     $form['services'][$container['container_id']] = array(
@@ -1174,12 +893,13 @@ function storage_api_class_edit_form($class_id) {
     );
 
     $form['deletes'][$container['container_id']] = array(
-      '#value' => l($trash, 'admin/build/storage/classes/' . $class_id . '/remove/' . $container['container_id'], 
-        array(), NULL, NULL, FALSE, TRUE)
+      '#value' => l($trash, 'admin/build/storage/classes/' . $class['class_id'] . '/remove/' . $container['container_id'], 
+        array('html' => TRUE))
     );
   }
 
-
+//  $form['#theme'] = 'storage_api_class_edit_form'; // this will be called as theme('my_shared_form').
+ 
   $form['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Save')
@@ -1187,9 +907,10 @@ function storage_api_class_edit_form($class_id) {
 
   $form['destroy'] = array(
     '#type' => 'submit',
-    '#value' => t('Destroy')
+    '#value' => t('Destroy'),
+    '#submit' => array('storage_api_class_edit_form_destroy')
   );
-
+  
   return $form;
 }
 
@@ -1201,7 +922,7 @@ function theme_storage_api_class_edit_form($form) {
 
   $header = array(t('Container'), t('Service'), t('Weight'), t('Serving'), NULL);
   $rows = array();
-  foreach (element_children($form['names']) as $id) {
+  foreach(element_children($form['names']) as $id) {
     // Don't take form control structures
     if (is_array($form['names'][$id])) {
       unset($row);
@@ -1212,25 +933,25 @@ function theme_storage_api_class_edit_form($form) {
       $row[] = drupal_render($form['servings'][$id]);
       $row[] = drupal_render($form['deletes'][$id]);
       
-      $rows[] = $row;
+      $rows[] = array(
+        'data' => $row,
+        'class' => 'draggable',
+      );
     }
   }
 
-  $output .= theme('table', $header, $rows);
+  $output .= theme('table', $header, $rows, array('id' => 'my-module-table'));
   
   $output .= drupal_render($form);
+  
+  drupal_add_tabledrag('my-module-table', 'order', 'sibling', 'my-elements-weight');
 
   return $output;
 }
 
 
-function storage_api_class_edit_form_submit($form_id, $form_values) {
-
-  if($form_values['op'] == t('Destroy')) {
-
-    return 'admin/build/storage/classes/' . $form_values['class_id'] . '/destroy';
-  }
-
+function storage_api_class_edit_form_submit($form, &$form_state) {
+  $class = $form['#parameters'][2];
 
   db_query("
     UPDATE {storage_classes}
@@ -1238,12 +959,12 @@ function storage_api_class_edit_form_submit($form_id, $form_values) {
       options = '%s'
     WHERE class_id = %d
   ",
-    $form_values['name'],
-    serialize($form_values['options']),
-    $form_values['class_id']
+    $form_state['values']['name'],
+    serialize($form_state['values']['options']),
+    $class['class_id']
   );
   
-  foreach ($form_values['container_ids'] as $container_id) {
+  foreach ($form['#container_ids'] as $container_id) {
 
     db_query("
       UPDATE {storage_class_containers}
@@ -1252,56 +973,59 @@ function storage_api_class_edit_form_submit($form_id, $form_values) {
       WHERE class_id = %d
         AND container_id = %d
     ", 
-      $form_values['weights'][$container_id],
-      $form_values['servings'][$container_id],
-      $form_values['class_id'], $container_id
+      $form_state['values']['weights'][$container_id],
+      $form_state['values']['servings'][$container_id],
+      $class['class_id'], $container_id
     );
   }
   
-  $path = 'admin/build/storage/classes/' . $form_values['class_id'];
+  $path = 'admin/build/storage/classes/' . $class['class_id'];
 
-  $message = 'Storage class <i>' . $form_values['name'] . '</i> has been updated.';
+  $message = 'Storage class <i>' . $class['name'] . '</i> has been updated.';
 
   drupal_set_message($message);
   watchdog('storage_api', $message, WATCHDOG_NOTICE, l(t('view'), $path));
 
-  return $path;
+  $form_state['redirect'] = $path;
 }
 
 
-function storage_api_class_destroy_form($class_id) {
+function storage_api_class_edit_form_destroy($form, &$form_state) {
+  $class = $form['#parameters'][2];
 
-  $form['class_id'] = array(
-    '#type' => 'value',
-    '#value' => $class_id
-  );
+  $form_state['redirect'] = 'admin/build/storage/classes/' . $class['class_id'] . '/destroy';
+}
+
+
+function storage_api_class_destroy_form($form_state, $class) {
 
   return confirm_form($form, 'Are you sure you want to destroy storage class <i>' . 
-    _storage_api_class_name($class_id) . '</i> ?', 'admin/build/storage/classes/' . $class_id, t(''));
+    $class['name'] . '</i> ?', 'admin/build/storage/classes/' . $class['class_id'], t(''));
 }
 
 
-function storage_api_class_destroy_form_submit($form_id, $form_values) {
+function storage_api_class_destroy_form_submit($form, &$form_state) {
+  $class = $form['#parameters'][2];
   
   db_query("
     DELETE FROM {storage_classes}
     WHERE class_id = %d
   ",
-    $form_values['class_id']
+    $class['class_id']
   );
 
-  $message = 'Storage class <i>' . _storage_api_class_name($form_values['class_id']) . '</i> has been destroyed.';
+  $message = 'Storage class <i>' . _storage_api_class_name($class['class_id']) . '</i> has been destroyed.';
 
   drupal_set_message($message);
   watchdog('storage_api', $message);
 
-  return 'admin/build/storage/classes';
+  $form_state['redirect'] = 'admin/build/storage/classes';
 }
 
 
-function storage_api_class_add_container_form($class_id) {
+function storage_api_class_add_container_form($form_state, $class) {
 
-  drupal_set_title(t('Storage class: ') . _storage_api_class_name($class_id));
+  drupal_set_title(t('Storage class: ') . $class['name']);
 
   $result = db_query("
     SELECT *
@@ -1315,7 +1039,7 @@ function storage_api_class_add_container_form($class_id) {
     )
     ORDER BY name, container_id
   ",
-    $class_id
+    $class['class_id']
   );
   
   while($container = db_fetch_array($result)) {
@@ -1330,11 +1054,6 @@ function storage_api_class_add_container_form($class_id) {
     
     return $form;
   }
-
-  $form['class_id'] = array(
-    '#type' => 'value',
-    '#value' => $class_id
-  );
 
   $form['container_id'] = array(
     '#title' => t('Container'),
@@ -1352,15 +1071,16 @@ function storage_api_class_add_container_form($class_id) {
 }
 
 
-function storage_api_class_add_container_form_submit($form_id, $form_values) {
+function storage_api_class_add_container_form_submit($form, &$form_state) {
+  $class = $form['#parameters'][2];
 
   db_query("
     INSERT IGNORE INTO {storage_class_containers}
     SET class_id = %d,
       container_id = %d
   ",
-    $form_values['class_id'],
-    $form_values['container_id']
+    $class['class_id'],
+    $form_state['values']['container_id']
   );
   
   db_query("
@@ -1372,74 +1092,69 @@ function storage_api_class_add_container_form_submit($form_id, $form_values) {
       WHERE class_id = %d
     )
   ",
-    $form_values['class_id']
+    $class['class_id']
   );
 
-  $container = _storage_api_load_container($form_values['container_id']);
-  $path = 'admin/build/storage/classes/' . $form_values['class_id'];  
+  $container = storage_api_container_load($form_state['values']['container_id']);
+  $path = 'admin/build/storage/classes/' . $class['class_id'];  
   
   $message = 'Storage container <i>' . $container['name'] . 
-    '</i> has been added to class <i>' . _storage_api_class_name($form_values['class_id']) .'</i>.';
+    '</i> has been added to class <i>' . $class['name'] .'</i>.';
   
   drupal_set_message($message);
   watchdog('storage_api', $message, WATCHDOG_NOTICE, l(t('view'), $path));
 
-  return $path . '/edit';
+  $form_state['redirect'] = $path . '/edit';
 }
 
 
-function storage_api_class_remove_container_form($class_id, $container_id) {
+function storage_api_class_remove_container_form($form_state, $class, $container) {
 
-  $form['class_id'] = array(
-    '#type' => 'value',
-    '#value' => $class_id
-  );
+  $form['#class_id'] = $class['class_id'];
+  $form['#container_id'] = $container['container_id'];
 
-  $form['container_id'] = array(
-    '#type' => 'value',
-    '#value' => $container_id
-  );
-
-  $container = _storage_api_load_container($container_id);
-  
   return confirm_form($form, 'Are you sure you want to remove storage container <i>' . $container['name'] . 
-    '</i> from class <i>' . _storage_api_class_name($class_id) . '</i>?', 
-    'admin/build/storage/classes/' . $class_id . '/edit', t(''));
+    '</i> from class <i>' . $class['name'] . '</i>?', 
+    'admin/build/storage/classes/' . $class['class_id'] . '/edit', t(''));
 }
 
 
-function storage_api_class_remove_container_form_submit($form_id, $form_values) {
+function storage_api_class_remove_container_form_submit($form, &$form_state) {
+  $class = $form['#parameters'][2];
+  $container = $form['#parameters'][3];
 
   db_query("
     DELETE FROM {storage_class_containers}
     WHERE class_id = %d
       AND container_id = %d
   ",
-    $form_values['class_id'],
-    $form_values['container_id']
+    $class['class_id'],
+    $container['container_id']
   );
   
   db_query("
     UPDATE {storage_files}
     SET check_me = 1
     WHERE selector_id IN (
+    
       SELECT selector_id
       FROM {storage_selectors}
       WHERE class_id = %d
+      
     )
   ",
-    $form_values['class_id']
+    $class['class_id']
   );
   
-  $container = _storage_api_load_container($form_values['container_id']);
-  $path = 'admin/build/storage/classes/' . $form_values['class_id'];
+  $container = storage_api_container_load($container['container_id']);
+  $path = 'admin/build/storage/classes/' . $class['class_id'];
   
   $message = 'Storage container <i>' . $container['name'] . 
-    '</i> has been removed from class <i>' . _storage_api_class_name($form_values['class_id']) .'</i>.';
+    '</i> has been removed from class <i>' . $class['name'] .'</i>.';
     
   drupal_set_message($message);
   watchdog('storage_api', $message, WATCHDOG_NOTICE, l(t('view'), $path));
   
-  return $path;
+  $form_state['redirect'] = $path;
 }
 
