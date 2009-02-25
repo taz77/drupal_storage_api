@@ -18,6 +18,12 @@ function storage_s3_storage_service_info() {
 }
 
 
+function _storage_s3_signature($components, $secret_access_key) {
+
+  return base64_encode(hash_hmac('sha1', utf8_encode(implode("\n", $components)), $secret_access_key, TRUE));
+}
+
+
 function _storage_s3_request($access_key_id, $secret_access_key, $method, 
   $bucket = NULL, $object_name = NULL, $file = NULL) {
   
@@ -50,8 +56,10 @@ function _storage_s3_request($access_key_id, $secret_access_key, $method,
         
         $headers = array_merge($headers, storage_api_http_headers($file));
 
-        $headers[] = 'x-amz-acl: public-read';
-        $components[] = 'x-amz-acl:public-read';
+        if(!$file['private']) {
+          $headers[] = 'x-amz-acl: public-read';
+          $components[] = 'x-amz-acl:public-read';
+        }
       }
       else {
         $options[CURLOPT_INFILESIZE] = 0;
@@ -82,7 +90,7 @@ function _storage_s3_request($access_key_id, $secret_access_key, $method,
   
   $components[] = '/' . $bucket . $object_name;
   
-  $signature = base64_encode(hash_hmac('sha1', utf8_encode(implode("\n", $components)), $secret_access_key, TRUE));
+  $signature = _storage_s3_signature($components, $secret_access_key);
   $headers[] = 'Authorization: AWS ' . $access_key_id . ':' . $signature;
 
   $options[CURLOPT_HTTPHEADER] = $headers;
@@ -109,6 +117,29 @@ function _storage_s3_request($access_key_id, $secret_access_key, $method,
   }
   
   return $result;
+}
+
+
+function _storage_s3_url($container, $s3_object) {
+
+  $path = 'http://' . $container['settings']['bucket'] . '.s3.amazonaws.com/' . $s3_object;
+
+  if($container['serving'] == _STORAGE_API_ACCESS_CONTROL) {
+    $query['AWSAccessKeyId'] = $container['settings']['access_key_id'];
+    $query['Expires'] = $_SERVER['REQUEST_TIME'] + 60 * 60;
+    
+    $components = array(
+      'GET',
+      '',
+      '',
+      $query['Expires'],
+      '/' . $container['settings']['bucket'] . '/' . $s3_object
+    );
+    
+    $query['Signature'] = _storage_s3_signature($components, $container['settings']['secret_access_key']);
+  }
+
+  return url($path, array('query' => $query));
 }
 
 
@@ -203,6 +234,9 @@ function storage_s3_storage_container_info($container) {
 
 
 function storage_s3_storage_object_instance_create($container, $file) {
+
+  if($container['serving'] == _STORAGE_API_ACCESS_CONTROL)
+    $file['private'] = TRUE;
   
   $result = _storage_s3_request($container['settings']['access_key_id'], $container['settings']['secret_access_key'],
     'PUT', $container['settings']['bucket'], 'object-' . $file['object_id'], $file);
@@ -231,11 +265,14 @@ function storage_s3_storage_object_instance_get_filepath($container, $file) {
 
 function storage_s3_storage_object_instance_serve($container, $file) {
 
-  return 'http://' . $container['settings']['bucket'] . '.s3.amazonaws.com/' . 'object-' . $file['object_id'];
+  return _storage_s3_url($container, 'object-' . $file['object_id']);
 }
 
 
 function storage_s3_storage_file_instance_create($container, $file) {
+  
+  if($container['serving'] == _STORAGE_API_ACCESS_CONTROL)
+    $file['private'] = TRUE;
   
   $result = _storage_s3_request($container['settings']['access_key_id'], $container['settings']['secret_access_key'],
     'PUT', $container['settings']['bucket'], 'file-' . $file['file_id'], $file);
@@ -264,6 +301,6 @@ function storage_s3_storage_file_instance_get_filepath($container, $file) {
 
 function storage_s3_storage_file_instance_serve($container, $file) {
 
-  return 'http://' . $container['settings']['bucket'] . '.s3.amazonaws.com/' . 'file-' . $file['file_id'];
+  return _storage_s3_url($container, 'file-' . $file['file_id']);
 }
 

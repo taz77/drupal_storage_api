@@ -611,7 +611,7 @@ function _storage_api_serve($file, $get_url = FALSE) {
         $container, $file);
       break;
     
-    case 'file':
+    case 'file':      // this will definitely return
       $url = _storage_api_service_invoke($container['service_id'], 'file_instance_serve',
         $container, $file);
       break;
