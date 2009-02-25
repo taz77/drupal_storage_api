@@ -100,7 +100,7 @@ function _storage_s3_request($access_key_id, $secret_access_key, $method,
   
   $ch = curl_init('http://' . $bucket . 's3.amazonaws.com' . $object_name);
   curl_setopt_array($ch, $options);
-  $result['xml'] = curl_exec($ch);
+  $transfer = curl_exec($ch);
   $result += curl_getinfo($ch);
   curl_close($ch);
   
@@ -112,8 +112,9 @@ function _storage_s3_request($access_key_id, $secret_access_key, $method,
     unset($result['filepath']);
   }
   
-  if($result['xml']) {
-    $result['simplexml'] = simplexml_load_string($result['xml']);
+  if(is_string($transfer)) {
+    $result['transfer'] = $transfer;
+    $result['simplexml'] = @simplexml_load_string($transfer);
   }
   
   return $result;
