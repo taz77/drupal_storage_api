@@ -166,7 +166,7 @@ function storage_api_service_suspend_form_submit($form, &$form_state) {
   $path = 'admin/build/storage/services/' . $service['service_id']; 
 
   drupal_set_message($message);
-  watchdog('storage_api', $message, WATCHDOG_NOTICE, l(t('view'), $path));
+  watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));
 
   $form_state['redirect'] = $path;
 }
@@ -194,7 +194,7 @@ function storage_api_service_unsuspend_form_submit($form, &$form_state) {
   $message = 'Storage service <i>' . $form['#parameters'][2]['name'] . '</i> has been unsuspended.';
 
   drupal_set_message($message);
-  watchdog('storage_api', $message, WATCHDOG_NOTICE, l(t('view'), $path));
+  watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));
 
   $form_state['redirect'] = $path;
 }
@@ -414,7 +414,7 @@ function storage_api_create_container_form_submit($form, &$form_state) {
   $message = 'Storage container <i>' . $form_state['storage']['name'] . '</i> has been created.';
 
   drupal_set_message($message);
-  watchdog('storage_api', $message, WATCHDOG_NOTICE, l(t('view'), $path));
+  watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));
 
   unset($form_state['storage']);
   $form_state['rebuild'] = FALSE;
@@ -510,7 +510,7 @@ function storage_api_container_suspend_form_submit($form, &$form_state) {
   $message = 'Storage container <i>' . $container['name'] . '</i> has been suspended.';
 
   drupal_set_message($message);
-  watchdog('storage_api', $message, WATCHDOG_NOTICE, l(t('view'), $path));
+  watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));
 
   $form_state['redirect'] = $path;
 }
@@ -539,7 +539,7 @@ function storage_api_container_unsuspend_form_submit($form, &$form_state) {
   $message = 'Storage container <i>' . $container['name'] . '</i> has been unsuspended.';
 
   drupal_set_message($message);
-  watchdog('storage_api', $message, WATCHDOG_NOTICE, l(t('view'), $path));
+  watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));
   
   $form_state['redirect'] = $path;
 }
@@ -588,7 +588,7 @@ function storage_api_container_destroy_form_submit($form, &$form_state) {
   $message = 'Storage container <i>' . $container['name'] . '</i> has been destroyed.';
 
   drupal_set_message($message);
-  watchdog('storage_api', $message);
+  watchdog('storage_api', $message, NULL);
 
   $form_state['redirect'] = 'admin/build/storage/containers';
 }
@@ -761,7 +761,7 @@ function storage_api_create_class_form_submit($form, &$form_state) {
   $message = 'Storage class <i>' . $form_state['values']['name'] . '</i> has been created.';
 
   drupal_set_message($message);
-  watchdog('storage_api', $message, WATCHDOG_NOTICE, l(t('view'), $path));
+  watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));
 
   $form_state['redirect'] = $path;
 }
@@ -984,7 +984,7 @@ function storage_api_class_edit_form_submit($form, &$form_state) {
   $message = 'Storage class <i>' . $class['name'] . '</i> has been updated.';
 
   drupal_set_message($message);
-  watchdog('storage_api', $message, WATCHDOG_NOTICE, l(t('view'), $path));
+  watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));
 
   $form_state['redirect'] = $path;
 }
@@ -1017,7 +1017,7 @@ function storage_api_class_destroy_form_submit($form, &$form_state) {
   $message = 'Storage class <i>' . _storage_api_class_name($class['class_id']) . '</i> has been destroyed.';
 
   drupal_set_message($message);
-  watchdog('storage_api', $message);
+  watchdog('storage_api', $message, NULL);
 
   $form_state['redirect'] = 'admin/build/storage/classes';
 }
@@ -1102,7 +1102,7 @@ function storage_api_class_add_container_form_submit($form, &$form_state) {
     '</i> has been added to class <i>' . $class['name'] .'</i>.';
   
   drupal_set_message($message);
-  watchdog('storage_api', $message, WATCHDOG_NOTICE, l(t('view'), $path));
+  watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));
 
   $form_state['redirect'] = $path . '/edit';
 }
@@ -1153,7 +1153,7 @@ function storage_api_class_remove_container_form_submit($form, &$form_state) {
     '</i> has been removed from class <i>' . $class['name'] .'</i>.';
     
   drupal_set_message($message);
-  watchdog('storage_api', $message, WATCHDOG_NOTICE, l(t('view'), $path));
+  watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));
   
   $form_state['redirect'] = $path;
 }
