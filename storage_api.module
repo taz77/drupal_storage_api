@@ -1308,7 +1308,7 @@ function storage_api_remove_file($file_id) {
     $file_id
   );
   
-  $message = 'File removed' . ($file['filename'] ? (': ' . $file['filename']) : ' ') . '. <br />';
+  $message = 'File removed' . ($file['filename'] ? (': ' . $file['filename'] . ' ') : '') . '. <br />';
   $message .= _storage_api_file_log_info($file);
   
   watchdog('storage_api', $message, NULL);
