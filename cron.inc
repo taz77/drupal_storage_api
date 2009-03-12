@@ -11,8 +11,8 @@ function _storage_api_ensure_all_instances_exist(&$file, $containers) {
   foreach($containers as $container) {
   
     if($container['suspended'] != 0 ||
-      $container['service_suspended'] != 0) {
-      
+      $container['service_suspended'] != 0)
+    {
       $failure = TRUE;
       continue;
     }
@@ -79,11 +79,11 @@ function _storage_api_ensure_all_instances_exist(&$file, $containers) {
 }
 
 
-function _storage_api_destroy_object_instance($object_id, $container) {
+function _storage_api_destroy_object_instance($file, $container) {
 
   if($container['suspended'] != 0 ||
-    $container['service_suspended'] != 0) {
-    
+    $container['service_suspended'] != 0)
+  {
     return FALSE;
   }
 
@@ -101,6 +101,12 @@ function _storage_api_destroy_object_instance($object_id, $container) {
     );
   }
   
+  $message = 'Object instance destroyed. <br />';
+  $message .= _storage_api_container_log_info($container);
+  $message .= _storage_api_object_log_info($file);
+  
+  watchdog('storage_api', $message, NULL);
+
   return $success;
 }
 
@@ -124,7 +130,7 @@ function _storage_api_destroy_object_instance_if_unrequired($file, $container) {
   ));
   
   if($files == 0) {
-    $success = _storage_api_destroy_object_instance($file['object_id'], $container);
+    $success = _storage_api_destroy_object_instance($file, $container);
     
     if(!$success)
       $failure = TRUE;
@@ -134,15 +140,16 @@ function _storage_api_destroy_object_instance_if_unrequired($file, $container) {
 }
 
 
-function _storage_api_destroy_file_instance($file_id, $container) {
+function _storage_api_destroy_file_instance($file, $container) {
 
   if($container['suspended'] != 0 ||
-    $container['service_suspended'] != 0) {
-    
+    $container['service_suspended'] != 0)
+  {
     return FALSE;
   }
 
-  $success = _storage_api_service_invoke($container['service_id'], 'file_instance_destroy', $container, $file_id);
+  $success = _storage_api_service_invoke($container['service_id'], 'file_instance_destroy', 
+    $container, $file['file_id']);
 
   if($success) {
 
@@ -151,11 +158,17 @@ function _storage_api_destroy_file_instance($file_id, $container) {
       WHERE file_id = %d
         AND container_id = %d
     ",
-      $file_id,
+      $file['file_id'],
       $container['container_id']
     );
   }
   
+  $message = 'File instance destroyed' . ($file['filename'] ? (': ' . $file['filename'] . ' ') : '') . '. <br />';
+  $message .= _storage_api_container_log_info($container);
+  $message .= _storage_api_file_log_info($file);
+
+  watchdog('storage_api', $message, NULL);
+
   return $success;
 }
 
@@ -210,7 +223,7 @@ function _storage_api_destroy_unrequired_instances($file, $container_ids) {
 
   while($container = db_fetch_array($result)) {
     $container['settings'] = unserialize($container['settings']);
-    $success = _storage_api_destroy_file_instance($file['file_id'], $container);
+    $success = _storage_api_destroy_file_instance($file, $container);
     
     if(!$success)
       $failure = TRUE;
@@ -255,6 +268,7 @@ function _storage_api_check_file($file) {
   if(_storage_api_ensure_all_instances_exist($file, $containers)) {
     $success = _storage_api_destroy_unrequired_instances($file, $container_ids);
   }
+  
   
   if($success) {
     if($file['selector_id']) {
