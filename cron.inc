@@ -88,18 +88,18 @@ function _storage_api_destroy_object_instance($file, $container) {
   }
 
   $success = _storage_api_service_invoke($container['service_id'], 'object_instance_destroy', $container, $object_id);
+  
+  if(!$success)
+    return FALSE;
 
-  if($success) {
-
-    db_query("
-      DELETE FROM {storage_object_instances}
-      WHERE object_id = %d
-        AND container_id = %d
-    ",
-      $object_id,
-      $container['container_id']
-    );
-  }
+  db_query("
+    DELETE FROM {storage_object_instances}
+    WHERE object_id = %d
+      AND container_id = %d
+  ",
+    $object_id,
+    $container['container_id']
+  );
   
   $message = 'Object instance destroyed. <br />';
   $message .= _storage_api_container_log_info($container);
@@ -107,7 +107,7 @@ function _storage_api_destroy_object_instance($file, $container) {
   
   watchdog('storage_api', $message, NULL);
 
-  return $success;
+  return TRUE;
 }
 
 
@@ -150,18 +150,18 @@ function _storage_api_destroy_file_instance($file, $container) {
 
   $success = _storage_api_service_invoke($container['service_id'], 'file_instance_destroy', 
     $container, $file['file_id']);
+    
+  if(!$success)
+    return FALSE;
 
-  if($success) {
-
-    db_query("
-      DELETE FROM {storage_file_instances}
-      WHERE file_id = %d
-        AND container_id = %d
-    ",
-      $file['file_id'],
-      $container['container_id']
-    );
-  }
+  db_query("
+    DELETE FROM {storage_file_instances}
+    WHERE file_id = %d
+      AND container_id = %d
+  ",
+    $file['file_id'],
+    $container['container_id']
+  );
   
   $message = 'File instance destroyed' . ($file['filename'] ? (': ' . $file['filename'] . ' ') : '') . '. <br />';
   $message .= _storage_api_container_log_info($container);
@@ -169,7 +169,7 @@ function _storage_api_destroy_file_instance($file, $container) {
 
   watchdog('storage_api', $message, NULL);
 
-  return $success;
+  return TRUE;
 }
 
 
