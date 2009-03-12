@@ -97,7 +97,7 @@ function _storage_api_destroy_object_instance($file, $container) {
     WHERE object_id = %d
       AND container_id = %d
   ",
-    $object_id,
+    $file['object_id'],
     $container['container_id']
   );
   
