@@ -1031,7 +1031,7 @@ function _storage_api_file_log_info($file) {
 
 function _storage_api_container_log_info($container) {
 
-  $info .= 'container: ' . $container['name'] . ', <br />';
+  $info = 'container: ' . $container['name'] . ', <br />';
 
   return $info;
 }
