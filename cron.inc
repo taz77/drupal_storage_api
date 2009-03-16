@@ -87,7 +87,8 @@ function _storage_api_destroy_object_instance($file, $container) {
     return FALSE;
   }
 
-  $success = _storage_api_service_invoke($container['service_id'], 'object_instance_destroy', $container, $object_id);
+  $success = _storage_api_service_invoke($container['service_id'], 'object_instance_destroy', 
+    $container, $file['object_id']);
   
   if(!$success)
     return FALSE;
