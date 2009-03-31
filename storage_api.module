@@ -232,14 +232,14 @@ function storage_api_file_load($file_id) {
 
   $file = db_fetch_array(db_query("
     SELECT *
-    FROM {storage_files}
-    LEFT JOIN {storage_objects}
-      ON {storage_files}.object_id = {storage_objects}.object_id
-    LEFT JOIN {storage_selectors}
-      ON {storage_files}.selector_id = {storage_selectors}.selector_id
-    LEFT JOIN {storage_classes}
-      ON {storage_selectors}.class_id = {storage_classes}.class_id
-    WHERE {storage_files}.file_id = %d
+    FROM {storage_file}
+    LEFT JOIN {storage_object}
+      ON {storage_file}.object_id = {storage_object}.object_id
+    LEFT JOIN {storage_selector}
+      ON {storage_file}.selector_id = {storage_selector}.selector_id
+    LEFT JOIN {storage_class}
+      ON {storage_selector}.class_id = {storage_class}.class_id
+    WHERE {storage_file}.file_id = %d
   ",
     $file_id
   ));
@@ -261,7 +261,7 @@ function storage_api_service_load($service_id) {
 
   $service = db_fetch_array(db_query("
     SELECT *
-    FROM {storage_services}
+    FROM {storage_service}
     WHERE service_id = '%s'
   ",
     $service_id
@@ -283,7 +283,7 @@ function storage_api_container_load($container_id) {
     
   $container = db_fetch_array(db_query("
     SELECT *
-    FROM {storage_containers}
+    FROM {storage_container}
     WHERE container_id = %d
   ",
     $container_id
@@ -302,7 +302,7 @@ function storage_api_class_load($class_id) {
 
   $class = db_fetch_array(db_query("
     SELECT *
-    FROM {storage_classes}
+    FROM {storage_class}
     WHERE class_id = %d
   ",
     $class_id
@@ -361,7 +361,7 @@ function _storage_api_update_services() {
 
   $result = db_query("
     SELECT service_id
-    FROM {storage_services}
+    FROM {storage_service}
   ");
   
   $db_service_ids = array();
@@ -371,7 +371,7 @@ function _storage_api_update_services() {
     if(!in_array($service['service_id'], $code_service_ids)) {
 
       db_query("
-        DELETE FROM {storage_services}
+        DELETE FROM {storage_service}
         WHERE service_id = '%s'
       ",
         $service['service_id']
@@ -388,7 +388,7 @@ function _storage_api_update_services() {
     if(!in_array($service_id, $db_service_ids)) {
     
       db_query("
-        INSERT INTO {storage_services}
+        INSERT INTO {storage_service}
         SET service_id = '%s'
       ",
         $service_id
@@ -437,7 +437,7 @@ function _storage_api_log_serving($file, $container_id) {
 
 
   db_query("
-    INSERT INTO {storage_servings}
+    INSERT INTO {storage_serving}
     SET file_id = %d,
       container_id = %d,
       size = %d,
@@ -458,7 +458,7 @@ function _storage_api_log_serving($file, $container_id) {
   );
   
   db_query("
-    UPDATE {storage_files}
+    UPDATE {storage_file}
     SET servings = servings + 1
     WHERE file_id = %d
   ",
@@ -535,37 +535,37 @@ function _storage_api_serve($file, $get_url = FALSE) {
   
     (
     
-      SELECT {storage_containers}.*, {storage_object_instances}.reference, 
-        {storage_class_containers}.weight, 'object' AS type
-      FROM {storage_object_instances}
-      INNER JOIN {storage_class_containers}
-        ON {storage_object_instances}.container_id = {storage_class_containers}.container_id
-      INNER JOIN {storage_containers}
-        ON {storage_object_instances}.container_id = {storage_containers}.container_id
-      INNER JOIN {storage_services}
-        ON {storage_containers}.service_id = {storage_services}.service_id
-      WHERE {storage_object_instances}.object_id = %d
-        AND {storage_class_containers}.class_id = %d
-        AND {storage_class_containers}.serving >= 1
-        AND {storage_containers}.suspended = 0
-        AND {storage_services}.suspended = 0
+      SELECT {storage_container}.*, {storage_object_instance}.reference, 
+        {storage_class_container}.weight, 'object' AS type
+      FROM {storage_object_instance}
+      INNER JOIN {storage_class_container}
+        ON {storage_object_instance}.container_id = {storage_class_container}.container_id
+      INNER JOIN {storage_container}
+        ON {storage_object_instance}.container_id = {storage_container}.container_id
+      INNER JOIN {storage_service}
+        ON {storage_container}.service_id = {storage_service}.service_id
+      WHERE {storage_object_instance}.object_id = %d
+        AND {storage_class_container}.class_id = %d
+        AND {storage_class_container}.serving >= 1
+        AND {storage_container}.suspended = 0
+        AND {storage_service}.suspended = 0
         
     ) UNION ALL (
     
-      SELECT {storage_containers}.*, {storage_file_instances}.reference, 
-        {storage_class_containers}.weight, 'file' AS type
-      FROM {storage_file_instances}
-      INNER JOIN {storage_class_containers}
-        ON {storage_file_instances}.container_id = {storage_class_containers}.container_id
-      INNER JOIN {storage_containers}
-        ON {storage_file_instances}.container_id = {storage_containers}.container_id
-      INNER JOIN {storage_services}
-        ON {storage_containers}.service_id = {storage_services}.service_id
-      WHERE {storage_file_instances}.file_id = %d
-        AND {storage_class_containers}.class_id = %d
-        AND {storage_class_containers}.serving >= 1
-        AND {storage_containers}.suspended = 0
-        AND {storage_services}.suspended = 0
+      SELECT {storage_container}.*, {storage_file_instance}.reference, 
+        {storage_class_container}.weight, 'file' AS type
+      FROM {storage_file_instance}
+      INNER JOIN {storage_class_container}
+        ON {storage_file_instance}.container_id = {storage_class_container}.container_id
+      INNER JOIN {storage_container}
+        ON {storage_file_instance}.container_id = {storage_container}.container_id
+      INNER JOIN {storage_service}
+        ON {storage_container}.service_id = {storage_service}.service_id
+      WHERE {storage_file_instance}.file_id = %d
+        AND {storage_class_container}.class_id = %d
+        AND {storage_class_container}.serving >= 1
+        AND {storage_container}.suspended = 0
+        AND {storage_service}.suspended = 0
 
     )
     ORDER BY weight, container_id
@@ -654,7 +654,7 @@ function storage_api_serve_url($file, $absolute = FALSE) {
 
 function storage_api_new_selector_id() {
 
-  return storage_api_db_insert('storage_selectors');
+  return storage_api_db_insert('storage_selector');
 }
 
 
@@ -666,7 +666,7 @@ function storage_api_selector_item($selector_id, $title = '', $description = '')
   
   $result = db_query("
     SELECT *
-    FROM {storage_classes}
+    FROM {storage_class}
     ORDER BY name, class_id
   ");
 
@@ -689,7 +689,7 @@ function storage_api_selector_item($selector_id, $title = '', $description = '')
   $current_class_id = db_result(db_query("
   
     SELECT class_id
-    FROM {storage_selectors}
+    FROM {storage_selector}
     WHERE selector_id = %d
   ",
     $selector_id
@@ -711,7 +711,7 @@ function storage_api_selector_submit($form_item) {
   if($form_item['current_class_id'] != $form_item['class_id']) {
 
     db_query("
-      UPDATE {storage_selectors}
+      UPDATE {storage_selector}
       SET class_id = %d
       WHERE selector_id = %d
     ",
@@ -720,7 +720,7 @@ function storage_api_selector_submit($form_item) {
     );
 
     db_query("
-      UPDATE {storage_files}
+      UPDATE {storage_file}
       SET check_me = 1
       WHERE selector_id = %d
     ",
@@ -733,7 +733,7 @@ function storage_api_selector_submit($form_item) {
 function storage_api_selector_delete($selector_id) {
   
   db_query("
-    DELETE FROM {storage_selectors}
+    DELETE FROM {storage_selector}
     WHERE selector_id = %d
   ",
     $selector_id
@@ -744,18 +744,18 @@ function storage_api_selector_delete($selector_id) {
 function _storage_api_get_lowest_container($selector_id) {
 
   $container = db_fetch_array(db_query("
-    SELECT {storage_containers}.*
-    FROM {storage_selectors}
-    INNER JOIN {storage_class_containers}
-      ON {storage_selectors}.class_id = {storage_class_containers}.class_id
-    INNER JOIN {storage_containers}
-      ON {storage_class_containers}.container_id = {storage_containers}.container_id
-    INNER JOIN {storage_services}
-      ON {storage_containers}.service_id = {storage_services}.service_id
-    WHERE {storage_selectors}.selector_id = %d
-      AND {storage_containers}.suspended = 0
-      AND {storage_services}.suspended = 0
-    ORDER BY {storage_class_containers}.weight DESC
+    SELECT {storage_container}.*
+    FROM {storage_selector}
+    INNER JOIN {storage_class_container}
+      ON {storage_selector}.class_id = {storage_class_container}.class_id
+    INNER JOIN {storage_container}
+      ON {storage_class_container}.container_id = {storage_container}.container_id
+    INNER JOIN {storage_service}
+      ON {storage_container}.service_id = {storage_service}.service_id
+    WHERE {storage_selector}.selector_id = %d
+      AND {storage_container}.suspended = 0
+      AND {storage_service}.suspended = 0
+    ORDER BY {storage_class_container}.weight DESC
     LIMIT 1
   ",
     $selector_id
@@ -782,7 +782,7 @@ function _storage_api_get_object_id($filepath) {
   
   $object_id = db_result(db_query("
     SELECT object_id
-    FROM {storage_objects}
+    FROM {storage_object}
     WHERE size = %d
       AND md5 = %s
       AND whirlpool = %s
@@ -795,7 +795,7 @@ function _storage_api_get_object_id($filepath) {
   if(!$object_id) {
     
     db_query("
-      INSERT INTO {storage_objects}
+      INSERT INTO {storage_object}
       SET size = %d,
         md5 = %s,
         whirlpool = %s,
@@ -824,7 +824,7 @@ function _storage_api_create_object_instance($container, $file) {
     return FALSE;
     
   db_query("
-    INSERT INTO {storage_object_instances}
+    INSERT INTO {storage_object_instance}
     SET object_id = %d,
       container_id = %d,
       reference = '%s'
@@ -853,7 +853,7 @@ function _storage_api_create_file_instance($container, $file) {
     return FALSE;
     
   db_query("
-    INSERT INTO {storage_file_instances}
+    INSERT INTO {storage_file_instance}
     SET file_id = %d,
       container_id = %d,
       reference = '%s'
@@ -877,7 +877,7 @@ function _storage_api_object_instance_exists($object_id, $container_id) {
 
   return db_result(db_query("
     SELECT COUNT(*)
-    FROM {storage_object_instances}
+    FROM {storage_object_instance}
     WHERE object_id = %d
       AND container_id = %d
   ",
@@ -891,7 +891,7 @@ function _storage_api_file_instance_exists($file_id, $container_id) {
 
   return db_result(db_query("
     SELECT COUNT(*)
-    FROM {storage_file_instances}
+    FROM {storage_file_instance}
     WHERE file_id = %d
       AND container_id = %d
   ",
@@ -907,7 +907,7 @@ function storage_api_inherit_servings($new_file_id, $old_file_id) {
     return;
 
   db_query("
-    UPDATE {storage_servings}
+    UPDATE {storage_serving}
     SET file_id = %d
     WHERE file_id = %d
   ",
@@ -917,14 +917,14 @@ function storage_api_inherit_servings($new_file_id, $old_file_id) {
   
   $old_servings = db_result(db_query("
     SELECT servings
-    FROM {storage_files}
+    FROM {storage_file}
     WHERE file_id = %d
   ",
     $old_file_id
   ));
 
   db_query("
-    UPDATE {storage_files}
+    UPDATE {storage_file}
     SET servings = servings + %d
     WHERE file_id = %d
   ",
@@ -964,7 +964,7 @@ function storage_api_add_file_from_filepath($filepath, $selector_id, $options = 
   if(!$data['obtained'])
     $data['obtained'] = $_SERVER['REQUEST_TIME'];
   
-  $file_id = storage_api_db_insert('storage_files', $fields, $data);
+  $file_id = storage_api_db_insert('storage_file', $fields, $data);
   
   $file = storage_api_file_load($file_id);
   $file['filepath'] = $filepath;
@@ -1069,7 +1069,7 @@ function storage_api_add_file_from_url($url, $selector_id, $options = array()) {
   $options['selector_id'] = $selector_id;
   $options['check_me'] = TRUE;
   
-  $file_id = storage_api_db_insert('storage_files', $fields, $options);
+  $file_id = storage_api_db_insert('storage_file', $fields, $options);
   $file = storage_api_file_load($file_id);
   
   $message = 'File added from url: ' . $url . ' . <br />';
@@ -1126,7 +1126,7 @@ function _storage_api_delete_object($object_id) {
   
   if(db_result(db_query("
     SELECT COUNT(*)
-    FROM {storage_files}
+    FROM {storage_file}
     WHERE object_id = %d
   ",
     $object_id
@@ -1135,7 +1135,7 @@ function _storage_api_delete_object($object_id) {
   }
   
   db_query("
-    DELETE FROM {storage_objects}
+    DELETE FROM {storage_object}
     WHERE object_id = %d
   ",
     $object_id
@@ -1169,7 +1169,7 @@ function _storage_api_acquire_from_source_url(&$file) {
       unset($file['data']['next_acquire_delay']);
 
       db_query("
-        UPDATE {storage_files}
+        UPDATE {storage_file}
         SET object_id = %d,
           obtained = %d,
           data = '%s'
@@ -1198,7 +1198,7 @@ function _storage_api_acquire_from_source_url(&$file) {
     unset($data['next_acquire_delay']);
 
     db_query("
-      UPDATE {storage_files}
+      UPDATE {storage_file}
       SET source_url = '',
         data = '%s'
       WHERE file_id = %d
@@ -1233,7 +1233,7 @@ function _storage_api_acquire_from_source_url(&$file) {
   }
   
   db_query("
-    UPDATE {storage_files}
+    UPDATE {storage_file}
     SET data = '%s'
     WHERE file_id = %d
   ",
@@ -1249,35 +1249,35 @@ function storage_api_get_local_filepath(&$file, &$keep_me) {
   
     (
     
-      SELECT {storage_containers}.*, {storage_object_instances}.reference, 
-        {storage_class_containers}.weight, 'object' AS type
-      FROM {storage_object_instances}
-      INNER JOIN {storage_class_containers}
-        ON {storage_object_instances}.container_id = {storage_class_containers}.container_id
-      INNER JOIN {storage_containers}
-        ON {storage_object_instances}.container_id = {storage_containers}.container_id
-      INNER JOIN {storage_services}
-        ON {storage_containers}.service_id = {storage_services}.service_id
-      WHERE {storage_object_instances}.object_id = %d
-        AND {storage_class_containers}.class_id = %d
-        AND {storage_containers}.suspended = 0
-        AND {storage_services}.suspended = 0
+      SELECT {storage_container}.*, {storage_object_instance}.reference, 
+        {storage_class_container}.weight, 'object' AS type
+      FROM {storage_object_instance}
+      INNER JOIN {storage_class_container}
+        ON {storage_object_instance}.container_id = {storage_class_container}.container_id
+      INNER JOIN {storage_container}
+        ON {storage_object_instance}.container_id = {storage_container}.container_id
+      INNER JOIN {storage_service}
+        ON {storage_container}.service_id = {storage_service}.service_id
+      WHERE {storage_object_instance}.object_id = %d
+        AND {storage_class_container}.class_id = %d
+        AND {storage_container}.suspended = 0
+        AND {storage_service}.suspended = 0
         
     ) UNION ALL (
     
-      SELECT {storage_containers}.*, {storage_file_instances}.reference, 
-        {storage_class_containers}.weight, 'file' AS type
-      FROM {storage_file_instances}
-      INNER JOIN {storage_class_containers}
-        ON {storage_file_instances}.container_id = {storage_class_containers}.container_id
-      INNER JOIN {storage_containers}
-        ON {storage_file_instances}.container_id = {storage_containers}.container_id
-      INNER JOIN {storage_services}
-        ON {storage_containers}.service_id = {storage_services}.service_id
-      WHERE {storage_file_instances}.file_id = %d
-        AND {storage_class_containers}.class_id = %d
-        AND {storage_containers}.suspended = 0
-        AND {storage_services}.suspended = 0
+      SELECT {storage_container}.*, {storage_file_instance}.reference, 
+        {storage_class_container}.weight, 'file' AS type
+      FROM {storage_file_instance}
+      INNER JOIN {storage_class_container}
+        ON {storage_file_instance}.container_id = {storage_class_container}.container_id
+      INNER JOIN {storage_container}
+        ON {storage_file_instance}.container_id = {storage_container}.container_id
+      INNER JOIN {storage_service}
+        ON {storage_container}.service_id = {storage_service}.service_id
+      WHERE {storage_file_instance}.file_id = %d
+        AND {storage_class_container}.class_id = %d
+        AND {storage_container}.suspended = 0
+        AND {storage_service}.suspended = 0
         
     )    
     ORDER BY weight DESC, container_id
@@ -1330,7 +1330,7 @@ function storage_api_remove_file($file_id) {
     return;
   
   db_query("
-    UPDATE {storage_files}
+    UPDATE {storage_file}
     SET selector_id = NULL,
       check_me = 1
     WHERE file_id = %d

@@ -4,7 +4,7 @@
 
 function storage_api_schema() {
 
-  $schema['storage_services'] = array(
+  $schema['storage_service'] = array(
     'fields' => array(
       'service_id' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
       'suspended' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE)
@@ -12,7 +12,7 @@ function storage_api_schema() {
     'primary key' => array('service_id')
   );
 
-  $schema['storage_containers'] = array(
+  $schema['storage_container'] = array(
     'fields' => array(
       'container_id' => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
       'name' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
@@ -24,7 +24,7 @@ function storage_api_schema() {
     'primary key' => array('container_id')
   );
 
-  $schema['storage_classes'] = array(
+  $schema['storage_class'] = array(
     'fields' => array(
       'class_id' => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
       'name' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
@@ -33,7 +33,7 @@ function storage_api_schema() {
     'primary key' => array('class_id')
   );
 
-  $schema['storage_class_containers'] = array(
+  $schema['storage_class_container'] = array(
     'fields' => array(
       'class_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
       'container_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
@@ -43,7 +43,7 @@ function storage_api_schema() {
     'primary key' => array('class_id', 'container_id')
   );
 
-  $schema['storage_selectors'] = array(
+  $schema['storage_selector'] = array(
     'fields' => array(
       'selector_id' => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
       'class_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
@@ -52,7 +52,7 @@ function storage_api_schema() {
     'primary key' => array('selector_id')
   );
 
-  $schema['storage_objects'] = array(
+  $schema['storage_object'] = array(
     'fields' => array(
       'object_id' => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
       'size' => array('type' => 'int', 'unsigned' => TRUE, 'size' => 'big', 'not null' => TRUE),
@@ -66,7 +66,7 @@ function storage_api_schema() {
     )
 */  );
   
-  $schema['storage_files'] = array(
+  $schema['storage_file'] = array(
     'fields' => array(
       'file_id' => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
       'selector_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => FALSE),
@@ -90,7 +90,7 @@ function storage_api_schema() {
     )
   );
 
-  $schema['storage_object_instances'] = array(
+  $schema['storage_object_instance'] = array(
     'fields' => array(
       'object_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
       'container_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
@@ -99,7 +99,7 @@ function storage_api_schema() {
     'primary key' => array('object_id', 'container_id')
   );
   
-  $schema['storage_file_instances'] = array(
+  $schema['storage_file_instance'] = array(
     'fields' => array(
       'file_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
       'container_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
@@ -108,7 +108,7 @@ function storage_api_schema() {
     'primary key' => array('file_id', 'container_id')
   );
   
-  $schema['storage_servings'] = array(
+  $schema['storage_serving'] = array(
     'fields' => array(
       'timestamp' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
       'file_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
@@ -136,7 +136,7 @@ function storage_api_install() {
   drupal_install_schema('storage_api');
 
   db_query("
-    ALTER TABLE {storage_objects}
+    ALTER TABLE {storage_object}
     ADD md5 BINARY(16) NOT NULL AFTER size,
     ADD whirlpool BINARY(64) NOT NULL AFTER md5,
     ADD UNIQUE(size, md5, whirlpool)

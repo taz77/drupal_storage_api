@@ -94,7 +94,7 @@ function _storage_api_destroy_object_instance($file, $container) {
     return FALSE;
 
   db_query("
-    DELETE FROM {storage_object_instances}
+    DELETE FROM {storage_object_instance}
     WHERE object_id = %d
       AND container_id = %d
   ",
@@ -116,14 +116,14 @@ function _storage_api_destroy_object_instance_if_unrequired($file, $container) {
       
   $files = db_result(db_query("
     SELECT COUNT(*)
-    FROM {storage_files}
-    INNER JOIN {storage_selectors}
-      ON {storage_files}.selector_id = {storage_selectors}.selector_id
-    INNER JOIN {storage_class_containers}
-      ON {storage_selectors}.class_id = {storage_class_containers}.class_id
-    WHERE {storage_files}.file_id != %d
-      AND {storage_files}.object_id = %d
-      AND {storage_class_containers}.container_id = %d
+    FROM {storage_file}
+    INNER JOIN {storage_selector}
+      ON {storage_file}.selector_id = {storage_selector}.selector_id
+    INNER JOIN {storage_class_container}
+      ON {storage_selector}.class_id = {storage_class_container}.class_id
+    WHERE {storage_file}.file_id != %d
+      AND {storage_file}.object_id = %d
+      AND {storage_class_container}.container_id = %d
   ",
     $file['file_id'],
     $file['object_id'],
@@ -156,7 +156,7 @@ function _storage_api_destroy_file_instance($file, $container) {
     return FALSE;
 
   db_query("
-    DELETE FROM {storage_file_instances}
+    DELETE FROM {storage_file_instance}
     WHERE file_id = %d
       AND container_id = %d
   ",
@@ -178,22 +178,22 @@ function _storage_api_destroy_unrequired_instances($file, $container_ids) {
 
   if(count($container_ids)) {
     $placeholders = implode(',', array_fill(0, count($container_ids), '%d'));
-    $objects_and = "AND {storage_object_instances}.container_id NOT IN($placeholders)";
-    $files_and = "AND {storage_file_instances}.container_id NOT IN($placeholders)";
+    $objects_and = "AND {storage_object_instance}.container_id NOT IN($placeholders)";
+    $files_and = "AND {storage_file_instance}.container_id NOT IN($placeholders)";
   }
   
   
   $result = db_query("
-    SELECT {storage_containers}.*, {storage_object_instances}.reference, 
-      {storage_services}.suspended AS service_suspended
-    FROM {storage_object_instances}
-    INNER JOIN {storage_containers}
-      ON {storage_object_instances}.container_id = {storage_containers}.container_id
-    INNER JOIN {storage_services}
-      ON {storage_containers}.service_id = {storage_services}.service_id
-    WHERE {storage_object_instances}.object_id = %d
+    SELECT {storage_container}.*, {storage_object_instance}.reference, 
+      {storage_service}.suspended AS service_suspended
+    FROM {storage_object_instance}
+    INNER JOIN {storage_container}
+      ON {storage_object_instance}.container_id = {storage_container}.container_id
+    INNER JOIN {storage_service}
+      ON {storage_container}.service_id = {storage_service}.service_id
+    WHERE {storage_object_instance}.object_id = %d
       $objects_and
-    ORDER BY {storage_containers}.container_id
+    ORDER BY {storage_container}.container_id
   ",
     array_merge(array($file['object_id']), $container_ids)
   );
@@ -208,16 +208,16 @@ function _storage_api_destroy_unrequired_instances($file, $container_ids) {
 
 
   $result = db_query("
-    SELECT {storage_containers}.*, {storage_file_instances}.reference, 
-      {storage_services}.suspended AS service_suspended
-    FROM {storage_file_instances}
-    INNER JOIN {storage_containers}
-      ON {storage_file_instances}.container_id = {storage_containers}.container_id
-    INNER JOIN {storage_services}
-      ON {storage_containers}.service_id = {storage_services}.service_id
-    WHERE {storage_file_instances}.file_id = %d
+    SELECT {storage_container}.*, {storage_file_instance}.reference, 
+      {storage_service}.suspended AS service_suspended
+    FROM {storage_file_instance}
+    INNER JOIN {storage_container}
+      ON {storage_file_instance}.container_id = {storage_container}.container_id
+    INNER JOIN {storage_service}
+      ON {storage_container}.service_id = {storage_service}.service_id
+    WHERE {storage_file_instance}.file_id = %d
       $files_and
-    ORDER BY {storage_containers}.container_id
+    ORDER BY {storage_container}.container_id
   ",
     array_merge(array($file['file_id']), $container_ids)
   );  
@@ -239,20 +239,20 @@ function _storage_api_check_file($file) {
   // get all containers this file is supposed to be in
 
   $result = db_query("
-    SELECT {storage_containers}.*, {storage_services}.suspended AS service_suspended
-    FROM {storage_files}
-    INNER JOIN {storage_selectors}
-      ON {storage_files}.selector_id = {storage_selectors}.selector_id
-    INNER JOIN {storage_classes}
-      ON {storage_selectors}.class_id = {storage_classes}.class_id
-    INNER JOIN {storage_class_containers}
-      ON {storage_classes}.class_id = {storage_class_containers}.class_id
-    INNER JOIN {storage_containers}
-      ON {storage_class_containers}.container_id = {storage_containers}.container_id
-    INNER JOIN {storage_services}
-      ON {storage_containers}.service_id = {storage_services}.service_id
+    SELECT {storage_container}.*, {storage_service}.suspended AS service_suspended
+    FROM {storage_file}
+    INNER JOIN {storage_selector}
+      ON {storage_file}.selector_id = {storage_selector}.selector_id
+    INNER JOIN {storage_class}
+      ON {storage_selector}.class_id = {storage_class}.class_id
+    INNER JOIN {storage_class_container}
+      ON {storage_class}.class_id = {storage_class_container}.class_id
+    INNER JOIN {storage_container}
+      ON {storage_class_container}.container_id = {storage_container}.container_id
+    INNER JOIN {storage_service}
+      ON {storage_container}.service_id = {storage_service}.service_id
     WHERE file_id = %d
-    ORDER BY {storage_class_containers}.weight, {storage_containers}.container_id
+    ORDER BY {storage_class_container}.weight, {storage_container}.container_id
   ",
     $file['file_id']
   );
@@ -275,7 +275,7 @@ function _storage_api_check_file($file) {
     if($file['selector_id']) {
 
       db_query("
-        UPDATE {storage_files}
+        UPDATE {storage_file}
         SET check_me = 0
         WHERE file_id = %d
       ",
@@ -284,7 +284,7 @@ function _storage_api_check_file($file) {
     }
     else {
       db_query("
-        DELETE FROM {storage_files}
+        DELETE FROM {storage_file}
         WHERE file_id = %d
       ",
         $file['file_id']
@@ -300,7 +300,7 @@ function _storage_api_check_files() {
 
   $result = db_query("
     SELECT file_id
-    FROM {storage_files}
+    FROM {storage_file}
     WHERE check_me = 1
   ");
   
@@ -314,7 +314,7 @@ function _storage_api_check_files() {
 function _storage_api_purge_storage_servings() {
 
   db_query("
-    DELETE FROM {storage_servings}
+    DELETE FROM {storage_serving}
     WHERE timestamp < %d
   ",
     $_SERVER['REQUEST_TIME'] - variable_get('statistics_flush_accesslog_timer', 259200)

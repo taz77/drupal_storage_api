@@ -46,38 +46,38 @@ function _storage_api_services() {
   $header = array(t('Service'), t('Suspended'), t('Instances'), t('Size'));
 
   $result = db_query("
-    SELECT {storage_services}.*, 
+    SELECT {storage_service}.*, 
       objects.count AS objects_count, files.count AS files_count, 
       objects.size AS objects_size, files.size AS files_size
-    FROM {storage_services}
+    FROM {storage_service}
     LEFT JOIN (
     
-      SELECT {storage_containers}.service_id, 
-        COUNT({storage_objects}.object_id) AS count, SUM({storage_objects}.size) AS size
-      FROM {storage_containers}
-      INNER JOIN {storage_object_instances}
-        ON {storage_containers}.container_id = {storage_object_instances}.container_id
-      INNER JOIN {storage_objects}
-        ON {storage_object_instances}.object_id = {storage_objects}.object_id
-      GROUP BY {storage_containers}.service_id
+      SELECT {storage_container}.service_id, 
+        COUNT({storage_object}.object_id) AS count, SUM({storage_object}.size) AS size
+      FROM {storage_container}
+      INNER JOIN {storage_object_instance}
+        ON {storage_container}.container_id = {storage_object_instance}.container_id
+      INNER JOIN {storage_object}
+        ON {storage_object_instance}.object_id = {storage_object}.object_id
+      GROUP BY {storage_container}.service_id
       
     ) AS objects
-      ON {storage_services}.service_id = objects.service_id
+      ON {storage_service}.service_id = objects.service_id
     LEFT JOIN (
     
-      SELECT {storage_containers}.service_id, 
-        COUNT({storage_files}.file_id) AS count, SUM({storage_objects}.size) AS size
-      FROM {storage_containers}
-      INNER JOIN {storage_file_instances}
-        ON {storage_containers}.container_id = {storage_file_instances}.container_id
-      INNER JOIN {storage_files}
-        ON {storage_file_instances}.file_id = {storage_files}.file_id
-      INNER JOIN {storage_objects}
-        ON {storage_files}.object_id = {storage_objects}.object_id
-      GROUP BY {storage_containers}.service_id
+      SELECT {storage_container}.service_id, 
+        COUNT({storage_file}.file_id) AS count, SUM({storage_object}.size) AS size
+      FROM {storage_container}
+      INNER JOIN {storage_file_instance}
+        ON {storage_container}.container_id = {storage_file_instance}.container_id
+      INNER JOIN {storage_file}
+        ON {storage_file_instance}.file_id = {storage_file}.file_id
+      INNER JOIN {storage_object}
+        ON {storage_file}.object_id = {storage_object}.object_id
+      GROUP BY {storage_container}.service_id
       
     ) AS files
-      ON {storage_services}.service_id = files.service_id
+      ON {storage_service}.service_id = files.service_id
     ORDER BY service_id
   ");
 
@@ -155,7 +155,7 @@ function storage_api_service_suspend_form_submit($form, &$form_state) {
   $service = $form['#parameters'][2];
   
   db_query("
-    UPDATE {storage_services}
+    UPDATE {storage_service}
     SET suspended = 1
     WHERE service_id = '%s'
   ",
@@ -182,7 +182,7 @@ function storage_api_service_unsuspend_form($form_state, $service) {
 function storage_api_service_unsuspend_form_submit($form, &$form_state) {
 
   db_query("
-    UPDATE {storage_services}
+    UPDATE {storage_service}
     SET suspended = 0
     WHERE service_id = '%s'
   ",
@@ -214,34 +214,34 @@ function _storage_api_containers() {
   $header = array(t('Name'), t('Service'), t('Serving'), t('Suspended'), t('Instances'), t('Size'));
 
   $result = db_query("
-    SELECT {storage_containers}.*, 
+    SELECT {storage_container}.*, 
       objects.count AS objects_count, objects.size AS objects_size,
       files.count AS files_count, files.size AS files_size
-    FROM {storage_containers}
+    FROM {storage_container}
     LEFT JOIN (
     
-      SELECT {storage_object_instances}.container_id, 
-        COUNT({storage_objects}.object_id) AS count, SUM({storage_objects}.size) AS size
-      FROM {storage_object_instances}
-      INNER JOIN {storage_objects}
-        ON {storage_object_instances}.object_id = {storage_objects}.object_id
-      GROUP BY {storage_object_instances}.container_id
+      SELECT {storage_object_instance}.container_id, 
+        COUNT({storage_object}.object_id) AS count, SUM({storage_object}.size) AS size
+      FROM {storage_object_instance}
+      INNER JOIN {storage_object}
+        ON {storage_object_instance}.object_id = {storage_object}.object_id
+      GROUP BY {storage_object_instance}.container_id
       
     ) AS objects
-      ON {storage_containers}.container_id = objects.container_id
+      ON {storage_container}.container_id = objects.container_id
     LEFT JOIN (
     
-      SELECT {storage_file_instances}.container_id, 
-        COUNT({storage_files}.file_id) AS count, SUM({storage_objects}.size) AS size
-      FROM {storage_file_instances}
-      INNER JOIN {storage_files}
-        ON {storage_file_instances}.file_id = {storage_files}.file_id
-      INNER JOIN {storage_objects}
-        ON {storage_files}.object_id = {storage_objects}.object_id
-      GROUP BY {storage_file_instances}.container_id
+      SELECT {storage_file_instance}.container_id, 
+        COUNT({storage_file}.file_id) AS count, SUM({storage_object}.size) AS size
+      FROM {storage_file_instance}
+      INNER JOIN {storage_file}
+        ON {storage_file_instance}.file_id = {storage_file}.file_id
+      INNER JOIN {storage_object}
+        ON {storage_file}.object_id = {storage_object}.object_id
+      GROUP BY {storage_file_instance}.container_id
       
     ) AS files
-      ON {storage_containers}.container_id = files.container_id
+      ON {storage_container}.container_id = files.container_id
     ORDER BY name, container_id
   ");
 
@@ -396,7 +396,7 @@ function storage_api_create_container_form_submit($form, &$form_state) {
   _storage_api_service_invoke($form_state['storage']['service_id'], 'container_create', $form_state['storage']);
 
   db_query("
-    INSERT INTO {storage_containers}
+    INSERT INTO {storage_container}
     SET name = '%s',
       service_id = '%s',
       serving = %d,
@@ -408,7 +408,7 @@ function storage_api_create_container_form_submit($form, &$form_state) {
     serialize($form_state['storage']['settings'])
   );
   
-  $container_id = db_last_insert_id('storage_containers', 'container_id');
+  $container_id = db_last_insert_id('storage_container', 'container_id');
   $path = 'admin/build/storage/containers/' . $container_id;
   
   $message = 'Storage container <i>' . $form_state['storage']['name'] . '</i> has been created.';
@@ -498,7 +498,7 @@ function storage_api_container_suspend_form_submit($form, &$form_state) {
   $container = $form['#parameters'][2];
 
   db_query("
-    UPDATE {storage_containers}
+    UPDATE {storage_container}
     SET suspended = 1
     WHERE container_id = %d
   ",
@@ -527,7 +527,7 @@ function storage_api_container_unsuspend_form_submit($form, &$form_state) {
   $container = $form['#parameters'][2];
 
   db_query("
-    UPDATE {storage_containers}
+    UPDATE {storage_container}
     SET suspended = 0
     WHERE container_id = %d
   ",
@@ -556,28 +556,28 @@ function storage_api_container_destroy_form_submit($form, &$form_state) {
   $container = $form['#parameters'][2];
 
   db_query("
-    DELETE FROM {storage_containers}
+    DELETE FROM {storage_container}
     WHERE container_id = %d
   ",
     $container['container_id']
   );
 
   db_query("
-    DELETE FROM {storage_class_containers}
+    DELETE FROM {storage_class_container}
     WHERE container_id = %d
   ",
     $container['container_id']
   );
 
   db_query("
-    DELETE FROM {storage_file_instances}
+    DELETE FROM {storage_file_instance}
     WHERE container_id = %d
   ",
     $container['container_id']
   );
 
   db_query("
-    DELETE FROM {storage_object_instances}
+    DELETE FROM {storage_object_instance}
     WHERE container_id = %d
   ",
     $container['container_id']
@@ -624,7 +624,7 @@ function storage_api_container_edit_form_submit($form, &$form_state) {
   $container = $form['#parameters'][2];
 
   db_query("
-    UPDATE {storage_containers}
+    UPDATE {storage_container}
     SET name = '%s'
     WHERE container_id = %d
   ",
@@ -647,7 +647,7 @@ function _storage_api_class_name($class_id) {
 
   return db_result(db_query("
     SELECT name
-    FROM {storage_classes}
+    FROM {storage_class}
     WHERE class_id = %d
   ",
     $class_id
@@ -660,17 +660,17 @@ function _storage_api_classes_list() {
   drupal_set_title(t('Storage classes'));
 
   $result = db_query("
-    SELECT {storage_classes}.*,
-      COUNT({storage_files}.file_id) AS files,
-      SUM({storage_objects}.size) AS size
-    FROM {storage_classes}
-    LEFT JOIN {storage_selectors}
-      ON {storage_classes}.class_id = {storage_selectors}.class_id
-    LEFT JOIN {storage_files}
-      ON {storage_selectors}.selector_id = {storage_files}.selector_id
-    LEFT JOIN {storage_objects}
-      ON {storage_files}.object_id = {storage_objects}.object_id
-    GROUP BY {storage_classes}.class_id
+    SELECT {storage_class}.*,
+      COUNT({storage_file}.file_id) AS files,
+      SUM({storage_object}.size) AS size
+    FROM {storage_class}
+    LEFT JOIN {storage_selector}
+      ON {storage_class}.class_id = {storage_selector}.class_id
+    LEFT JOIN {storage_file}
+      ON {storage_selector}.selector_id = {storage_file}.selector_id
+    LEFT JOIN {storage_object}
+      ON {storage_file}.object_id = {storage_object}.object_id
+    GROUP BY {storage_class}.class_id
     ORDER BY name, class_id
   ");
 
@@ -747,7 +747,7 @@ function storage_api_create_class_form() {
 function storage_api_create_class_form_submit($form, &$form_state) {
 
   db_query("
-    INSERT INTO {storage_classes}
+    INSERT INTO {storage_class}
     SET name = '%s',
       options = '%s'
   ",
@@ -755,7 +755,7 @@ function storage_api_create_class_form_submit($form, &$form_state) {
     serialize($form_state['values']['options'])
   );
   
-  $class_id = db_last_insert_id('storage_classes', 'class_id');
+  $class_id = db_last_insert_id('storage_class', 'class_id');
   $path = 'admin/build/storage/classes/' . $class_id . '/add';
   
   $message = 'Storage class <i>' . $form_state['values']['name'] . '</i> has been created.';
@@ -773,46 +773,46 @@ function _storage_api_class($class) {
   
 
   $result = db_query("
-    SELECT {storage_containers}.*, {storage_class_containers}.serving AS serving, 
+    SELECT {storage_container}.*, {storage_class_container}.serving AS serving, 
       objects.count AS objects_count, objects.size AS objects_size,
       files.count AS files_count, files.size AS files_size
-    FROM {storage_class_containers}
-    INNER JOIN {storage_containers}
-      ON {storage_class_containers}.container_id = {storage_containers}.container_id
+    FROM {storage_class_container}
+    INNER JOIN {storage_container}
+      ON {storage_class_container}.container_id = {storage_container}.container_id
     LEFT JOIN (
     
-      SELECT {storage_object_instances}.container_id, 
-        COUNT(storage_files.file_id) AS count, SUM({storage_objects}.size) AS size
-      FROM {storage_selectors}
-      INNER JOIN {storage_files}
-        ON {storage_selectors}.selector_id = {storage_files}.selector_id
-      INNER JOIN {storage_objects}
-        ON {storage_files}.object_id = {storage_objects}.object_id
-      INNER JOIN {storage_object_instances}
-        ON {storage_objects}.object_id = {storage_object_instances}.object_id
-      WHERE {storage_selectors}.class_id = %d
-      GROUP BY {storage_object_instances}.container_id
+      SELECT {storage_object_instance}.container_id, 
+        COUNT({storage_file}.file_id) AS count, SUM({storage_object}.size) AS size
+      FROM {storage_selector}
+      INNER JOIN {storage_file}
+        ON {storage_selector}.selector_id = {storage_file}.selector_id
+      INNER JOIN {storage_object}
+        ON {storage_file}.object_id = {storage_object}.object_id
+      INNER JOIN {storage_object_instance}
+        ON {storage_object}.object_id = {storage_object_instance}.object_id
+      WHERE {storage_selector}.class_id = %d
+      GROUP BY {storage_object_instance}.container_id
       
     ) AS objects
-      ON {storage_containers}.container_id = objects.container_id
+      ON {storage_container}.container_id = objects.container_id
     LEFT JOIN (
     
-      SELECT {storage_file_instances}.container_id, 
-        COUNT(storage_files.file_id) AS count, SUM({storage_objects}.size) AS size
-      FROM {storage_selectors}
-      INNER JOIN {storage_files}
-        ON {storage_selectors}.selector_id = {storage_files}.selector_id
-      INNER JOIN {storage_objects}
-        ON {storage_files}.object_id = {storage_objects}.object_id
-      INNER JOIN {storage_file_instances}
-        ON {storage_files}.file_id = {storage_file_instances}.file_id
-      WHERE {storage_selectors}.class_id = %d
-      GROUP BY {storage_file_instances}.container_id
+      SELECT {storage_file_instance}.container_id, 
+        COUNT({storage_file}.file_id) AS count, SUM({storage_object}.size) AS size
+      FROM {storage_selector}
+      INNER JOIN {storage_file}
+        ON {storage_selector}.selector_id = {storage_file}.selector_id
+      INNER JOIN {storage_object}
+        ON {storage_file}.object_id = {storage_object}.object_id
+      INNER JOIN {storage_file_instance}
+        ON {storage_file}.file_id = {storage_file_instance}.file_id
+      WHERE {storage_selector}.class_id = %d
+      GROUP BY {storage_file_instance}.container_id
       
     ) AS files
-      ON {storage_containers}.container_id = files.container_id
-    WHERE {storage_class_containers}.class_id = %d
-    ORDER BY {storage_class_containers}.weight, {storage_containers}.container_id
+      ON {storage_container}.container_id = files.container_id
+    WHERE {storage_class_container}.class_id = %d
+    ORDER BY {storage_class_container}.weight, {storage_container}.container_id
   ",
     $class['class_id'], $class['class_id'], $class['class_id']
   );
@@ -845,13 +845,13 @@ function storage_api_class_edit_form($form_state, $class) {
   $form = _storage_api_class_form_elements($class);
   
   $result = db_query("
-    SELECT {storage_containers}.container_id, {storage_containers}.name, {storage_containers}.service_id, 
-      {storage_class_containers}.weight, {storage_class_containers}.serving
-    FROM {storage_class_containers}
-    INNER JOIN {storage_containers}
-      ON {storage_class_containers}.container_id = {storage_containers}.container_id
+    SELECT {storage_container}.container_id, {storage_container}.name, {storage_container}.service_id, 
+      {storage_class_container}.weight, {storage_class_container}.serving
+    FROM {storage_class_container}
+    INNER JOIN {storage_container}
+      ON {storage_class_container}.container_id = {storage_container}.container_id
     WHERE class_id = %d
-    ORDER BY {storage_class_containers}.weight, {storage_containers}.container_id
+    ORDER BY {storage_class_container}.weight, {storage_container}.container_id
   ",
     $class['class_id']
   );
@@ -954,7 +954,7 @@ function storage_api_class_edit_form_submit($form, &$form_state) {
   $class = $form['#parameters'][2];
 
   db_query("
-    UPDATE {storage_classes}
+    UPDATE {storage_class}
     SET name = '%s',
       options = '%s'
     WHERE class_id = %d
@@ -967,7 +967,7 @@ function storage_api_class_edit_form_submit($form, &$form_state) {
   foreach ($form['#container_ids'] as $container_id) {
 
     db_query("
-      UPDATE {storage_class_containers}
+      UPDATE {storage_class_container}
       SET weight = %d,
         serving = %d
       WHERE class_id = %d
@@ -1008,7 +1008,7 @@ function storage_api_class_destroy_form_submit($form, &$form_state) {
   $class = $form['#parameters'][2];
   
   db_query("
-    DELETE FROM {storage_classes}
+    DELETE FROM {storage_class}
     WHERE class_id = %d
   ",
     $class['class_id']
@@ -1029,11 +1029,11 @@ function storage_api_class_add_container_form($form_state, $class) {
 
   $result = db_query("
     SELECT *
-    FROM {storage_containers}
+    FROM {storage_container}
     WHERE container_id NOT IN (
     
       SELECT container_id
-      FROM {storage_class_containers}
+      FROM {storage_class_container}
       WHERE class_id = %d
       
     )
@@ -1075,7 +1075,7 @@ function storage_api_class_add_container_form_submit($form, &$form_state) {
   $class = $form['#parameters'][2];
 
   db_query("
-    INSERT IGNORE INTO {storage_class_containers}
+    INSERT IGNORE INTO {storage_class_container}
     SET class_id = %d,
       container_id = %d
   ",
@@ -1084,11 +1084,11 @@ function storage_api_class_add_container_form_submit($form, &$form_state) {
   );
   
   db_query("
-    UPDATE {storage_files}
+    UPDATE {storage_file}
     SET check_me = 1
     WHERE selector_id IN (
       SELECT selector_id
-      FROM {storage_selectors}
+      FROM {storage_selector}
       WHERE class_id = %d
     )
   ",
@@ -1124,7 +1124,7 @@ function storage_api_class_remove_container_form_submit($form, &$form_state) {
   $container = $form['#parameters'][3];
 
   db_query("
-    DELETE FROM {storage_class_containers}
+    DELETE FROM {storage_class_container}
     WHERE class_id = %d
       AND container_id = %d
   ",
@@ -1133,12 +1133,12 @@ function storage_api_class_remove_container_form_submit($form, &$form_state) {
   );
   
   db_query("
-    UPDATE {storage_files}
+    UPDATE {storage_file}
     SET check_me = 1
     WHERE selector_id IN (
     
       SELECT selector_id
-      FROM {storage_selectors}
+      FROM {storage_selector}
       WHERE class_id = %d
       
     )
