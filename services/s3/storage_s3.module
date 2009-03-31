@@ -28,7 +28,7 @@ function _storage_s3_request($access_key_id, $secret_access_key, $method,
   $bucket = NULL, $object_name = NULL, $file = NULL)
 {
   $result = array();
-  $date = date(DATE_RFC1123, time());
+  $date = date(DATE_RFC1123, time());   // we don't use $_SERVER['REQUEST_TIME'] in case it is too old
 
   $components = array(
     $method,
