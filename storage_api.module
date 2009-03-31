@@ -8,8 +8,6 @@ define('_STORAGE_API_STORAGE_ONLY', 0);
 define('_STORAGE_API_SERVING', 1);
 define('_STORAGE_API_ACCESS_CONTROL', 2);
 
-require_once drupal_get_path('module', 'storage_api') . '/views.inc';
-
 
 function storage_api_menu() {
 
