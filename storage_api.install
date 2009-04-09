@@ -112,7 +112,7 @@ function storage_api_schema() {
     'fields' => array(
       'timestamp' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
       'file_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
-      'container_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
+      'container_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => FALSE),
       'size' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
       'uid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
       'sid' => array('type' => 'char', 'length' => '32', 'not null' => TRUE),
@@ -141,6 +141,18 @@ function storage_api_install() {
     ADD whirlpool BINARY(64) NOT NULL AFTER md5,
     ADD UNIQUE(size, md5, whirlpool)
   ");
+}
+
+
+function storage_api_update_6100() {
+  $ret = array();
+
+  $ret[] = update_sql("
+    ALTER TABLE {storage_serving}
+    MODIFY container_id INT UNSIGNED DEFAULT NULL
+  ");
+  
+  return $ret;
 }
 
 

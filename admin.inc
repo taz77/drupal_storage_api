@@ -716,19 +716,17 @@ function _storage_api_class_form_elements($class = NULL) {
       '#title' => t('Serve by redirection'),
       '#type' => 'checkbox',
       '#default_value' => $class['options']['redirect']
+    ),
+    'serve_source_url' => array(
+      '#title' => t('Serve source url'),
+      '#type' => 'checkbox',
+      '#default_value' => $class['options']['serve_source_url'],
+      '#description' => t('If no instances are available, serve the source url.')
     )
   );
   
   return $form;
 }  
-
-/*
-  $form['options']['interrogate_urls'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Interrogate URLs'),
-    '#default_value' => $class['options']['interrogate_urls']
-  );
-*/
 
 
 function storage_api_create_class_form() {
@@ -862,6 +860,8 @@ function storage_api_class_edit_form($form_state, $class) {
   
   $trash = _storage_api_trash_icon();
 
+  $form['#container_ids'] = array();
+  
   while($container = db_fetch_array($result)) {
   
     $form['#container_ids'][] = $container['container_id'];
@@ -964,7 +964,7 @@ function storage_api_class_edit_form_submit($form, &$form_state) {
     $class['class_id']
   );
   
-  foreach ($form['#container_ids'] as $container_id) {
+  foreach($form['#container_ids'] as $container_id) {
 
     db_query("
       UPDATE {storage_class_container}

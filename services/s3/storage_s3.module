@@ -113,7 +113,7 @@ function _storage_s3_request($access_key_id, $secret_access_key, $method,
     unset($result['filepath']);
   }
   
-  if(is_string($transfer)) {
+  if(is_string($transfer) && $transfer != '') {
     $result['transfer'] = $transfer;
     $result['simplexml'] = @simplexml_load_string($transfer);
   }

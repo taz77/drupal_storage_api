@@ -302,6 +302,7 @@ function _storage_api_check_files() {
     SELECT file_id
     FROM {storage_file}
     WHERE check_me = 1
+    ORDER BY file_id
   ");
   
   while($file = db_fetch_array($result)) {
