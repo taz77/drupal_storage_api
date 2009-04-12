@@ -73,19 +73,20 @@ function storage_api_menu() {
   );
 
   $items['admin/build/storage/containers/list'] = array(
-    'title' => 'List',
+    'title' => 'Overview',
     'access arguments' => array('administer site configuration'),
     'type' => MENU_DEFAULT_LOCAL_TASK,
-    'weight' => -1,
+    'weight' => 0,
     'file' => 'admin.inc'
   );
   
   $items['admin/build/storage/containers/create'] = array(
-    'title' => 'Create container',
+    'title' => 'Create',
     'access arguments' => array('administer site configuration'),
     'type' => MENU_LOCAL_TASK,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('storage_api_create_container_form'),
+    'weight' => 1,
     'file' => 'admin.inc'
   );
   
@@ -150,19 +151,20 @@ function storage_api_menu() {
   );
 
   $items['admin/build/storage/classes/list'] = array(
-    'title' => 'List',
+    'title' => 'Overview',
     'access arguments' => array('administer site configuration'),
     'type' => MENU_DEFAULT_LOCAL_TASK,
-    'weight' => -1,
+    'weight' => 0,
     'file' => 'admin.inc'
   );
 
   $items['admin/build/storage/classes/create'] = array(
-    'title' => 'Create class',
+    'title' => 'Create',
     'access arguments' => array('administer site configuration'),
     'type' => MENU_LOCAL_TASK,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('storage_api_create_class_form'),
+    'weight' => 1,
     'file' => 'admin.inc'
   );
 
@@ -753,7 +755,7 @@ function _storage_api_get_lowest_container($selector_id) {
     WHERE {storage_selector}.selector_id = %d
       AND {storage_container}.suspended = 0
       AND {storage_service}.suspended = 0
-    ORDER BY {storage_class_container}.weight DESC
+    ORDER BY {storage_class_container}.weight DESC, {storage_container}.container_id DESC
     LIMIT 1
   ",
     $selector_id
@@ -1280,7 +1282,7 @@ function storage_api_get_local_filepath(&$file, &$keep_me) {
         AND {storage_service}.suspended = 0
         
     )    
-    ORDER BY weight DESC, container_id
+    ORDER BY weight DESC, container_id DESC
     LIMIT 1
   ",
     $file['object_id'],

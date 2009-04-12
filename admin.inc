@@ -211,7 +211,7 @@ function _storage_api_containers() {
 
   drupal_set_title(t('Storage containers'));
 
-  $header = array(t('Name'), t('Service'), t('Serving'), t('Suspended'), t('Instances'), t('Size'));
+  $header = array(t('Container'), t('Service'), t('Serving'), t('Suspended'), t('Instances'), t('Size'));
 
   $result = db_query("
     SELECT {storage_container}.*, 
@@ -265,6 +265,8 @@ function _storage_api_containers() {
 
 function storage_api_create_container_form($form_state) {
 
+  drupal_set_title(t('Storage containers'));
+  
   if(!isset($form_state)) {
     $step = 1;
   }
@@ -731,6 +733,8 @@ function _storage_api_class_form_elements($class = NULL) {
 
 function storage_api_create_class_form() {
 
+  drupal_set_title(t('Storage classes'));
+  
   $form = _storage_api_class_form_elements(); 
 
   $form['submit'] = array(
@@ -854,21 +858,16 @@ function storage_api_class_edit_form($form_state, $class) {
     $class['class_id']
   );
 
-  $form['container_ids'] = array('#tree' => TRUE);
-  $form['weights'] = array('#tree' => TRUE);
-  $form['servings'] = array('#tree' => TRUE);
+  $form['#tree'] = TRUE;
   
   $trash = _storage_api_trash_icon();
 
-  $form['#container_ids'] = array();
-  
   while($container = db_fetch_array($result)) {
   
     $form['#container_ids'][] = $container['container_id'];
 
     $form['names'][$container['container_id']] = array(
-      '#value' => l($container['name'], 
-        'admin/build/storage/containers/' . $container['container_id'])
+      '#value' => l($container['name'], 'admin/build/storage/containers/' . $container['container_id'])
     );
     
     $form['weights'][$container['container_id']] = array(
@@ -893,13 +892,12 @@ function storage_api_class_edit_form($form_state, $class) {
     );
 
     $form['deletes'][$container['container_id']] = array(
-      '#value' => l($trash, 'admin/build/storage/classes/' . $class['class_id'] . '/remove/' . $container['container_id'], 
-        array('html' => TRUE))
+      '#value' => 
+        l($trash, 'admin/build/storage/classes/' . $class['class_id'] . '/remove/' . $container['container_id'], 
+          array('html' => TRUE))
     );
   }
 
-//  $form['#theme'] = 'storage_api_class_edit_form'; // this will be called as theme('my_shared_form').
- 
   $form['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Save')
@@ -920,18 +918,18 @@ function theme_storage_api_class_edit_form($form) {
   $output .= drupal_render($form['name']);
   $output .= drupal_render($form['options']);
 
-  $header = array(t('Container'), t('Service'), t('Weight'), t('Serving'), NULL);
-  $rows = array();
-  foreach(element_children($form['names']) as $id) {
-    // Don't take form control structures
-    if (is_array($form['names'][$id])) {
+  if(is_array($form['#container_ids'])) {
+  
+    $header = array(t('Container'), t('Service'), t('Weight'), t('Serving'), NULL);
+
+    foreach($form['#container_ids'] as $container_id) {
       unset($row);
       
-      $row[] = drupal_render($form['names'][$id]);
-      $row[] = drupal_render($form['services'][$id]);
-      $row[] = drupal_render($form['weights'][$id]);
-      $row[] = drupal_render($form['servings'][$id]);
-      $row[] = drupal_render($form['deletes'][$id]);
+      $row[] = drupal_render($form['names'][$container_id]);
+      $row[] = drupal_render($form['services'][$container_id]);
+      $row[] = drupal_render($form['weights'][$container_id]);
+      $row[] = drupal_render($form['servings'][$container_id]);
+      $row[] = drupal_render($form['deletes'][$container_id]);
       
       $rows[] = array(
         'data' => $row,
