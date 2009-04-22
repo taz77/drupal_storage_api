@@ -229,6 +229,10 @@ function storage_api_file_load($file_id) {
 
   if(!$file_id)
     return FALSE;
+    
+    
+  // either the file is being deleted and no longer has a selector,
+  // or we grab the selector with migrating = 0
 
   $file = db_fetch_array(db_query("
     SELECT *
@@ -240,6 +244,8 @@ function storage_api_file_load($file_id) {
     LEFT JOIN {storage_class}
       ON {storage_selector}.class_id = {storage_class}.class_id
     WHERE {storage_file}.file_id = %d
+      AND ({storage_file}.selector_id IS NULL
+        OR {storage_selector}.migrating = 0)
   ",
     $file_id
   ));
@@ -550,45 +556,49 @@ function _storage_api_serve($file, $get_url = FALSE) {
     (
     
       SELECT {storage_container}.*, {storage_object_instance}.reference, 
-        {storage_class_container}.weight, 'object' AS type
+        {storage_class_container}.weight, {storage_selector}.migrating, 'object' AS type
       FROM {storage_object_instance}
       INNER JOIN {storage_class_container}
         ON {storage_object_instance}.container_id = {storage_class_container}.container_id
+      INNER JOIN {storage_selector}
+        ON {storage_class_container}.class_id = {storage_selector}.class_id
       INNER JOIN {storage_container}
         ON {storage_object_instance}.container_id = {storage_container}.container_id
       INNER JOIN {storage_service}
         ON {storage_container}.service_id = {storage_service}.service_id
       WHERE {storage_object_instance}.object_id = %d
-        AND {storage_class_container}.class_id = %d
         AND {storage_class_container}.serving >= 1
+        AND {storage_selector}.selector_id = %d
         AND {storage_container}.suspended = 0
         AND {storage_service}.suspended = 0
         
     ) UNION ALL (
     
       SELECT {storage_container}.*, {storage_file_instance}.reference, 
-        {storage_class_container}.weight, 'file' AS type
+        {storage_class_container}.weight, {storage_selector}.migrating, 'file' AS type
       FROM {storage_file_instance}
       INNER JOIN {storage_class_container}
         ON {storage_file_instance}.container_id = {storage_class_container}.container_id
+      INNER JOIN {storage_selector}
+        ON {storage_class_container}.class_id = {storage_selector}.class_id
       INNER JOIN {storage_container}
         ON {storage_file_instance}.container_id = {storage_container}.container_id
       INNER JOIN {storage_service}
         ON {storage_container}.service_id = {storage_service}.service_id
       WHERE {storage_file_instance}.file_id = %d
-        AND {storage_class_container}.class_id = %d
         AND {storage_class_container}.serving >= 1
+        AND {storage_selector}.selector_id = %d
         AND {storage_container}.suspended = 0
         AND {storage_service}.suspended = 0
-
+        
     )
-    ORDER BY weight, container_id
+    ORDER BY migrating, weight, container_id
     LIMIT 1
   ",
     $file['object_id'],
-    $file['class_id'],
+    $file['selector_id'],
     $file['file_id'],
-    $file['class_id']
+    $file['selector_id']
   ));
   
 
@@ -673,7 +683,17 @@ function storage_api_serve_url($file, $absolute = FALSE) {
 
 function storage_api_new_selector_id() {
 
-  return storage_api_db_insert('storage_selector');
+  $class_id = db_result(db_query("
+    SELECT class_id
+    FROM {storage_class}
+    ORDER BY name, class_id
+    LIMIT 1
+  "));
+
+  $fields = array('class_id' => "%d");
+  $data = array('class_id' => $class_id);
+
+  return storage_api_db_insert('storage_selector', $fields, $data);
 }
 
 
@@ -710,6 +730,7 @@ function storage_api_selector_item($selector_id, $title = '', $description = '')
     SELECT class_id
     FROM {storage_selector}
     WHERE selector_id = %d
+      AND migrating = 0
   ",
     $selector_id
   ));
@@ -727,15 +748,41 @@ function storage_api_selector_item($selector_id, $title = '', $description = '')
 
 function storage_api_selector_submit($form_item) {
 
-  if($form_item['current_class_id'] != $form_item['class_id']) {
+  if($form_item['current_class_id'] == $form_item['class_id'])
+    return;
+
+
+  db_query("
+    REPLACE INTO {storage_selector}
+    SET selector_id = %d,
+      class_id = %d,
+      migrating = 0
+  ",
+    $form_item['selector_id'],
+    $form_item['class_id']
+  );
+  
+  
+  // are there any files to migrate?
+
+  $num_files = db_result(db_query("
+    SELECT COUNT(*)
+    FROM {storage_file}
+    WHERE selector_id = %d
+  ",
+    $form_item['selector_id']
+  ));
+  
+  if($num_files) {
 
     db_query("
-      UPDATE {storage_selector}
-      SET class_id = %d
-      WHERE selector_id = %d
+      REPLACE INTO {storage_selector}
+      SET selector_id = %d,
+        class_id = %d,
+        migrating = 1
     ",
-      $form_item['class_id'],
-      $form_item['selector_id']
+      $form_item['selector_id'],
+      $form_item['current_class_id']
     );
 
     db_query("
@@ -744,6 +791,25 @@ function storage_api_selector_submit($form_item) {
       WHERE selector_id = %d
     ",
       $form_item['selector_id']
+    );
+    
+    $new_class = storage_api_class_load($form_item['class_id']);
+    
+    $message = 'Migrating ' . $num_files . ' ' . format_plural($num_files, 'file', 'files');
+    $message .= ' to storage class <i>' . $new_class['name'] . '</i>.';
+    
+    drupal_set_message($message);
+    watchdog('storage_api', $message, NULL);
+  }
+  else {
+  
+    db_query("
+      DELETE FROM {storage_selector}
+      WHERE selector_id = %d
+        AND class_id = %d
+    ",
+      $form_item['selector_id'],
+      $form_item['current_class_id']
     );
   }
 }
@@ -772,6 +838,7 @@ function _storage_api_get_lowest_container($selector_id) {
     INNER JOIN {storage_service}
       ON {storage_container}.service_id = {storage_service}.service_id
     WHERE {storage_selector}.selector_id = %d
+      AND {storage_selector}.migrating = 0
       AND {storage_container}.suspended = 0
       AND {storage_service}.suspended = 0
     ORDER BY {storage_class_container}.weight DESC, {storage_container}.container_id DESC
@@ -1139,7 +1206,7 @@ function _storage_api_acquire_from_url($url) {
 }
 
 
-function _storage_api_delete_object($object_id) {
+function _storage_api_delete_object_if_unrequired($object_id) {
 
   // do any files use this object?
   
@@ -1178,7 +1245,7 @@ function _storage_api_acquire_from_source_url(&$file) {
     
     if($file['object_id'] != $object_id) {    // the file has changed
 
-      _storage_api_delete_object($object_id);
+      _storage_api_delete_object_if_unrequired($object_id);
       @unlink($filepath);
       $filepath = FALSE;
     }
@@ -1270,43 +1337,47 @@ function storage_api_get_local_filepath(&$file, &$keep_me) {
     (
     
       SELECT {storage_container}.*, {storage_object_instance}.reference, 
-        {storage_class_container}.weight, 'object' AS type
+        {storage_class_container}.weight, {storage_selector}.migrating, 'object' AS type
       FROM {storage_object_instance}
       INNER JOIN {storage_class_container}
         ON {storage_object_instance}.container_id = {storage_class_container}.container_id
+      INNER JOIN {storage_selector}
+        ON {storage_class_container}.class_id = {storage_selector}.class_id
       INNER JOIN {storage_container}
         ON {storage_object_instance}.container_id = {storage_container}.container_id
       INNER JOIN {storage_service}
         ON {storage_container}.service_id = {storage_service}.service_id
       WHERE {storage_object_instance}.object_id = %d
-        AND {storage_class_container}.class_id = %d
+        AND {storage_selector}.selector_id = %d
         AND {storage_container}.suspended = 0
         AND {storage_service}.suspended = 0
         
     ) UNION ALL (
     
       SELECT {storage_container}.*, {storage_file_instance}.reference, 
-        {storage_class_container}.weight, 'file' AS type
+        {storage_class_container}.weight, {storage_selector}.migrating, 'file' AS type
       FROM {storage_file_instance}
       INNER JOIN {storage_class_container}
         ON {storage_file_instance}.container_id = {storage_class_container}.container_id
+      INNER JOIN {storage_selector}
+        ON {storage_class_container}.class_id = {storage_selector}.class_id
       INNER JOIN {storage_container}
         ON {storage_file_instance}.container_id = {storage_container}.container_id
       INNER JOIN {storage_service}
         ON {storage_container}.service_id = {storage_service}.service_id
       WHERE {storage_file_instance}.file_id = %d
-        AND {storage_class_container}.class_id = %d
+        AND {storage_selector}.selector_id = %d
         AND {storage_container}.suspended = 0
         AND {storage_service}.suspended = 0
         
-    )    
-    ORDER BY weight DESC, container_id DESC
+    )
+    ORDER BY migrating, weight DESC, container_id
     LIMIT 1
   ",
     $file['object_id'],
-    $file['class_id'],
+    $file['selector_id'],
     $file['file_id'],
-    $file['class_id']
+    $file['selector_id']
   ));
   
   if($container) {

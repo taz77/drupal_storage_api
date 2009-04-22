@@ -113,7 +113,14 @@ function _storage_api_destroy_object_instance($file, $container) {
 
 
 function _storage_api_destroy_object_instance_if_unrequired($file, $container) {
-      
+
+  // are there any other files in this container that use the same object?
+  
+  // we don't destroy object instances in a container in a class that a file is migrating away from
+  // because that instance might not have been migrated yet 
+  // - so there is no {storage_selector}.migrating = 0 condition
+
+  
   $files = db_result(db_query("
     SELECT COUNT(*)
     FROM {storage_file}
@@ -183,6 +190,8 @@ function _storage_api_destroy_unrequired_instances($file, $container_ids) {
   }
   
   
+  // destroy unrequired object instances
+  
   $result = db_query("
     SELECT {storage_container}.*, {storage_object_instance}.reference, 
       {storage_service}.suspended AS service_suspended
@@ -206,6 +215,8 @@ function _storage_api_destroy_unrequired_instances($file, $container_ids) {
       $failure = TRUE;
   }
 
+
+  // destroy unrequired file instances
 
   $result = db_query("
     SELECT {storage_container}.*, {storage_file_instance}.reference, 
@@ -251,7 +262,8 @@ function _storage_api_check_file($file) {
       ON {storage_class_container}.container_id = {storage_container}.container_id
     INNER JOIN {storage_service}
       ON {storage_container}.service_id = {storage_service}.service_id
-    WHERE file_id = %d
+    WHERE {storage_file}.file_id = %d
+      AND {storage_selector}.migrating = 0
     ORDER BY {storage_class_container}.weight, {storage_container}.container_id
   ",
     $file['file_id']
@@ -267,11 +279,15 @@ function _storage_api_check_file($file) {
   }
   
   if(_storage_api_ensure_all_instances_exist($file, $containers)) {
+  
+    // the file is fully propagated, now we can destroy unrequired instances
+  
     $success = _storage_api_destroy_unrequired_instances($file, $container_ids);
   }
   
   
   if($success) {
+  
     if($file['selector_id']) {
 
       db_query("
@@ -283,6 +299,9 @@ function _storage_api_check_file($file) {
       );
     }
     else {
+    
+      // this file can now be deleted
+    
       db_query("
         DELETE FROM {storage_file}
         WHERE file_id = %d
@@ -290,7 +309,7 @@ function _storage_api_check_file($file) {
         $file['file_id']
       );
 
-      _storage_api_delete_object($file['object_id']);
+      _storage_api_delete_object_if_unrequired($file['object_id']);
     }
   }
 }
@@ -312,6 +331,63 @@ function _storage_api_check_files() {
 }
 
 
+function _storage_api_check_migrations() {
+
+  // find selectors that are being migrated
+
+  $result = db_query("
+    SELECT DISTINCT selector_id
+    FROM {storage_selector}
+    WHERE migrating = 1
+    ORDER BY selector_id
+  ");
+  
+  
+  while($selector = db_fetch_array($result)) {
+  
+    // is the selector fully migrated?
+    
+    $migrated = !db_result(db_query("
+      SELECT COUNT(*)
+      FROM {storage_file}
+      WHERE selector_id = %d
+        AND check_me = 1
+    ",
+      $selector['selector_id']
+    ));
+    
+
+    if($migrated) {
+    
+      // remove the classes it was migrating from
+        
+      db_query("
+        DELETE FROM {storage_selector}
+        WHERE selector_id = %d
+          AND migrating = 1
+      ",
+        $selector['selector_id']
+      );
+      
+      $class_name = db_result(db_query("
+        SELECT {storage_class}.name
+        FROM {storage_selector}
+        INNER JOIN {storage_class}
+          ON {storage_selector}.class_id = {storage_class}.class_id
+        WHERE {storage_selector}.selector_id = %d
+      ",
+        $selector['selector_id']
+      ));
+      
+      $message = 'Storage selector ' . $selector['selector_id'];
+      $message .= ' has been fully migrated to class <i>' . $class_name . '</i>.';
+      
+      watchdog('storage_api', $message, NULL);
+    }
+  }
+}
+
+
 function _storage_api_purge_storage_servings() {
 
   db_query("
@@ -326,6 +402,7 @@ function _storage_api_purge_storage_servings() {
 function _storage_api_cron() {
 
   _storage_api_check_files();
+  _storage_api_check_migrations();
   _storage_api_purge_storage_servings();
 }
 
