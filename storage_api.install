@@ -71,7 +71,7 @@ function storage_api_schema() {
       'file_id' => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
       'selector_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => FALSE),
       'object_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => FALSE),
-      'source_url' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
+      'source_url' => array('type' => 'varchar', 'length' => 4095, 'not null' => TRUE),
       'obtained' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
       'filename' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
       'force_download' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE),
@@ -163,6 +163,18 @@ function storage_api_update_6101() {
     ALTER TABLE {storage_selector}
     DROP PRIMARY KEY,
     ADD PRIMARY KEY (selector_id, class_id) 
+  ");
+  
+  return $ret;
+}
+
+ 
+function storage_api_update_6102() {
+  $ret = array();
+
+  $ret[] = update_sql("
+    ALTER TABLE {storage_file}
+    MODIFY source_url VARCHAR(4095) NOT NULL
   ");
   
   return $ret;
