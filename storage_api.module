@@ -1149,7 +1149,7 @@ function storage_api_add_file_from_url($url, $selector_id, $options = array()) {
   );
   
   if(!$options['filename'])
-    $options['filename'] = basename($url);
+    $options['filename'] = basename(parse_url($url, PHP_URL_PATH));
     
   $options['source_url'] = $url;
   $options['selector_id'] = $selector_id;
