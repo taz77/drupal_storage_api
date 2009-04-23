@@ -1047,6 +1047,9 @@ function storage_api_add_file_from_filepath($filepath, $selector_id, $options = 
   $data['selector_id'] = $selector_id;
   $data['check_me'] = TRUE;
   
+  if($options['get_filename'])
+    $data['filename'] = basename($filepath);
+  
   if(!$data['obtained'])
     $data['obtained'] = $_SERVER['REQUEST_TIME'];
   
@@ -1150,7 +1153,7 @@ function storage_api_add_file_from_url($url, $selector_id, $options = array()) {
     'source_url' => "'%s'"
   );
   
-  if(!$options['filename'])
+  if($options['get_filename'])
     $options['filename'] = basename(parse_url($url, PHP_URL_PATH));
     
   $options['source_url'] = $url;
