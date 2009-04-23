@@ -826,7 +826,9 @@ function storage_api_selector_delete($selector_id) {
 }
 
 
-function _storage_api_get_lowest_container($selector_id) {
+function _storage_api_get_initial_container($selector_id) {
+
+  // find the container with the lowest priority in the class
 
   $container = db_fetch_array(db_query("
     SELECT {storage_container}.*
@@ -1022,9 +1024,7 @@ function storage_api_inherit_servings($new_file_id, $old_file_id) {
 
 function storage_api_add_file_from_filepath($filepath, $selector_id, $options = array()) {
 
-  // find the container with the lowest priority in the class
-  
-  $container = _storage_api_get_lowest_container($selector_id);
+  $container = _storage_api_get_initial_container($selector_id);
   
   if(!$container)
     return FALSE;
