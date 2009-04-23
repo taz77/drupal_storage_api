@@ -51,7 +51,7 @@ function _storage_api_containers() {
     $row[] =  $container['serving'] ? 'Yes' : 'No';
     $row[] =  $container['suspended'] ? 'Yes' : 'No';
     $row[] = $container['objects_count'] + $container['files_count'];
-    $row[] = storage_format_size($container['objects_size'] + $container['files_size']);
+    $row[] = storage_api_format_size($container['objects_size'] + $container['files_size']);
     
     $rows[] = $row;
   }

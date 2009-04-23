@@ -1111,7 +1111,7 @@ function _storage_api_file_log_info($file) {
   
   $info .= 'file_id: ' . $file['file_id'];
   $info .= $file['object_id'] ? (', object_id: ' . $file['object_id']) : '';
-  $info .= $file['size'] ? (', size: ' . storage_format_size($file['size'])) : '';
+  $info .= $file['size'] ? (', size: ' . storage_api_format_size($file['size'])) : '';
 
   return $info;
 }
@@ -1128,7 +1128,7 @@ function _storage_api_container_log_info($container) {
 function _storage_api_object_log_info($file) {
 
   $info = 'object_id: ' . $file['object_id'] . ', ';
-  $info .= 'size: ' . storage_format_size($file['size']);
+  $info .= 'size: ' . storage_api_format_size($file['size']);
 
   return $info;
 }
@@ -1498,7 +1498,7 @@ function _storage_bcmath() {
 
 // http://en.wikipedia.org/wiki/Kilobyte
 
-function storage_format_size($count) {
+function storage_api_format_size($count) {
 
   if($count < 1000) {
     return format_plural($count, '1 byte', '@count bytes');

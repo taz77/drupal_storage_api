@@ -51,7 +51,7 @@ function _storage_api_classes_list() {
     
     $row[] = l($class['name'], 'admin/build/storage/classes/' . $class['class_id']);
     $row[] = $class['files'];
-    $row[] = storage_format_size((int)$class['size']);
+    $row[] = storage_api_format_size((int)$class['size']);
     
     $rows[] = $row;
   }
@@ -194,7 +194,7 @@ function _storage_api_class($class) {
         'admin/build/storage/services/' . $container['service_id']);
     $row[] = $container['serving'] ? t('Yes') : t('No');
     $row[] = $container['objects_count'] + $container['files_count'];
-    $row[] = storage_format_size($container['objects_size'] + $container['files_size']);
+    $row[] = storage_api_format_size($container['objects_size'] + $container['files_size']);
     
     $rows[] = $row;
   }

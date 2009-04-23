@@ -58,7 +58,7 @@ function _storage_api_services() {
     $row[] = l($name, 'admin/build/storage/services/' . $service['service_id']);
     $row[] = $service['suspended'] ? t('Yes') : t('No');
     $row[] = $service['objects_count'] + $service['files_count'];
-    $row[] = storage_format_size($service['objects_size'] + $service['files_size']);
+    $row[] = storage_api_format_size($service['objects_size'] + $service['files_size']);
     
     $rows[] = $row;
   }
