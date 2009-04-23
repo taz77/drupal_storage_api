@@ -858,7 +858,7 @@ function _storage_api_get_initial_container($selector_id) {
 }
 
 
-function _storage_api_get_object_id($filepath) {
+function _storage_api_get_object_id($filepath, &$new_object = NULL) {
 
   $fileinfo = @stat($filepath);
   
@@ -1029,7 +1029,7 @@ function storage_api_add_file_from_filepath($filepath, $selector_id, $options = 
   if(!$container)
     return FALSE;
 
-  $object_id = _storage_api_get_object_id($filepath);
+  $object_id = _storage_api_get_object_id($filepath, $new_object);
 
   $fields = array(
     'filename' => "'%s'",
@@ -1068,6 +1068,8 @@ function storage_api_add_file_from_filepath($filepath, $selector_id, $options = 
   $service_info = _storage_api_service_invoke($container['service_id'], 'service_info');
 
   if(!(!$service_info['dynamic'] && $container['serving'] && $options['force_download'])) {
+
+    // if the file's object is already in the system, then the instance might already exist
 
     if(!$new_object) {
       $exists = _storage_api_object_instance_exists($object_id, $container['container_id']);
@@ -1237,7 +1239,7 @@ function _storage_api_acquire_from_source_url(&$file) {
   $filepath = _storage_api_acquire_from_url($file['source_url']);
   
   if($filepath) {
-    $object_id = _storage_api_get_object_id($filepath);
+    $object_id = _storage_api_get_object_id($filepath, $new_object);
 
     if(!$file['object_id']) {
       $file['object_id'] = $object_id;
@@ -1268,6 +1270,7 @@ function _storage_api_acquire_from_source_url(&$file) {
       
       // we need to reload $file to get the filesize, etc
       $file = storage_api_file_load($file['file_id']);
+      $file['new_object'] = $new_object;    // _storage_api_ensure_all_instances_exist() will make use of this
 
       $message = 'Acquired file from url: ' . $file['source_url'] . ' . <br />';
       $message .= _storage_api_file_log_info($file);
