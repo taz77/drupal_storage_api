@@ -415,17 +415,18 @@ function _storage_api_service_invoke() {
 
 
 function _storage_api_service_invoke_all() {
-  $args = func_get_args();
+  $results = array();
   
+  $args = func_get_args();
   array_unshift($args, NULL);
   $args[1] = 'storage_' . $args[1];
   
   foreach(module_implements($args[1], TRUE) as $module) {
     $args[0] = $module;
-    $return[substr($module, 8)] = call_user_func_array('module_invoke', $args);
+    $results[substr($module, 8)] = call_user_func_array('module_invoke', $args);
   }
   
-  return $return;
+  return $results;
 }
 
 

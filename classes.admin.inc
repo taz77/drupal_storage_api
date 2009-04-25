@@ -412,7 +412,7 @@ function storage_api_class_add_container_form($form_state, $class) {
   
   if(count($containers) == 0) {
   
-    $form['class_id'] = array(
+    $form[] = array(
       '#value' => '<p>There are no containers left to add to the class.</p>'
     );
     

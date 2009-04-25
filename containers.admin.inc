@@ -87,6 +87,18 @@ function storage_api_create_container_form($form_state) {
   switch($step) {
     
     case 1:
+    
+      $services = _storage_api_get_service_names();
+      
+      if(count($services) == 0) {
+      
+        $form[] = array(
+          '#value' => '<p>There are no services available. Please enable a service module on the ' . 
+            l('modules page', 'admin/build/modules') . '.</p>'
+        );
+        
+        break;
+      }
 
       $form['name'] = array(
         '#title' => t('Name'),
@@ -98,7 +110,7 @@ function storage_api_create_container_form($form_state) {
       $form['service_id'] = array(
         '#type' => 'select',
         '#title' => t('Service'),
-        '#options' => _storage_api_get_service_names(),
+        '#options' => $services,
         '#default_value' => $form_state['storage']['service_id']
       );
       
