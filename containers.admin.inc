@@ -126,11 +126,26 @@ function storage_api_create_container_form($form_state) {
     
       $service_name = _storage_api_get_service_name($form_state['values']['service_id']);
     
+      switch($form_state['values']['serving']) {
+
+        case _STORAGE_API_STORAGE_ONLY:
+          $serving = t('No');
+          break;
+
+        case _STORAGE_API_SERVING:
+          $serving = t('Yes');
+          break;
+
+        case _STORAGE_API_ACCESS_CONTROL:
+          $serving = t('Securely');
+          break;
+      }
+
+
       $form[] = array(
         '#value' => '<p>Name: ' . $form_state['values']['name'] . 
           '<br />Service: ' . $service_name . 
-          '<br />Serving: ' . ($form_state['values']['serving'] ? t('Yes') : t('No')) . 
-          '<br />Access control: ' . ($form_state['values']['access_control'] ? t('Yes') : t('No')) . '</p>'
+          '<br />Serving: ' . $serving . '</p>'
       );
     
       $form['settings'] = array(
@@ -225,8 +240,24 @@ function storage_api_container_form($form_state, $container) {
 
   drupal_set_title(t('Storage container: ') . $container['name']);
 
+  switch($container['serving']) {
+  
+    case _STORAGE_API_STORAGE_ONLY:
+      $serving = t('No');
+      break;
+
+    case _STORAGE_API_SERVING:
+      $serving = t('Yes');
+      break;
+
+    case _STORAGE_API_ACCESS_CONTROL:
+      $serving = t('Securely');
+      break;
+  }
+  
   $info = array(
-    t('Type') => _storage_api_get_service_name($container['service_id']),
+    t('Service') => _storage_api_get_service_name($container['service_id']),
+    t('Serving') => $serving,
     t('Suspended') => ($container['suspended'] ? t('Yes') : t('No'))
   );
   
