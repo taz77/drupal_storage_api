@@ -4,5 +4,5 @@ description = "Storage module."
 package = Storage
 dependencies[] = mimedetect
 core = 6.x
-php = 5.2
+php = 5.0
 
