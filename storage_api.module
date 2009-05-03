@@ -1175,8 +1175,6 @@ function storage_api_add_file_from_url($url, $selector_id, $options = array()) {
 
 function _storage_api_acquire_from_url($url) {
 
-  // need to handle ftp
-
   $filepath = tempnam(file_directory_temp(), '');
   $fp = fopen($filepath, "w");
 
@@ -1189,7 +1187,11 @@ function _storage_api_acquire_from_url($url) {
     CURLOPT_FILE => $fp
   );
 
-  $ch = curl_init($url);
+  // curl is really picky about escaping
+  // '://' must not be escaped or it prepends its own 'http://'
+  // spaces must be escaped
+  
+  $ch = curl_init(str_replace(array('%3A', '%2F'), array(':', '/'), rawurlencode($url)));
   curl_setopt_array($ch, $options);
   $result = curl_exec($ch);
   fclose ($fp);
