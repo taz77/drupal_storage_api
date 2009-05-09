@@ -4,5 +4,5 @@ description = "Filesystem storage service serving via Drupal."
 package = Storage
 dependencies[] = storage_api
 core = 6.x
-php = 5.2
+php = 5.0
 
