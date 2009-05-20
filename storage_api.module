@@ -230,7 +230,7 @@ function storage_api_file_load($file_id) {
   if(!$file_id)
     return FALSE;
     
-    
+  
   // either the file is being deleted and no longer has a selector,
   // or we grab the selector with migrating = 0
 
@@ -933,6 +933,46 @@ function _storage_api_create_object_instance($container, $file) {
 }
 
 
+function storage_api_file_reference_exists($container, $reference) {
+
+  return db_result(db_query("
+    SELECT COUNT(*)
+    FROM {storage_file_instance}
+    WHERE container_id = %d
+      AND reference = '%s'
+  ",
+    $container['container_id'],
+    $reference
+  ));
+}
+
+
+function storage_api_unique_filename($container, $filename) {
+
+  if(storage_api_file_reference_exists($container, $filename)) {
+
+    $pos = strrpos($filename, '.');
+    
+    if($pos !== FALSE) {
+      $name = substr($filename, 0, $pos);
+      $ext = substr($filename, $pos);
+    }
+    else {
+      $name = $filename;
+    }
+
+    $counter = 0;
+    
+    do {
+      $filename = $name . '_' . $counter++ . $ext;
+      
+    } while(storage_api_file_reference_exists($container, $filename));
+  }
+
+  return $filename;
+}
+
+
 function _storage_api_create_file_instance($container, $file) {
 
   $success = _storage_api_service_invoke($container['service_id'], 'file_instance_create', 
@@ -1471,6 +1511,15 @@ function storage_api_set_http_headers($file) {
   foreach(storage_api_http_headers($file) as $header) {
     header($header);
   }
+}
+
+
+function storage_api_mime_extension($mimetype) {
+
+  $path = drupal_get_path('module', 'storage_api');
+  require_once $path . '/mime_extension.inc';
+
+  return _storage_api_mime_extension($mimetype);
 }
 
 

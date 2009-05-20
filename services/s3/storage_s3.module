@@ -145,32 +145,36 @@ function _storage_s3_url($container, $s3_object) {
 }
 
 
-function storage_s3_storage_container_settings_form() {
+function storage_s3_storage_container_settings_form($serving, $values) {
 
   $items['access_key_id'] = array(
     '#type' => 'textfield',
     '#title' => t('Access Key ID'),
     '#required' => TRUE,
-    '#validated' => TRUE
+    '#validated' => TRUE,
+    '#default_value' => $values['access_key_id']
   );
   
   $items['secret_access_key'] = array(
     '#type' => 'textfield',
     '#title' => t('Secret Access Key'),
     '#required' => TRUE,
-    '#validated' => TRUE
+    '#validated' => TRUE,
+    '#default_value' => $values['secret_access_key']
   );
 
   $items['bucket'] = array(
     '#type' => 'textfield',
     '#title' => t('Bucket name'),
     '#required' => TRUE,
-    '#validated' => TRUE
+    '#validated' => TRUE,
+    '#default_value' => $values['bucket']
   );
 
   $items['prefix'] = array(
     '#type' => 'textfield',
     '#title' => t('Prefix'),
+    '#default_value' => $values['prefix']
   );
 
   return $items;
@@ -247,10 +251,10 @@ function storage_s3_storage_object_instance_create($container, $file) {
 }
 
 
-function storage_s3_storage_object_instance_destroy($container, $object_id) {
+function storage_s3_storage_object_instance_destroy($container, $file) {
   
   $result = _storage_s3_request($container['settings']['access_key_id'], $container['settings']['secret_access_key'],
-    'DELETE', $container['settings']['bucket'], 'object-' . $object_id);
+    'DELETE', $container['settings']['bucket'], 'object-' . $file['object_id']);
   
   return $result['http_code'] == 204;
 }
@@ -283,10 +287,10 @@ function storage_s3_storage_file_instance_create($container, $file) {
 }
 
 
-function storage_s3_storage_file_instance_destroy($container, $file_id) {
+function storage_s3_storage_file_instance_destroy($container, $file) {
   
   $result = _storage_s3_request($container['settings']['access_key_id'], $container['settings']['secret_access_key'],
-    'DELETE', $container['settings']['bucket'], 'file-' . $file_id);
+    'DELETE', $container['settings']['bucket'], 'file-' . $file['file_id']);
   
   return $result['http_code'] == 204;
 }

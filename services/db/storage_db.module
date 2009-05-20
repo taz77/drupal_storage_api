@@ -123,7 +123,7 @@ function storage_db_storage_object_instance_create($container, $file) {
 }
 
 
-function storage_db_storage_object_instance_destroy($container, $object_id) {
+function storage_db_storage_object_instance_destroy($container, $file) {
   
   db_set_active($container['settings']['db']);
   
@@ -132,7 +132,7 @@ function storage_db_storage_object_instance_destroy($container, $object_id) {
     WHERE object_id = %d
   ",
     $container['settings']['table'],
-    $object_id
+    $file['object_id']
   );
 
   db_set_active();
@@ -169,7 +169,7 @@ function storage_db_storage_object_instance_get_filepath($container, $file) {
 }
 
 
-function storage_db_storage_object_instance_serve($container, $file, $reference) {
+function storage_db_storage_object_instance_serve($container, $file) {
   storage_api_set_http_headers($file);
   
   db_set_active($container['settings']['db']);

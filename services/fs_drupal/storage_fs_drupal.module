@@ -82,9 +82,9 @@ function storage_fs_drupal_storage_object_instance_create($container, $file) {
 }
 
 
-function storage_fs_drupal_storage_object_instance_destroy($container, $object_id) {
+function storage_fs_drupal_storage_object_instance_destroy($container, $file) {
   
-  @unlink($container['settings']['path'] . '/' . $object_id);
+  @unlink($container['settings']['path'] . '/' . $file['object_id']);
   
   return TRUE;
 }

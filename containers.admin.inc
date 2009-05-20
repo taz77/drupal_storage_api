@@ -68,7 +68,7 @@ function storage_api_create_container_form($form_state) {
     $step = 1;
   }
   else {
-    if($form_state['clicked_button']['#value'] == 'Back') {
+    if($form_state['clicked_button']['#value'] == t('Back')) {
       $step = $form_state['values']['step'] - 1;
     }
     else {
@@ -93,7 +93,7 @@ function storage_api_create_container_form($form_state) {
       if(count($services) == 0) {
       
         $form[] = array(
-          '#value' => '<p>There are no services available. Please enable a service module on the ' . 
+          '#value' => '<p>There are no storage services available. Please enable a service module on the ' . 
             l('modules page', 'admin/build/modules') . '.</p>'
         );
         
@@ -136,9 +136,9 @@ function storage_api_create_container_form($form_state) {
       
     case 2:
     
-      $service_name = _storage_api_get_service_name($form_state['values']['service_id']);
+      $service_name = _storage_api_get_service_name($form_state['storage']['service_id']);
     
-      switch($form_state['values']['serving']) {
+      switch($form_state['storage']['serving']) {
 
         case _STORAGE_API_STORAGE_ONLY:
           $serving = t('No');
@@ -152,10 +152,9 @@ function storage_api_create_container_form($form_state) {
           $serving = t('Securely');
           break;
       }
-
-
+      
       $form[] = array(
-        '#value' => '<p>Name: ' . $form_state['values']['name'] . 
+        '#value' => '<p>Name: ' . $form_state['storage']['name'] . 
           '<br />Service: ' . $service_name . 
           '<br />Serving: ' . $serving . '</p>'
       );
@@ -166,7 +165,8 @@ function storage_api_create_container_form($form_state) {
         '#tree' => TRUE
       );
       
-      $form['settings'] += _storage_api_service_invoke($form_state['values']['service_id'], 'container_settings_form');
+      $form['settings'] += _storage_api_service_invoke($form_state['storage']['service_id'], 
+        'container_settings_form', $form_state['storage']['serving'], $form_state['storage']['settings']);
       
       $form['back'] = array(
         '#type' => 'button',
@@ -187,7 +187,7 @@ function storage_api_create_container_form($form_state) {
 
 function storage_api_create_container_form_validate($form, &$form_state) {
 
-  if($form_state['clicked_button']['#value'] == 'Back')
+  if($form_state['clicked_button']['#value'] == t('Back'))
     return;
 
   switch($form_state['values']['step']) {
