@@ -1127,7 +1127,19 @@ function storage_api_add_file_from_filepath($filepath, $selector_id, $options = 
     $failure = !_storage_api_create_file_instance($container, $file);
   }
   
+  $link = $file['nid'] ? l(t('view'), 'node/' . $file['nid']) : NULL;
+
   if($failure) {
+
+    $message = 'Failed to create initial instance of file ' . ($file['filename'] ? ($file['filename'] . ' ') : '');
+    $message .= 'in storage container <i>' . $container['name'] . '</i>.';
+
+    if(user_access('administer site configuration'))
+      drupal_set_message($message);
+
+    $message .= ' <br />' . _storage_api_file_log_info($file);
+    watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, $link);
+    
     storage_api_remove_file($file_id);
     return FALSE;
   }
@@ -1135,12 +1147,10 @@ function storage_api_add_file_from_filepath($filepath, $selector_id, $options = 
   if(!$options['keep_me']) {
     @unlink($filepath);
   }
-  
-  $message = 'File added' . ($file['filename'] ? (': ' . $file['filename'] . ' ') : '') . '. <br />';
+
+  $message = 'File added' . ($file['filename'] ? (': ' . $file['filename'] . ' ') : '') . ' <br />';
   $message .= _storage_api_file_log_info($file);
   
-  $link = $file['nid'] ? l(t('view'), 'node/' . $file['nid']) : NULL;
-
   watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, $link);
 
   return $file_id;
@@ -1478,7 +1488,7 @@ function storage_api_remove_file($file_id) {
     $file_id
   );
   
-  $message = 'File removed' . ($file['filename'] ? (': ' . $file['filename'] . ' ') : '') . '. <br />';
+  $message = 'File removed' . ($file['filename'] ? (': ' . $file['filename'] . ' ') : '') . ' <br />';
   $message .= _storage_api_file_log_info($file);
   
   watchdog('storage_api', $message, NULL);
