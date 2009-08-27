@@ -97,7 +97,13 @@ function _storage_api_class_form_elements($class = NULL) {
 }  
 
 
-function storage_api_create_class_form() {
+/**
+ * FAPI definition for the create class form.
+ *
+ * @ingroup forms
+ * @see storage_api_create_class_form_submit()
+ */
+function storage_api_create_class_form($form_state) {
 
   drupal_set_title(t('Storage classes'));
   
@@ -112,6 +118,11 @@ function storage_api_create_class_form() {
 }
 
 
+/**
+ * Submit handler for the create class form.
+ *
+ * @see storage_api_create_class_form()
+ */
 function storage_api_create_class_form_submit($form, &$form_state) {
 
   db_query("
@@ -206,6 +217,12 @@ function _storage_api_class($class) {
 }
 
 
+/**
+ * FAPI definition for the class edit form.
+ *
+ * @ingroup forms
+ * @see storage_api_class_edit_form_submit()
+ */
 function storage_api_class_edit_form($form_state, $class) {
 
   drupal_set_title(t('Storage class: ') . $class['name']);
@@ -279,6 +296,12 @@ function storage_api_class_edit_form($form_state, $class) {
 }
 
 
+/**
+ * Themes the class edit form.
+ *
+ * @ingroup themeable
+ * @see storage_api_class_edit_form()
+ */
 function theme_storage_api_class_edit_form($form) {
 
   $output .= drupal_render($form['name']);
@@ -314,6 +337,11 @@ function theme_storage_api_class_edit_form($form) {
 }
 
 
+/**
+ * Submit handler for the class edit form.
+ *
+ * @see storage_api_class_edit_form()
+ */
 function storage_api_class_edit_form_submit($form, &$form_state) {
   $class = $form['#parameters'][2];
 
@@ -354,6 +382,11 @@ function storage_api_class_edit_form_submit($form, &$form_state) {
 }
 
 
+/**
+ * Submit handler (destroy) for the class edit form.
+ *
+ * @see storage_api_class_edit_form()
+ */
 function storage_api_class_edit_form_destroy($form, &$form_state) {
   $class = $form['#parameters'][2];
 
@@ -361,6 +394,12 @@ function storage_api_class_edit_form_destroy($form, &$form_state) {
 }
 
 
+/**
+ * FAPI definition for the class destroy form.
+ *
+ * @ingroup forms
+ * @see storage_api_class_destroy_form_submit()
+ */
 function storage_api_class_destroy_form($form_state, $class) {
 
   return confirm_form($form, 'Are you sure you want to destroy storage class <i>' . 
@@ -368,6 +407,11 @@ function storage_api_class_destroy_form($form_state, $class) {
 }
 
 
+/**
+ * Submit handler for the class destroy form.
+ *
+ * @see storage_api_class_destroy_form()
+ */
 function storage_api_class_destroy_form_submit($form, &$form_state) {
   $class = $form['#parameters'][2];
   
@@ -387,6 +431,12 @@ function storage_api_class_destroy_form_submit($form, &$form_state) {
 }
 
 
+/**
+ * FAPI definition for the class add container form.
+ *
+ * @ingroup forms
+ * @see storage_api_class_add_container_form_submit()
+ */
 function storage_api_class_add_container_form($form_state, $class) {
 
   drupal_set_title(t('Storage class: ') . $class['name']);
@@ -435,6 +485,11 @@ function storage_api_class_add_container_form($form_state, $class) {
 }
 
 
+/**
+ * Submit handler for the class add container form.
+ *
+ * @see storage_api_class_add_container_form()
+ */
 function storage_api_class_add_container_form_submit($form, &$form_state) {
   $class = $form['#parameters'][2];
 
@@ -472,6 +527,12 @@ function storage_api_class_add_container_form_submit($form, &$form_state) {
 }
 
 
+/**
+ * FAPI definition for the class remove container form.
+ *
+ * @ingroup forms
+ * @see storage_api_class_remove_container_form_submit()
+ */
 function storage_api_class_remove_container_form($form_state, $class, $container) {
 
   $form['#class_id'] = $class['class_id'];
@@ -483,6 +544,11 @@ function storage_api_class_remove_container_form($form_state, $class, $container
 }
 
 
+/**
+ * Submit handler for the class remove container form.
+ *
+ * @see storage_api_class_remove_container_form()
+ */
 function storage_api_class_remove_container_form_submit($form, &$form_state) {
   $class = $form['#parameters'][2];
   $container = $form['#parameters'][3];

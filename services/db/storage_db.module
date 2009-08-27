@@ -4,6 +4,9 @@
 // Copyright 2008-2009 Jonathan Brown
 
 
+/**
+* Implements hook_storage_service_info() .
+*/
 function storage_db_storage_service_info() {
   
   $info = array(
@@ -17,7 +20,10 @@ function storage_db_storage_service_info() {
 }
 
 
-function storage_db_storage_container_settings_form() {
+/**
+* Implements hook_storage_container_settings_form() .
+*/
+function storage_db_storage_container_settings_form($settings) {
   global $db_url;
   
   if(is_array($db_url)) {
@@ -49,6 +55,9 @@ function storage_db_storage_container_settings_form() {
 }
 
 
+/**
+* Implements hook_storage_container_validate() .
+*/
 function storage_db_storage_container_validate($container) {
 
   if(!$container['settings']['table']) {
@@ -58,6 +67,9 @@ function storage_db_storage_container_validate($container) {
 }
 
 
+/**
+* Implements hook_storage_container_create() .
+*/
 function storage_db_storage_container_create($container) {
 
   db_set_active($container['settings']['db']);
@@ -78,6 +90,9 @@ function storage_db_storage_container_create($container) {
 }
 
 
+/**
+* Implements hook_storage_container_info() .
+*/
 function storage_db_storage_container_info($container) {
 
   $info[t('Database')] = $container['settings']['db'];
@@ -87,6 +102,9 @@ function storage_db_storage_container_info($container) {
 }
 
 
+/**
+* Implements hook_storage_container_destroy() .
+*/
 function storage_db_storage_container_destroy($container) {
   
   db_set_active($container['settings']['db']);
@@ -103,6 +121,9 @@ function storage_db_storage_container_destroy($container) {
 }
 
 
+/**
+* Implements hook_storage_object_instance_create() .
+*/
 function storage_db_storage_object_instance_create($container, $file) {
   
   db_set_active($container['settings']['db']);
@@ -123,6 +144,9 @@ function storage_db_storage_object_instance_create($container, $file) {
 }
 
 
+/**
+* Implements hook_storage_object_instance_destroy() .
+*/
 function storage_db_storage_object_instance_destroy($container, $file) {
   
   db_set_active($container['settings']['db']);
@@ -141,6 +165,9 @@ function storage_db_storage_object_instance_destroy($container, $file) {
 }
 
 
+/**
+* Implements hook_storage_object_instance_get_filepath() .
+*/
 function storage_db_storage_object_instance_get_filepath($container, $file) {
   
   $filepath = tempnam(file_directory_temp(), '');
@@ -169,6 +196,9 @@ function storage_db_storage_object_instance_get_filepath($container, $file) {
 }
 
 
+/**
+* Implements hook_storage_object_instance_serve() .
+*/
 function storage_db_storage_object_instance_serve($container, $file) {
   storage_api_set_http_headers($file);
   

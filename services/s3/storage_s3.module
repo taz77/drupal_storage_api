@@ -4,6 +4,9 @@
 // Copyright 2008-2009 Jonathan Brown
 
 
+/**
+* Implements hook_storage_service_info() .
+*/
 function storage_s3_storage_service_info() {
   
   $info = array(
@@ -145,14 +148,17 @@ function _storage_s3_url($container, $s3_object) {
 }
 
 
-function storage_s3_storage_container_settings_form($serving, $values) {
+/**
+* Implements hook_storage_container_settings_form() .
+*/
+function storage_s3_storage_container_settings_form($settings, $serving) {
 
   $items['access_key_id'] = array(
     '#type' => 'textfield',
     '#title' => t('Access Key ID'),
     '#required' => TRUE,
     '#validated' => TRUE,
-    '#default_value' => $values['access_key_id']
+    '#default_value' => $settings['access_key_id']
   );
   
   $items['secret_access_key'] = array(
@@ -160,7 +166,7 @@ function storage_s3_storage_container_settings_form($serving, $values) {
     '#title' => t('Secret Access Key'),
     '#required' => TRUE,
     '#validated' => TRUE,
-    '#default_value' => $values['secret_access_key']
+    '#default_value' => $settings['secret_access_key']
   );
 
   $items['bucket'] = array(
@@ -168,19 +174,22 @@ function storage_s3_storage_container_settings_form($serving, $values) {
     '#title' => t('Bucket name'),
     '#required' => TRUE,
     '#validated' => TRUE,
-    '#default_value' => $values['bucket']
+    '#default_value' => $settings['bucket']
   );
 
   $items['prefix'] = array(
     '#type' => 'textfield',
     '#title' => t('Prefix'),
-    '#default_value' => $values['prefix']
+    '#default_value' => $settings['prefix']
   );
 
   return $items;
 }
 
 
+/**
+* Implements hook_storage_container_validate() .
+*/
 function storage_s3_storage_container_validate($container) {
 
   if(!$container['settings']['access_key_id']) {
@@ -221,6 +230,9 @@ function storage_s3_storage_container_validate($container) {
 }
 
 
+/**
+* Implements hook_storage_container_create() .
+*/
 function storage_s3_storage_container_create($container) {
 
   _storage_s3_request($container['settings']['access_key_id'], $container['settings']['secret_access_key'],
@@ -228,6 +240,9 @@ function storage_s3_storage_container_create($container) {
 }
 
 
+/**
+* Implements hook_storage_container_info() .
+*/
 function storage_s3_storage_container_info($container) {
 
   $info = array(
@@ -239,6 +254,9 @@ function storage_s3_storage_container_info($container) {
 }
 
 
+/**
+* Implements hook_storage_object_instance_create() .
+*/
 function storage_s3_storage_object_instance_create($container, $file) {
 
   if($container['serving'] == _STORAGE_API_ACCESS_CONTROL)
@@ -251,6 +269,9 @@ function storage_s3_storage_object_instance_create($container, $file) {
 }
 
 
+/**
+* Implements hook_storage_object_instance_destroy() .
+*/
 function storage_s3_storage_object_instance_destroy($container, $file) {
   
   $result = _storage_s3_request($container['settings']['access_key_id'], $container['settings']['secret_access_key'],
@@ -260,6 +281,9 @@ function storage_s3_storage_object_instance_destroy($container, $file) {
 }
 
 
+/**
+* Implements hook_storage_object_instance_get_filepath() .
+*/
 function storage_s3_storage_object_instance_get_filepath($container, $file) {
   
   $result = _storage_s3_request($container['settings']['access_key_id'], $container['settings']['secret_access_key'],
@@ -269,12 +293,18 @@ function storage_s3_storage_object_instance_get_filepath($container, $file) {
 }
 
 
+/**
+* Implements hook_storage_object_instance_serve() .
+*/
 function storage_s3_storage_object_instance_serve($container, $file) {
 
   return _storage_s3_url($container, 'object-' . $file['object_id']);
 }
 
 
+/**
+* Implements hook_storage_file_instance_create() .
+*/
 function storage_s3_storage_file_instance_create($container, $file) {
   
   if($container['serving'] == _STORAGE_API_ACCESS_CONTROL)
@@ -287,6 +317,9 @@ function storage_s3_storage_file_instance_create($container, $file) {
 }
 
 
+/**
+* Implements hook_storage_file_instance_destroy() .
+*/
 function storage_s3_storage_file_instance_destroy($container, $file) {
   
   $result = _storage_s3_request($container['settings']['access_key_id'], $container['settings']['secret_access_key'],
@@ -296,6 +329,9 @@ function storage_s3_storage_file_instance_destroy($container, $file) {
 }
 
 
+/**
+* Implements hook_storage_file_instance_get_filepath() .
+*/
 function storage_s3_storage_file_instance_get_filepath($container, $file) {
   
   $result = _storage_s3_request($container['settings']['access_key_id'], $container['settings']['secret_access_key'],
@@ -305,6 +341,9 @@ function storage_s3_storage_file_instance_get_filepath($container, $file) {
 }
 
 
+/**
+* Implements hook_storage_file_instance_serve() .
+*/
 function storage_s3_storage_file_instance_serve($container, $file) {
 
   return _storage_s3_url($container, 'file-' . $file['file_id']);

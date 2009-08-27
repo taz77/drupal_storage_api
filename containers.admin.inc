@@ -60,6 +60,13 @@ function _storage_api_containers() {
 }
 
 
+/**
+ * FAPI definition for the create container form.
+ *
+ * @ingroup forms
+ * @see storage_api_create_container_form_validate()
+ * @see storage_api_create_container_form_submit()
+ */
 function storage_api_create_container_form($form_state) {
 
   drupal_set_title(t('Storage containers'));
@@ -140,15 +147,15 @@ function storage_api_create_container_form($form_state) {
     
       switch($form_state['storage']['serving']) {
 
-        case _STORAGE_API_STORAGE_ONLY:
+        case STORAGE_API_STORAGE_ONLY:
           $serving = t('No');
           break;
 
-        case _STORAGE_API_SERVING:
+        case STORAGE_API_SERVING:
           $serving = t('Yes');
           break;
 
-        case _STORAGE_API_ACCESS_CONTROL:
+        case STORAGE_API_ACCESS_CONTROL:
           $serving = t('Securely');
           break;
       }
@@ -166,7 +173,7 @@ function storage_api_create_container_form($form_state) {
       );
       
       $form['settings'] += _storage_api_service_invoke($form_state['storage']['service_id'], 
-        'container_settings_form', $form_state['storage']['serving'], $form_state['storage']['settings']);
+        'container_settings_form', $form_state['storage']['settings'], $form_state['storage']['serving']);
       
       $form['back'] = array(
         '#type' => 'button',
@@ -185,6 +192,12 @@ function storage_api_create_container_form($form_state) {
 }
 
 
+/**
+ * Validate handler for the create container form.
+ *
+ * @see storage_api_create_container_form()
+ * @see storage_api_create_container_form_submit()
+ */
 function storage_api_create_container_form_validate($form, &$form_state) {
 
   if($form_state['clicked_button']['#value'] == t('Back'))
@@ -195,7 +208,7 @@ function storage_api_create_container_form_validate($form, &$form_state) {
     case 1:
 
       if($form_state['values']['serving'] && $form_state['values']['access_control'])
-        $form_state['values']['serving'] = _STORAGE_API_ACCESS_CONTROL;
+        $form_state['values']['serving'] = STORAGE_API_ACCESS_CONTROL;
     
       $form_state['storage'] = array(
         'name' => $form_state['values']['name'],
@@ -217,6 +230,12 @@ function storage_api_create_container_form_validate($form, &$form_state) {
 }
 
 
+/**
+ * Submit handler for the create container form.
+ *
+ * @see storage_api_create_container_form()
+ * @see storage_api_create_container_form_validate()
+ */
 function storage_api_create_container_form_submit($form, &$form_state) {
 
   _storage_api_service_invoke($form_state['storage']['service_id'], 'container_create', $form_state['storage']);
@@ -248,21 +267,29 @@ function storage_api_create_container_form_submit($form, &$form_state) {
 }
 
 
+/**
+ * FAPI definition for the container form.
+ *
+ * @ingroup forms
+ * @see storage_api_container_form_suspend()
+ * @see storage_api_container_form_unsuspend()
+ * @see storage_api_container_form_destroy()
+ */
 function storage_api_container_form($form_state, $container) {
 
   drupal_set_title(t('Storage container: ') . $container['name']);
 
   switch($container['serving']) {
   
-    case _STORAGE_API_STORAGE_ONLY:
+    case STORAGE_API_STORAGE_ONLY:
       $serving = t('No');
       break;
 
-    case _STORAGE_API_SERVING:
+    case STORAGE_API_SERVING:
       $serving = t('Yes');
       break;
 
-    case _STORAGE_API_ACCESS_CONTROL:
+    case STORAGE_API_ACCESS_CONTROL:
       $serving = t('Securely');
       break;
   }
@@ -308,6 +335,13 @@ function storage_api_container_form($form_state, $container) {
 }
 
 
+/**
+ * Submit handler (suspend) for the container form.
+ *
+ * @see storage_api_container_form()
+ * @see storage_api_container_form_unsuspend()
+ * @see storage_api_container_form_destroy()
+ */
 function storage_api_container_form_suspend($form, &$form_state) {
   $container = $form['#parameters'][2];
 
@@ -315,6 +349,13 @@ function storage_api_container_form_suspend($form, &$form_state) {
 }
 
 
+/**
+ * Submit handler (unsuspend) for the container form.
+ *
+ * @see storage_api_container_form()
+ * @see storage_api_container_form_suspend()
+ * @see storage_api_container_form_destroy()
+ */
 function storage_api_container_form_unsuspend($form, &$form_state) {
   $container = $form['#parameters'][2];
 
@@ -322,6 +363,13 @@ function storage_api_container_form_unsuspend($form, &$form_state) {
 }
 
 
+/**
+ * Submit handler (destroy) for the container form.
+ *
+ * @see storage_api_container_form()
+ * @see storage_api_container_form_suspend()
+ * @see storage_api_container_form_unsuspend()
+ */
 function storage_api_container_form_destroy($form, &$form_state) {
   $container = $form['#parameters'][2];
 
@@ -329,6 +377,12 @@ function storage_api_container_form_destroy($form, &$form_state) {
 }
 
 
+/**
+ * FAPI definition for the container suspend form.
+ *
+ * @ingroup forms
+ * @see storage_api_container_suspend_form_submit()
+ */
 function storage_api_container_suspend_form($form_state, $container) {
 
   return confirm_form($form, 'Are you sure you want to suspend storage container <i>' . $container['name'] . '</i> ?', 
@@ -336,6 +390,11 @@ function storage_api_container_suspend_form($form_state, $container) {
 }
 
 
+/**
+ * Submit handler for the container suspend form.
+ *
+ * @see storage_api_container_suspend_form()
+ */
 function storage_api_container_suspend_form_submit($form, &$form_state) {
   $container = $form['#parameters'][2];
 
@@ -358,6 +417,12 @@ function storage_api_container_suspend_form_submit($form, &$form_state) {
 }
 
 
+/**
+ * FAPI definition for the container unsuspend form.
+ *
+ * @ingroup forms
+ * @see storage_api_container_unsuspend_form_submit()
+ */
 function storage_api_container_unsuspend_form($form_state, $container) {
 
   return confirm_form($form, 'Are you sure you want to unsuspend storage container <i>' . 
@@ -365,6 +430,11 @@ function storage_api_container_unsuspend_form($form_state, $container) {
 }
 
 
+/**
+ * Submit handler for the container unsuspend form.
+ *
+ * @see storage_api_container_unsuspend_form()
+ */
 function storage_api_container_unsuspend_form_submit($form, &$form_state) {
   $container = $form['#parameters'][2];
 
@@ -387,6 +457,12 @@ function storage_api_container_unsuspend_form_submit($form, &$form_state) {
 }
 
 
+/**
+ * FAPI definition for the container destroy form.
+ *
+ * @ingroup forms
+ * @see storage_api_container_destroy_form_submit()
+ */
 function storage_api_container_destroy_form($form_state, $container) {
 
   return confirm_form($form, 'Are you sure you want to destroy storage container <i>' . 
@@ -394,6 +470,11 @@ function storage_api_container_destroy_form($form_state, $container) {
 }
 
 
+/**
+ * Submit handler for the container destroy form.
+ *
+ * @see storage_api_container_destroy_form()
+ */
 function storage_api_container_destroy_form_submit($form, &$form_state) {
   $container = $form['#parameters'][2];
 
@@ -436,6 +517,12 @@ function storage_api_container_destroy_form_submit($form, &$form_state) {
 }
 
 
+/**
+ * FAPI definition for the container edit form.
+ *
+ * @ingroup forms
+ * @see storage_api_container_edit_form_submit()
+ */
 function storage_api_container_edit_form($form_state, $container) {
 
   drupal_set_title(t('Storage container: ') . $container['name'] . 
@@ -462,6 +549,11 @@ function storage_api_container_edit_form($form_state, $container) {
 }
 
 
+/**
+ * Submit handler for the container edit form.
+ *
+ * @see storage_api_container_edit_form()
+ */
 function storage_api_container_edit_form_submit($form, &$form_state) {
   $container = $form['#parameters'][2];
 

@@ -2,12 +2,12 @@
 
 
 /**
- * Determine filename extension for mime type
+ * Determine filename extension for mime type.
  *
  * @param $mimetype
  *   A string containing a mimetype.
  * @return
- *   A string containing a filename extension or NULL
+ *   A string containing a filename extension or NULL .
  */
 function _storage_api_mime_extension($mimetype) {
 

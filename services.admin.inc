@@ -67,6 +67,13 @@ function _storage_api_services() {
 }
 
 
+/**
+ * FAPI definition for the service form.
+ *
+ * @ingroup forms
+ * @see storage_api_service_form_suspend()
+ * @see storage_api_service_form_unsuspend()
+ */
 function storage_api_service_form($form_state, $service) {
 
   drupal_set_title(t('Storage service: ') . $service['name']);
@@ -97,6 +104,12 @@ function storage_api_service_form($form_state, $service) {
 }
 
 
+/**
+ * Submit handler (suspend) for the service form.
+ *
+ * @see storage_api_service_form()
+ * @see storage_api_service_form_unsuspend()
+ */
 function storage_api_service_form_suspend($form, &$form_state) {
   $service = $form['#parameters'][2];
 
@@ -104,6 +117,12 @@ function storage_api_service_form_suspend($form, &$form_state) {
 }
 
 
+/**
+ * Submit handler (unsuspend) for the service form.
+ *
+ * @see storage_api_service_form()
+ * @see storage_api_service_form_suspend()
+ */
 function storage_api_service_form_unsuspend($form, &$form_state) {
   $service = $form['#parameters'][2];
 
@@ -111,6 +130,12 @@ function storage_api_service_form_unsuspend($form, &$form_state) {
 }
 
 
+/**
+ * FAPI definition for the service suspend form.
+ *
+ * @ingroup forms
+ * @see storage_api_service_suspend_form_submit()
+ */
 function storage_api_service_suspend_form($form_state, $service) {
 
   return confirm_form($form, 'Are you sure you want to suspend storage service <i>' . $service['name'] . '</i> ?', 
@@ -118,6 +143,11 @@ function storage_api_service_suspend_form($form_state, $service) {
 }
 
 
+/**
+ * Submit handler for the service suspend form.
+ *
+ * @see storage_api_service_suspend_form()
+ */
 function storage_api_service_suspend_form_submit($form, &$form_state) {
 
   $service = $form['#parameters'][2];
@@ -140,6 +170,12 @@ function storage_api_service_suspend_form_submit($form, &$form_state) {
 }
 
 
+/**
+ * FAPI definition for the service unsuspend form.
+ *
+ * @ingroup forms
+ * @see storage_api_service_unsuspend_form_submit()
+ */
 function storage_api_service_unsuspend_form($form_state, $service) {
 
   return confirm_form($form, 'Are you sure you want to unsuspend storage service <i>' . $service['name'] . '</i> ?', 
@@ -147,6 +183,11 @@ function storage_api_service_unsuspend_form($form_state, $service) {
 }
 
 
+/**
+ * Submit handler for the service unsuspend form.
+ *
+ * @see storage_api_service_unsuspend_form()
+ */
 function storage_api_service_unsuspend_form_submit($form, &$form_state) {
 
   db_query("
