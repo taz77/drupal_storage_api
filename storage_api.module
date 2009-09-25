@@ -530,9 +530,11 @@ function _storage_api_log_serving($file, $container_id = NULL) {
   
   db_query("
     UPDATE {storage_file}
-    SET servings = servings + 1
+    SET servings = servings + 1,
+      last_served = %d
     WHERE file_id = %d
   ",
+    $_SERVER['REQUEST_TIME'],
     $file['file_id']
   );
 }

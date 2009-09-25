@@ -80,7 +80,8 @@ function storage_api_schema() {
       'nid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => FALSE),
       'check_me' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE),
       'data' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
-      'servings' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE)
+      'servings' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
+      'last_served' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE)
     ),
     'primary key' => array('file_id'),
     'indexes' => array(
@@ -180,6 +181,18 @@ function storage_api_update_6102() {
   return $ret;
 }
 
+ 
+function storage_api_update_6103() {
+  $ret = array();
+
+  $ret[] = update_sql("
+    ALTER TABLE {storage_file}
+    ADD last_served INT UNSIGNED NOT NULL
+  ");
+  
+  return $ret;
+}
+ 
  
 function storage_api_uninstall() {
 
