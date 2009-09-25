@@ -1169,8 +1169,8 @@ function storage_api_inherit_servings($new_file_id, $old_file_id) {
     $old_file_id
   );
   
-  $old_servings = db_result(db_query("
-    SELECT servings
+  $old_stats = db_fetch_array(db_query("
+    SELECT servings, last_served
     FROM {storage_file}
     WHERE file_id = %d
   ",
@@ -1179,10 +1179,12 @@ function storage_api_inherit_servings($new_file_id, $old_file_id) {
 
   db_query("
     UPDATE {storage_file}
-    SET servings = servings + %d
+    SET servings = servings + %d,
+      last_served = GREATEST(last_served, %d)
     WHERE file_id = %d
   ",
-    $old_servings,
+    $old_stats['servings'],
+    $old_stats['last_served'],
     $new_file_id
   );
 }
