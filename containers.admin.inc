@@ -71,7 +71,7 @@ function storage_api_create_container_form($form_state) {
 
   drupal_set_title(t('Storage containers'));
   
-  if(!isset($form_state)) {
+  if(!isset($form_state['values']['step'])) {
     $step = 1;
   }
   else {
@@ -87,7 +87,7 @@ function storage_api_create_container_form($form_state) {
   }
 
   $form['step'] = array(
-    '#type' => 'hidden',
+    '#type' => 'value',
     '#value' => $step
   );
   
@@ -134,7 +134,7 @@ function storage_api_create_container_form($form_state) {
       );
 
       $form['next'] = array(
-        '#type' => 'button',
+        '#type' => 'submit',
         '#value' => t('Next')
       );
 
@@ -176,7 +176,7 @@ function storage_api_create_container_form($form_state) {
         'container_settings_form', $form_state['storage']['settings'], $form_state['storage']['serving']);
       
       $form['back'] = array(
-        '#type' => 'button',
+        '#type' => 'submit',
         '#value' => t('Back')
       );
       
@@ -200,9 +200,6 @@ function storage_api_create_container_form($form_state) {
  */
 function storage_api_create_container_form_validate($form, &$form_state) {
 
-  if($form_state['clicked_button']['#value'] == t('Back'))
-    return;
-
   switch($form_state['values']['step']) {
   
     case 1:
@@ -223,6 +220,9 @@ function storage_api_create_container_form_validate($form, &$form_state) {
     
       $form_state['storage']['settings'] = $form_state['values']['settings'];
     
+      if($form_state['clicked_button']['#value'] == t('Back'))
+        break;
+
       _storage_api_service_invoke($form_state['storage']['service_id'], 'container_validate', $form_state['storage']);
 
       break;
@@ -237,6 +237,9 @@ function storage_api_create_container_form_validate($form, &$form_state) {
  * @see storage_api_create_container_form_validate()
  */
 function storage_api_create_container_form_submit($form, &$form_state) {
+
+  if($form_state['clicked_button']['#value'] != t('Create'))
+    return;
 
   _storage_api_service_invoke($form_state['storage']['service_id'], 'container_create', $form_state['storage']);
 
