@@ -73,7 +73,7 @@ function _storage_api_ensure_all_instances_exist(&$file, $containers) {
             
           if(!$keep_me)
             @unlink($filepath);
-          }
+        }
         else {
           $failure = TRUE;
         }
