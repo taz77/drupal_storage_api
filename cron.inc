@@ -37,7 +37,7 @@ function _storage_api_ensure_all_instances_exist(&$file, $containers) {
         
         if($filepath) {
         
-          // if its a new object, there is no point in checking for an instance
+          // if it's a new object, there is no point in checking for an instance
         
           if($check && !$file['new_object']) {
             $exists = _storage_api_object_instance_exists($file['object_id'], $container['container_id']);
