@@ -276,6 +276,7 @@ function storage_api_create_container_form_submit($form, &$form_state) {
  * @ingroup forms
  * @see storage_api_container_form_suspend()
  * @see storage_api_container_form_unsuspend()
+ * @see storage_api_container_form_drain()
  * @see storage_api_container_form_destroy()
  */
 function storage_api_container_form($form_state, $container) {
@@ -328,6 +329,12 @@ function storage_api_container_form($form_state, $container) {
     );
   }
 
+  $form['drain'] = array(
+    '#type' => 'submit',
+    '#value' => t('Drain'),
+    '#submit' => array('storage_api_container_form_drain')
+  );
+
   $form['destroy'] = array(
     '#type' => 'submit',
     '#value' => t('Destroy'),
@@ -343,6 +350,7 @@ function storage_api_container_form($form_state, $container) {
  *
  * @see storage_api_container_form()
  * @see storage_api_container_form_unsuspend()
+ * @see storage_api_container_form_drain()
  * @see storage_api_container_form_destroy()
  */
 function storage_api_container_form_suspend($form, &$form_state) {
@@ -357,6 +365,7 @@ function storage_api_container_form_suspend($form, &$form_state) {
  *
  * @see storage_api_container_form()
  * @see storage_api_container_form_suspend()
+ * @see storage_api_container_form_drain()
  * @see storage_api_container_form_destroy()
  */
 function storage_api_container_form_unsuspend($form, &$form_state) {
@@ -367,11 +376,27 @@ function storage_api_container_form_unsuspend($form, &$form_state) {
 
 
 /**
+ * Submit handler (drain) for the container form.
+ *
+ * @see storage_api_container_form()
+ * @see storage_api_container_form_suspend()
+ * @see storage_api_container_form_unsuspend()
+ * @see storage_api_container_form_destroy()
+ */
+function storage_api_container_form_drain($form, &$form_state) {
+  $container = $form['#parameters'][2];
+
+  $form_state['redirect'] = 'admin/build/storage/containers/' . $container['container_id'] . '/drain';
+}
+
+
+/**
  * Submit handler (destroy) for the container form.
  *
  * @see storage_api_container_form()
  * @see storage_api_container_form_suspend()
  * @see storage_api_container_form_unsuspend()
+ * @see storage_api_container_form_drain()
  */
 function storage_api_container_form_destroy($form, &$form_state) {
   $container = $form['#parameters'][2];
@@ -457,6 +482,33 @@ function storage_api_container_unsuspend_form_submit($form, &$form_state) {
   watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));
   
   $form_state['redirect'] = $path;
+}
+
+
+/**
+ * FAPI definition for the container drain form.
+ *
+ * @ingroup forms
+ * @see storage_api_container_drain_form_submit()
+ */
+function storage_api_container_drain_form($form_state, $container) {
+
+  return confirm_form($form, 'Are you sure you want to drain storage container <i>' . 
+    $container['name'] . '</i> ?', 'admin/build/storage/containers/' . $container['container_id'], t(''));
+}
+
+
+/**
+ * Submit handler for the container drain form.
+ *
+ * @see storage_api_container_drain_form()
+ */
+function storage_api_container_drain_form_submit($form, &$form_state) {
+  $container = $form['#parameters'][2];
+
+  storage_api_drain_container($container);
+  
+  $form_state['redirect'] = 'admin/build/storage/containers/' . $container['container_id'];
 }
 
 

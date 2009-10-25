@@ -13,8 +13,7 @@ function storage_ftp_storage_service_info() {
     'name' => t('FTP'),
     'dynamic' => FALSE,
     'local' => FALSE,
-    'direct' => FALSE,
-    'help_destroy' => TRUE
+    'direct' => FALSE
   );
   
   return $info;

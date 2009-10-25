@@ -492,38 +492,11 @@ function storage_api_class_add_container_form($form_state, $class) {
  */
 function storage_api_class_add_container_form_submit($form, &$form_state) {
   $class = $form['#parameters'][2];
-
-  db_query("
-    INSERT IGNORE INTO {storage_class_container}
-    SET class_id = %d,
-      container_id = %d
-  ",
-    $class['class_id'],
-    $form_state['values']['container_id']
-  );
-  
-  db_query("
-    UPDATE {storage_file}
-    SET check_me = 1
-    WHERE selector_id IN (
-      SELECT selector_id
-      FROM {storage_selector}
-      WHERE class_id = %d
-    )
-  ",
-    $class['class_id']
-  );
-
   $container = storage_api_container_load($form_state['values']['container_id']);
-  $path = 'admin/build/storage/classes/' . $class['class_id'];  
   
-  $message = 'Storage container <i>' . $container['name'] . 
-    '</i> has been added to class <i>' . $class['name'] .'</i>.';
+  storage_api_class_add_container($class, $container);
   
-  drupal_set_message($message);
-  watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));
-
-  $form_state['redirect'] = $path . '/edit';
+  $form_state['redirect'] = 'admin/build/storage/classes/' . $class['class_id'] . '/edit';
 }
 
 

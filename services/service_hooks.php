@@ -29,8 +29,9 @@
  *       If TRUE, files returned by *_get_filepath() will not be deleted after use.
  *     - 'direct'
  *       If TRUE, the service never returns a URL from hook_storage_object_instance_serve() .
- *     - 'help_destroy' (not implemented)
- *       Storage API should destroy every instance before destroying the container.
+ *     - 'can_copy'
+ *       Whether the service can copy an instance internally.
+ *       If TRUE, *_instance_copy() should be implemented.
  */
 function hook_storage_service_info() {
 }
@@ -111,6 +112,22 @@ function hook_storage_object_instance_create($container, $file) {
 
 
 /**
+ * Create an object instance in a container by copying it from another.
+ *
+ * @param $container
+ *   Container that is to hold the object instance.
+ * @param $file
+ *   File representing the object to have an instance created.
+ * @param $source_container
+ *   Container that the object instance should be copied from.
+ * @return
+ *   Success boolean value.
+ */
+function hook_storage_object_instance_copy($container, $file, $source_container) {
+}
+
+
+/**
  * Destroy an object instance.
  *
  * @param $container
@@ -169,6 +186,22 @@ function hook_storage_object_instance_serve($container, $file) {
  *   Success boolean value.
  */
 function hook_storage_file_instance_create($container, $file) {
+}
+
+
+/**
+ * Create a file instance in a container by copying it from another.
+ *
+ * @param $container
+ *   Container that is to hold the file instance.
+ * @param $file
+ *   File to have an instance created.
+ * @param $source_container
+ *   Container that the file instance should be copied from.
+ * @return
+ *   Success boolean value.
+ */
+function hook_storage_file_instance_copy($container, $file, $source_container) {
 }
 
 

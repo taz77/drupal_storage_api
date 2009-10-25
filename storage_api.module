@@ -125,6 +125,14 @@ function storage_api_menu() {
     'file' => 'containers.admin.inc'
   );
   
+  $items['admin/build/storage/containers/%storage_api_container/drain'] = array(
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_CALLBACK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('storage_api_container_drain_form', 4),
+    'file' => 'containers.admin.inc'
+  );
+
   $items['admin/build/storage/containers/%storage_api_container/destroy'] = array(
     'access arguments' => array('administer site configuration'),
     'type' => MENU_CALLBACK,
@@ -1505,7 +1513,7 @@ function _storage_api_acquire_from_source_url(&$file) {
       
       // we need to reload $file to get the filesize, etc
       $file = storage_api_file_load($file['file_id']);
-      $file['new_object'] = $new_object;    // _storage_api_ensure_all_instances_exist() will make use of this
+      $file['new_object'] = $new_object;    // _storage_api_ensure_instance_exists() will make use of this
 
       $message = 'Acquired file from url: ' . $file['source_url'] . ' . <br />';
       $message .= _storage_api_file_log_info($file);
@@ -1753,6 +1761,90 @@ function storage_api_mime_extension($mimetype) {
   require_once $path . '/mime_extension.inc';
 
   return _storage_api_mime_extension($mimetype);
+}
+
+
+/**
+ * Add a container to a class and schedule instances to be created.
+ *
+ * @param $class
+ *   Class the container should be added to.
+ * @param $container
+ *   Container that should be added.
+ */
+function storage_api_class_add_container($class, $container) {
+
+  db_query("
+    INSERT IGNORE INTO {storage_class_container}
+    SET class_id = %d,
+      container_id = %d
+  ",
+    $class['class_id'],
+    $container['container_id']
+  );
+  
+  db_query("
+    UPDATE {storage_file}
+    SET check_me = 1
+    WHERE selector_id IN (
+    
+      SELECT selector_id
+      FROM {storage_selector}
+      WHERE class_id = %d
+      
+    )
+  ",
+    $class['class_id']
+  );
+
+  $message = 'Storage container <i>' . $container['name'] . 
+    '</i> has been added to class <i>' . $class['name'] .'</i>.';
+
+  $path = 'admin/build/storage/classes/' . $class['class_id'];  
+  
+  drupal_set_message($message);
+  watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));
+}
+
+
+/**
+ * Remove a container from all classes and schedule instances to be destroyed.
+ *
+ * @param $container
+ *   Container to be drained.
+ */
+function storage_api_drain_container($container) {
+
+  db_query("
+    UPDATE {storage_file}
+    SET check_me = 1
+    WHERE selector_id IN (
+    
+      SELECT {storage_selector}.selector_id
+      FROM {storage_class_container}
+      INNER JOIN {storage_selector}
+        ON {storage_class_container}.class_id = {storage_selector}.class_id
+      WHERE {storage_class_container}.container_id = %d
+      
+    )
+  ",
+    $container['container_id']
+  );
+
+  db_query("
+    DELETE FROM {storage_class_container}
+    WHERE container_id = %d
+  ",
+    $container['container_id']
+  );
+
+  $message = 'Storage container <i>' . $container['name'] . 
+    '</i> has been removed from all classes and will be drained during cron.';
+
+  $path = 'admin/build/storage/containers/' . $container['container_id'];
+  
+  drupal_set_message($message);
+  watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));
 }
 
 

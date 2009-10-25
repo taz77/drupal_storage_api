@@ -4,88 +4,234 @@
 // Copyright 2008-2009 Jonathan Brown
 
 
-function _storage_api_ensure_all_instances_exist(&$file, $containers) {
+function _storage_api_object_instance_copy($container, $file, $source_container) {
 
-  // check for instance of file in each container
+  $success = _storage_api_service_invoke($container['service_id'], 'object_instance_copy', 
+    $container, $file, $source_container);
   
-  foreach($containers as $container) {
+  if(!$success)
+    return FALSE;
   
-    if($container['suspended'] != 0 ||
-      $container['service_suspended'] != 0)
-    {
-      $failure = TRUE;
-      continue;
-    }
+  db_query("
+    INSERT INTO {storage_object_instance}
+    SET object_id = %d,
+      container_id = %d,
+      reference = '%s'
+  ",
+    $file['object_id'],
+    $container['container_id'],
+    $success !== TRUE ? $success : ''
+  );
+  
+  $message = 'Object instance copied. <br />';
+  $message .= _storage_api_container_log_info($container);
+  $message .= _storage_api_object_log_info($file);
+  
+  watchdog('storage_api', $message, NULL);
 
-    $service_info = _storage_api_service_invoke($container['service_id'], 'service_info');
-  
-    if(!(!$service_info['dynamic'] && $container['serving'] && $file['force_download'])) {
+  return TRUE;
+}
 
-      if($file['object_id']) {
-        $exists = _storage_api_object_instance_exists($file['object_id'], $container['container_id']);
-        $check = FALSE;
-      }
-      else {
-      
-        // we don't have an object_id yet, so we need to check for an instance once we do
-      
-        $check = TRUE;
-      }
-      
-      if(!$exists) {
-        $filepath = storage_api_get_local_filepath($file, $keep_me);
-        
-        if($filepath) {
-        
-          // if it's a new object, there is no point in checking for an instance
-        
-          if($check && !$file['new_object']) {
-            $exists = _storage_api_object_instance_exists($file['object_id'], $container['container_id']);
-          }
-          
-          if(!$exists) {
-            $file['filepath'] = $filepath;
-            $file['keep_me'] = $keep_me;
-            
-            if(!_storage_api_create_object_instance($container, $file))
-              $failure = TRUE;
-          }
-          
-          if(!$keep_me)
-            @unlink($filepath);
-        }
-        else {
-          $failure = TRUE;
-        }
-      }
-    }
-    else {
-      $exists = _storage_api_file_instance_exists($file['file_id'], $container['container_id']);
-      
-      if(!$exists) {
-        $filepath = storage_api_get_local_filepath($file, $keep_me);
-        
-        if($filepath) {
-          $file['filepath'] = $filepath;
-          $file['keep_me'] = $keep_me;
-        
-          $failure = !_storage_api_create_file_instance($container, $file);
-            
-          if(!$keep_me)
-            @unlink($filepath);
-        }
-        else {
-          $failure = TRUE;
-        }
-      }
+
+function _storage_api_file_instance_copy($container, $file, $source_container) {
+
+  $success = _storage_api_service_invoke($container['service_id'], 'file_instance_copy', 
+    $container, $file, $source_container);
+  
+  if(!$success)
+    return FALSE;
+    
+  db_query("
+    INSERT INTO {storage_file_instance}
+    SET file_id = %d,
+      container_id = %d,
+      reference = '%s'
+  ",
+    $file['file_id'],
+    $container['container_id'],
+    $success !== TRUE ? $success : ''
+  );
+  
+  $message = 'File instance copied' . ($file['filename'] ? (': ' . $file['filename'] . ' ') : '') . '. <br />';
+  $message .= _storage_api_container_log_info($container);
+  $message .= _storage_api_file_log_info($file);
+
+  watchdog('storage_api', $message, NULL);
+
+  return TRUE;
+}
+
+
+function _storage_api_copy_candidate_containers($file, $container) {
+
+  // Find all the containers in $file's class that are using $container's service, 
+  // except $container .
+
+  $result = db_query("
+    SELECT {storage_container}.container_id
+    FROM {storage_selector}
+    INNER JOIN {storage_class_container}
+      ON {storage_selector}.class_id = {storage_class_container}.class_id
+    INNER JOIN {storage_container}
+      ON {storage_class_container}.container_id = {storage_container}.container_id
+    WHERE {storage_selector}.selector_id = %d
+      AND {storage_class_container}.container_id != %d
+      AND {storage_container}.service_id = '%s'
+    ORDER BY {storage_class_container}.weight, {storage_class_container}.container_id
+  ",
+    $file['selector_id'],
+    $container['container_id'],
+    $container['service_id']
+  );
+  
+  $candiate_container_ids = array();
+  
+  while($candiate_container = db_fetch_array($result)) {
+    $candiate_container_ids[] = $candiate_container['container_id'];
+  }
+  
+  return $candiate_container_ids;
+}
+
+
+function _storage_api_try_object_instance_copy($container, $file) {
+  
+  $candiate_container_ids = _storage_api_copy_candidate_containers($file, $container);
+  
+  foreach($candiate_container_ids as $candiate_container_id) {
+
+    if(_storage_api_object_instance_exists($file['object_id'], $candiate_container_id)) {
+      $source_container = storage_api_container_load($candiate_container_id);
+      return _storage_api_object_instance_copy($container, $file, $source_container);
     }
   }
+}
+
+
+function _storage_api_try_file_instance_copy($container, $file) {
+  
+  $candiate_container_ids = _storage_api_copy_candidate_containers($file, $container);
+  
+  foreach($candiate_container_ids as $candiate_container_id) {
+
+    if(_storage_api_file_instance_exists($file['file_id'], $candiate_container_id)) {
+      $source_container = storage_api_container_load($candiate_container_id);
+      return _storage_api_file_instance_copy($container, $file, $source_container);
+    }
+  }
+}
+
+
+function _storage_api_ensure_instance_exists(&$file, $container) {
+
+  if($container['suspended'] != 0 ||
+    $container['service_suspended'] != 0)
+  {
+    return FALSE;
+  }
+  
+  $service_info = _storage_api_service_invoke($container['service_id'], 'service_info');
+
+
+  // should the instance be an object instance or a file instance 
+
+  if(!(!$service_info['dynamic'] && $container['serving'] && $file['force_download'])) {
+  
+  
+    // object instance
+
+    if($file['object_id']) {
+      
+      if(_storage_api_object_instance_exists($file['object_id'], $container['container_id']))
+        return TRUE;
+    }
+    else {
+    
+      // we don't have an object_id yet, so we might check for an instance once we do
+    
+      $check = TRUE;
+    }
+    
+    // is it possible to short circuit?
+
+    if($service_info['can_copy'] && !$check) {
+    
+      if(_storage_api_try_object_instance_copy($container, $file))
+        return TRUE;
+    }
+
+    $filepath = storage_api_get_local_filepath($file, $keep_me);
+    
+    if($filepath) {
+    
+      // if it's a new object, there is no point in checking for an instance
+    
+      if($check && !$file['new_object']) {
+        $exists = _storage_api_object_instance_exists($file['object_id'], $container['container_id']);
+      }
+      
+      if(!$exists) {
+        $file['filepath'] = $filepath;
+        $file['keep_me'] = $keep_me;
+        
+        $exists = _storage_api_create_object_instance($container, $file);
+      }
+      
+      if(!$keep_me)
+        @unlink($filepath);
+    }
+  }
+  else {
+  
+  
+    // file instance
+  
+    if(_storage_api_file_instance_exists($file['file_id'], $container['container_id']))
+      return TRUE;
+      
+    // is it possible to short circuit?
+    
+    if($service_info['can_copy']) {
+    
+      if(_storage_api_try_file_instance_copy($container, $file))
+        return TRUE;
+    }
+
+    $filepath = storage_api_get_local_filepath($file, $keep_me);
+    
+    if($filepath) {
+      $file['filepath'] = $filepath;
+      $file['keep_me'] = $keep_me;
+    
+      $exists = _storage_api_create_file_instance($container, $file);
+        
+      if(!$keep_me)
+        @unlink($filepath);
+    }
+  }
+  
+  return $exists;
+}
+
+
+/**
+ * Ensure there is an instance of the file in each container
+ */
+function _storage_api_ensure_all_instances_exist(&$file, $containers) {
+
+  foreach($containers as $container) {
+
+    $success = _storage_api_ensure_instance_exists($file, $container);
+    
+    if(!$success)
+      $failure = TRUE;
+  }  
   
   return !$failure;
 }
 
 
-function _storage_api_destroy_object_instance($file, $container) {
+function _storage_api_object_instance_destroy($container, $file) {
 
   if($container['suspended'] != 0 ||
     $container['service_suspended'] != 0)
@@ -118,7 +264,7 @@ function _storage_api_destroy_object_instance($file, $container) {
 }
 
 
-function _storage_api_destroy_object_instance_if_unrequired($file, $container) {
+function _storage_api_object_instance_destroy_if_unrequired($container, $file) {
 
   // are there any other files in this container that use the same object?
   
@@ -144,7 +290,7 @@ function _storage_api_destroy_object_instance_if_unrequired($file, $container) {
   ));
   
   if($files == 0) {
-    $success = _storage_api_destroy_object_instance($file, $container);
+    $success = _storage_api_object_instance_destroy($container, $file);
     
     if(!$success)
       $failure = TRUE;
@@ -154,7 +300,7 @@ function _storage_api_destroy_object_instance_if_unrequired($file, $container) {
 }
 
 
-function _storage_api_destroy_file_instance($file, $container) {
+function _storage_api_file_instance_destroy($container, $file) {
 
   if($container['suspended'] != 0 ||
     $container['service_suspended'] != 0)
@@ -215,7 +361,7 @@ function _storage_api_destroy_unrequired_instances($file, $container_ids) {
 
   while($container = db_fetch_array($result)) {
     $container['settings'] = unserialize($container['settings']);
-    $success = _storage_api_destroy_object_instance_if_unrequired($file, $container);
+    $success = _storage_api_object_instance_destroy_if_unrequired($container, $file);
     
     if(!$success)
       $failure = TRUE;
@@ -241,7 +387,7 @@ function _storage_api_destroy_unrequired_instances($file, $container_ids) {
 
   while($container = db_fetch_array($result)) {
     $container['settings'] = unserialize($container['settings']);
-    $success = _storage_api_destroy_file_instance($file, $container);
+    $success = _storage_api_file_instance_destroy($container, $file);
     
     if(!$success)
       $failure = TRUE;
