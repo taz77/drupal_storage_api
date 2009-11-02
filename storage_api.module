@@ -800,6 +800,8 @@ function storage_api_selector_item($selector_id, $title, $description = NULL) {
     FROM {storage_class}
     ORDER BY name, class_id
   ");
+  
+  $classes = array();
 
   while($class = db_fetch_array($result)) {
     $classes[$class['class_id']] = $class['name'];
