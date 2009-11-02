@@ -57,7 +57,7 @@ function _storage_api_classes_list() {
   }
 
   if(empty($rows)) {
-    $rows[] = array(array('data' => t('No classes configured.'), 'colspan' => '3', 'class' => 'message'));
+    $rows[] = array(array('data' => t('No classes configured.'), 'colspan' => 3, 'class' => 'message'));
   }
 
   return theme('table', $header, $rows);

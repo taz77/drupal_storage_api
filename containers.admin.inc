@@ -56,6 +56,10 @@ function _storage_api_containers() {
     $rows[] = $row;
   }
   
+  if(empty($rows)) {
+    $rows[] = array(array('data' => t('No containers exist.'), 'colspan' => 6, 'class' => 'message'));
+  }
+
   return theme('table', $header, $rows);
 }
 

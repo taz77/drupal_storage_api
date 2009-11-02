@@ -63,6 +63,10 @@ function _storage_api_services() {
     $rows[] = $row;
   }
   
+  if(empty($rows)) {
+    $rows[] = array(array('data' => t('No service modules enabled.'), 'colspan' => 4, 'class' => 'message'));
+  }
+
   return theme('table', $header, $rows);
 }
 
