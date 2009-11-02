@@ -1887,12 +1887,11 @@ function _storage_bcmath() {
  *   Formatted size.
  */
 function storage_api_format_size($count) {
-
-  if($count < 1000) {
-    return format_plural($count, '1 byte', '@count bytes');
-  }
-  
   _storage_bcmath();
+
+  if(bccomp($count, 1000) < 0) {
+    return format_plural((int)$count, '1 byte', '@count bytes');
+  }
   
   $count = bcdiv($count, 1000, 2);
   $u = 0;

@@ -51,7 +51,7 @@ function _storage_api_classes_list() {
     
     $row[] = l($class['name'], 'admin/build/storage/classes/' . $class['class_id']);
     $row[] = $class['files'];
-    $row[] = storage_api_format_size((int)$class['size']);
+    $row[] = storage_api_format_size($class['size']);
     
     $rows[] = $row;
   }
