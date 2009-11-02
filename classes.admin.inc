@@ -210,6 +210,10 @@ function _storage_api_class($class) {
     $rows[] = $row;
   }
 
+  if(empty($rows)) {
+    $rows[] = array(array('data' => t('There are no containers in this class.'), 'colspan' => 5, 'class' => 'message'));
+  }
+
   $header = array(t('Container'), t('Service'), t('Serving'), t('Files'), t('Size'));
   $output = theme('table', $header, $rows);
 
