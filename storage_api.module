@@ -1426,11 +1426,7 @@ function _storage_api_acquire_from_url($url) {
     CURLOPT_FILE => $fp
   );
 
-  // curl is really picky about escaping
-  // '://' must not be escaped or it prepends its own 'http://'
-  // spaces must be escaped
-  
-  $ch = curl_init(str_replace(array('%3A', '%2F'), array(':', '/'), rawurlencode($url)));
+  $ch = curl_init(str_replace(' ', '+', $url));   // this seems to keep everyone happy
   curl_setopt_array($ch, $options);
   $result = curl_exec($ch);
   fclose ($fp);
