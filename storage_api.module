@@ -16,9 +16,10 @@ function storage_api_menu() {
 
   $items['system/storage_api/serve/%storage_api_file'] = array(
     'type' => MENU_CALLBACK,
-    'page callback' => '_storage_api_serve_callback',
+    'page callback' => 'storage_api_serve',
     'page arguments' => array(3),
-    'access callback' => TRUE
+    'access callback' => 'storage_api_serve_access',
+    'access arguments' => array(3)
   );
   
 
@@ -36,7 +37,7 @@ function storage_api_menu() {
     'title' => 'Services',
     'description' => 'Configure storage services.',
     'access arguments' => array('administer site configuration'),
-    'page callback' => '_storage_api_services',
+    'page callback' => 'storage_api_services',
     'weight' => 0,
     'file' => 'services.admin.inc'
   );
@@ -70,7 +71,7 @@ function storage_api_menu() {
     'title' => 'Containers',
     'description' => 'Configure storage containers.',
     'access arguments' => array('administer site configuration'),
-    'page callback' => '_storage_api_containers',
+    'page callback' => 'storage_api_containers',
     'weight' => 1,
     'file' => 'containers.admin.inc'
   );
@@ -156,7 +157,7 @@ function storage_api_menu() {
     'title' => 'Classes',
     'description' => 'Configure storage classes.',
     'access arguments' => array('administer site configuration'),
-    'page callback' => '_storage_api_classes_list',
+    'page callback' => 'storage_api_classes_list',
     'weight' => 2,
     'file' => 'classes.admin.inc'
   );
@@ -182,7 +183,7 @@ function storage_api_menu() {
   $items['admin/build/storage/classes/%storage_api_class'] = array(
     'access arguments' => array('administer site configuration'),
     'type' => MENU_CALLBACK,
-    'page callback' => '_storage_api_class',
+    'page callback' => 'storage_api_class',
     'page arguments' => array(4),
     'file' => 'classes.admin.inc'
   );
@@ -236,19 +237,37 @@ function storage_api_menu() {
 }
 
 
+function storage_api_file_flush($file_id = NULL) {
+  global $_storage_api_file_cache;
+  
+  if($file_id)
+    unset($_storage_api_file_cache[$file_id]);
+  else
+    unset($_storage_api_file_cache);
+}
+
+
 /**
  * Loads a file.
  *
  * @param $file_id
  *   The file_id of the file to be loaded.
+ * @param $reload
+ *   Boolean If TRUE, reload the file from the database, instead of returning a cached copy.
  * @return
  *   The file.
  */
-function storage_api_file_load($file_id) {
+function storage_api_file_load($file_id, $reload = FALSE) {
+  global $_storage_api_file_cache;
 
   if(!$file_id)
     return FALSE;
-    
+  
+  if(!$reload) {
+  
+    if($_storage_api_file_cache[$file_id])
+      return $_storage_api_file_cache[$file_id];
+  }
   
   // either the file is being deleted and no longer has a selector,
   // or we grab the selector with migrating = 0
@@ -274,6 +293,8 @@ function storage_api_file_load($file_id) {
   
   $file['data'] = unserialize($file['data']);
   $file['options'] = unserialize($file['options']);
+  
+  $_storage_api_file_cache[$file_id] = $file;
   
   return $file;
 }
@@ -548,7 +569,18 @@ function _storage_api_log_serving($file, $container_id = NULL) {
 }
 
 
-function _storage_api_access_control($file) {
+/**
+ * Determine whether the user has access to a file.
+ *
+ * @param $file
+ *   The file that access is being checked for.
+ * @return
+ *   Boolean TRUE if the current user has access to the file.
+ */
+function storage_api_serve_access($file) {
+
+  if(!$file['options']['access_control'])
+    return TRUE;
 
   $results = module_invoke_all('storage_access_alter', $file['module'], $file['type'], $file['file_id']);
   
@@ -600,18 +632,8 @@ function _storage_api_service_unavailable() {
 }
 
 
-function _storage_api_serve($file, $get_url = FALSE) {
+function _storage_api_serving_container($file) {
 
-  if($file['options']['access_control']) {
-    if(!_storage_api_access_control($file)) {
-    
-      if(!$get_url)
-        drupal_access_denied();
-      
-      return;
-    }
-  }
-  
   $container = db_fetch_array(db_query("
     (
     
@@ -661,20 +683,131 @@ function _storage_api_serve($file, $get_url = FALSE) {
     $file['selector_id']
   ));
   
+  if(!$container)
+    return FALSE;
+
+  $container['settings'] = unserialize($container['settings']);
+  return $container;
+}
+
+
+function _storage_api_cache_serve_url($file_id, $url) {
+
+  db_query("
+    UPDATE {storage_file}
+    SET serve_url = '%s'
+    WHERE file_id = %d
+  ",
+    $url,
+    $file_id
+  );
+
+  storage_api_file_flush($file_id);
+}
+
+
+function _storage_api_flush_serve_url($file_id) {
+
+  db_query("
+    UPDATE {storage_file}
+    SET serve_url = NULL
+    WHERE file_id = %d
+  ",
+    $file_id
+  );
+
+  storage_api_file_flush($file_id);
+}
+
+
+function _storage_api_create_instance(&$container, $file) {
+
+  // we need write access to the directory for it to be deleted
+
+  if(!$file['keep_me']) {
+  
+    if(!is_writable(dirname($file['filepath'])))
+      $file['keep_me'] = TRUE;
+  }
+  
+  $service_info = _storage_api_service_invoke($container['service_id'], 'service_info');
+
+  if(!(!$service_info['dynamic'] && $container['serving'] && $file['force_download'])) {
+    $container['type'] = 'object';
+
+    // if the file's object is already in the system, then the instance might already exist
+
+    if(!$file['new_object']) {
+      $exists = _storage_api_object_instance_exists($file['object_id'], $container['container_id']);
+    }
+    
+    if(!$exists) {
+      $failure = !_storage_api_create_object_instance($container, $file);
+    }
+  }
+  else {
+    $container['type'] = 'file';
+    $failure = !_storage_api_create_file_instance($container, $file);
+  }
+  
+  if(!$file['keep_me'])
+    @unlink($file['filepath']);
+    
+  return !$failure;
+}
+
+
+function _storage_api_file_generate(&$file) {
+
+  $container = _storage_api_get_initial_container($file['selector_id']);
+  
+  if(!$container)
+    return FALSE;
+
+  $filepath = storage_api_get_local_filepath($file, $keep_me);
+  
+  if(!$filepath)
+    return FALSE;
+    
+  $file['filepath'] = $filepath;
+  $file['keep_me'] = $keep_me;
+  
+  if(!_storage_api_create_instance($container, $file)) {
+
+    $message = 'Failed to create instance of file ' . ($file['filename'] ? ($file['filename'] . ' ') : '');
+    $message .= 'in storage container <i>' . $container['name'] . '</i>.';
+    $message .= ' <br />' . _storage_api_file_log_info($file);
+    watchdog('storage_api', $message, NULL, WATCHDOG_WARNING, $link);
+
+    return FALSE;
+  }
+  
+  $message = 'Generated file' . ($file['filename'] ? (' ' . $file['filename']) : '');
+  $message .= '<br />' . _storage_api_file_log_info($file);
+  watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, $link);
+
+  return $container;
+}
+
+
+/**
+ * Serve the specified file, either directly or by an HTTP 302 redirect.
+ *
+ * @param $file
+ *   The file that is to be served.
+ */
+function storage_api_serve($file) {
+  
+  if($file['serve_url'])
+    drupal_goto($file['serve_url']);    // 302 redirect (don't cache)
+
+  $container = _storage_api_serving_container($file);
+  
+  if(!$container)
+    $container = _storage_api_file_generate($file);
 
   if($container) {
-    $container['settings'] = unserialize($container['settings']);
-
-    if($get_url) {
-
-      $info = _storage_api_service_invoke($container['service_id'], 'service_info');
-      
-      if($info['direct'])   // direct services never produce a URL
-        return;
-    }
-    else {
-      _storage_api_log_serving($file, $container['container_id']);
-    }
+    _storage_api_log_serving($file, $container['container_id']);
     
     switch($container['type']) {
     
@@ -689,35 +822,21 @@ function _storage_api_serve($file, $get_url = FALSE) {
         break;
     }
   }
-  else {
-    if($file['options']['serve_source_url'] && $file['source_url']) {
+  else if($file['options']['serve_source_url'] && $file['source_url']) {
 
-      $url = $file['source_url'];
-
-      if(!$get_url)
-        _storage_api_log_serving($file);
-    }
-    else {
-    
-      if(!$get_url)
-        _storage_api_service_unavailable();
-
-      return;
-    }
+    _storage_api_log_serving($file);
+    $url = $file['source_url'];
   }
   
-  if($get_url) {
-    return $url;
+  if(!$url) {
+    _storage_api_service_unavailable();
+    return;
   }
+  
+  _storage_api_cache_serve_url($file['file_id'], $url);
   
   // this will definitely not return
   drupal_goto($url);    // 302 redirect (don't cache)
-}
-
-
-function _storage_api_serve_callback($file) {
-  
-  _storage_api_serve($file);    // must be called with only one argument
 }
 
 
@@ -741,15 +860,52 @@ function _storage_api_serve_path($file) {
  */
 function storage_api_serve_url($file, $absolute = FALSE) {
 
-  if(!$file['options']['redirect']) {
-
-    $url = _storage_api_serve($file, TRUE);
-    
-    if($url)
-      return $url;
+  if($file['serve_url'] === '' || $file['options']['redirect']) {
+    $serve_from_site = TRUE;
+  }
+  else if(!storage_api_serve_access($file)) {
+    $serve_from_site = TRUE;
   }
   
-  return url(_storage_api_serve_path($file), array('absolute' => $absolute));
+  if($serve_from_site)
+    return url(_storage_api_serve_path($file), array('absolute' => $absolute));
+  
+  if($file['serve_url'])
+    return url($file['serve_url'], array('absolute' => $absolute));
+
+  $container = _storage_api_serving_container($file);
+
+  if($container) {
+    $info = _storage_api_service_invoke($container['service_id'], 'service_info');
+    
+    if(!$info['direct']) {    // direct services don't return a URL
+    
+      switch($container['type']) {
+      
+        case 'object':
+          $url = _storage_api_service_invoke($container['service_id'], 'object_instance_serve', 
+            $container, $file);
+          break;
+        
+        case 'file':
+          $url = _storage_api_service_invoke($container['service_id'], 'file_instance_serve',
+            $container, $file);
+          break;
+      }
+    }
+  }
+  else if($file['options']['serve_source_url'] && $file['source_url']) {
+
+    $url = $file['source_url'];
+  }
+  
+  if(!$url || !$container || $container['serving'] != STORAGE_API_ACCESS_CONTROL)
+    _storage_api_cache_serve_url($file['file_id'], $url);
+
+  if(!$url)
+    $url = _storage_api_serve_path($file);
+
+  return url($url, array('absolute' => $absolute));
 }
 
 
@@ -889,7 +1045,8 @@ function storage_api_selector_submit($form_item) {
 
     db_query("
       UPDATE {storage_file}
-      SET check_me = 1
+      SET check_me = 1,
+        serve_url = NULL
       WHERE selector_id = %d
     ",
       $form_item['selector_id']
@@ -1003,7 +1160,7 @@ function _storage_api_get_object_id($filepath, &$new_object = NULL) {
       mimedetect_mime(array('filepath' => $filepath))
     );
     
-    $object_id = db_last_insert_id('storage_objects', 'object_id');
+    $object_id = db_last_insert_id('storage_object', 'object_id');
     $new_object = TRUE;
   }
   
@@ -1029,6 +1186,8 @@ function _storage_api_create_object_instance($container, $file) {
     $container['container_id'],
     $success !== TRUE ? $success : ''
   );
+  
+  _storage_api_flush_serve_url($file['file_id']);
   
   $message = 'Object instance created. <br />';
   $message .= _storage_api_container_log_info($container);
@@ -1119,6 +1278,8 @@ function _storage_api_create_file_instance($container, $file) {
     $success !== TRUE ? $success : ''
   );
   
+  _storage_api_flush_serve_url($file['file_id']);
+  
   $message = 'File instance created' . ($file['filename'] ? (': ' . $file['filename'] . ' ') : '') . '. <br />';
   $message .= _storage_api_container_log_info($container);
   $message .= _storage_api_file_log_info($file);
@@ -1201,118 +1362,111 @@ function storage_api_inherit_servings($new_file_id, $old_file_id) {
 
 
 /**
- * Adds a file to the system from a filepath.
+ * Adds a file for Storage API to manage.
  *
  * The file will initially be stored in the lowest prioity container that is available in the file's class.
  *
- * @param $filepath
- *   Filepath to get the file from.
  * @param $selector_id
  *   selector_id of class selector to put the file in.
  * @param $options
  *   An associative array of additional options, with the following keys:
- *     - 'get_filename' (default FALSE)
- *       Determine the filename from the filepath.
+ *     - 'filepath'
+ *       Filepath to get the file from.
+ *     - 'keep_me' (default FALSE)
+ *       Ensure the filepath is left intact.
+ *     - 'source_url'
+ *       URL to get the file from
  *     - 'filename'
  *       The file's filename.
+ *     - 'get_filename' (default FALSE)
+ *       Determine the filename from the filepath / source_url.
  *     - 'force_download' (default FALSE)
  *       When a web browser accesses this file, force it to be downloaded.
  *     - 'module'
  *       The Drupal module that 'owns' this file.
  *     - 'type'
  *       Module-specific file type identifier.
+ *     - 'nid'
+ *       The nid of the node this file should be associated with.
  *     - 'obtained' (default current time)
  *       Unix timestamp of when the file was obtained.
- *     - 'keep_me' (default FALSE)
- *       Ensure the the original file is left in place.
+ *     - 'data'
+ *       An array of data about the file.
  * @return
  *   file_id of the added file or FALSE for failure.
  */
-function storage_api_add_file_from_filepath($filepath, $selector_id, $options = array()) {
-
-  $container = _storage_api_get_initial_container($selector_id);
-  
-  if(!$container)
-    return FALSE;
-
-  $object_id = _storage_api_get_object_id($filepath, $new_object);
+function storage_api_file_add($selector_id, $options = array()) {
 
   $fields = array(
+    'selector_id' => '%d',
+    'object_id' => '%d',
+    'source_url' => "'%s'",
+    'obtained' => '%d',
     'filename' => "'%s'",
     'force_download' => '%d',
-    'object_id' => '%d',
-    'selector_id' => '%d',
-    'check_me' => '%d',
     'module' => "'%s'",
     'type' => "'%s'",
-    'obtained' => '%d'
+    'nid' => '%d',
+    'check_me' => '%d',
+    'data' => "'%s'"
   );
   
-  $data = $options;
-  $data['object_id'] = $object_id;
-  $data['selector_id'] = $selector_id;
-  $data['check_me'] = TRUE;
+  $options['selector_id'] = $selector_id;
   
-  if($options['get_filename'])
-    $data['filename'] = basename($filepath);
-  
-  if(!$data['obtained'])
-    $data['obtained'] = $_SERVER['REQUEST_TIME'];
-  
-  $file_id = storage_api_db_insert('storage_file', $fields, $data);
-  
-  $file = storage_api_file_load($file_id);
-  $file['filepath'] = $filepath;
-  $file['keep_me'] = $options['keep_me'];
-  
-
-  // we need write access to the directory for it to be deleted
-
-  if(!$options['keep_me']) {
-  
-    if(!is_writable(dirname($filepath)))
-      $options['keep_me'] = TRUE;
-  }
-  
-  $service_info = _storage_api_service_invoke($container['service_id'], 'service_info');
-
-  if(!(!$service_info['dynamic'] && $container['serving'] && $options['force_download'])) {
-
-    // if the file's object is already in the system, then the instance might already exist
-
-    if(!$new_object) {
-      $exists = _storage_api_object_instance_exists($object_id, $container['container_id']);
-    }
+  if($options['filepath']) {
+    $container = _storage_api_get_initial_container($selector_id);
     
-    if(!$exists) {
-      $failure = !_storage_api_create_object_instance($container, $file);
+    if(!$container)
+      return FALSE;
+
+    $options['object_id'] = _storage_api_get_object_id($options['filepath'], $new_object);
+    
+    if(!$options['obtained'])
+      $options['obtained'] = $_SERVER['REQUEST_TIME'];
+  }
+
+  if($options['get_filename']) {
+
+    if($options['filepath']) {
+      $options['filename'] = basename($options['filepath']);
+    }
+    else if($options['source_url']) {
+      $options['filename'] = basename(parse_url($options['source_url'], PHP_URL_PATH));
     }
   }
-  else {
-    $failure = !_storage_api_create_file_instance($container, $file);
-  }
+  
+  $options['check_me'] = TRUE;
+  $options['data'] = serialize($options['data']);
+  
+
+  $file_id = storage_api_db_insert('storage_file', $fields, $options);
+  $file = storage_api_file_load($file_id);
+
   
   $link = $file['nid'] ? l(t('view'), 'node/' . $file['nid']) : NULL;
-
-  if($failure) {
-
-    $message = 'Failed to create initial instance of file ' . ($file['filename'] ? ($file['filename'] . ' ') : '');
-    $message .= 'in storage container <i>' . $container['name'] . '</i>.';
-
-    if(user_access('administer site configuration'))
-      drupal_set_message($message);
-
-    $message .= ' <br />' . _storage_api_file_log_info($file);
-    watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, $link);
+  
+  if($options['filepath']) {
+  
+    $file['filepath'] = $options['filepath'];
+    $file['keep_me'] = $options['keep_me'];
+    $file['new_object'] = $options['new_object'];
     
-    storage_api_remove_file($file_id);
-    return FALSE;
+    if(!_storage_api_create_instance($container, $file)) {
+
+      $message = 'Failed to create initial instance of file ' . ($file['filename'] ? ($file['filename'] . ' ') : '');
+      $message .= 'in storage container <i>' . $container['name'] . '</i>.';
+
+      if(user_access('administer site configuration'))
+        drupal_set_message($message);
+
+      $message .= ' <br />' . _storage_api_file_log_info($file);
+      watchdog('storage_api', $message, NULL, WATCHDOG_WARNING, $link);
+      
+      storage_api_file_remove($file_id);
+      return FALSE;
+    }
   }
   
-  if(!$options['keep_me']) {
-    @unlink($filepath);
-  }
-
   $message = 'File added' . ($file['filename'] ? (': ' . $file['filename'] . ' ') : '') . ' <br />';
   $message .= _storage_api_file_log_info($file);
   
@@ -1350,65 +1504,6 @@ function _storage_api_object_log_info($file) {
   $info .= 'size: ' . storage_api_format_size($file['size']);
 
   return $info;
-}
-
-
-/**
- * Adds a file to the system from a URL.
- *
- * The file will be acquired from its URL during cron.
- *
- * @param $url
- *   URL to get the file from.
- * @param $selector_id
- *   selector_id of class selector to put the file in.
- * @param $options
- *   An associative array of additional options, with the following keys:
- *     - 'get_filename' (default FALSE)
- *       Determine the filename from the filepath.
- *     - 'filename'
- *       The file's filename.
- *     - 'force_download' (default FALSE)
- *       When a web browser accesses this file, force it to be downloaded.
- *     - 'module'
- *       The Drupal module that 'owns' this file.
- *     - 'type'
- *       Module-specific file type identifier.
- * @return
- *   file_id of the added file.
- */
-function storage_api_add_file_from_url($url, $selector_id, $options = array()) {
-
-  if(!$url)
-    return NULL;
-
-  $fields = array(
-    'filename' => "'%s'",
-    'force_download' => '%d',
-    'object_id' => '%d',
-    'selector_id' => '%d',
-    'check_me' => '%d',
-    'module' => "'%s'",
-    'type' => "'%s'",
-    'source_url' => "'%s'"
-  );
-  
-  if($options['get_filename'])
-    $options['filename'] = basename(parse_url($url, PHP_URL_PATH));
-    
-  $options['source_url'] = $url;
-  $options['selector_id'] = $selector_id;
-  $options['check_me'] = TRUE;
-  
-  $file_id = storage_api_db_insert('storage_file', $fields, $options);
-  $file = storage_api_file_load($file_id);
-  
-  $message = 'File added from url: ' . $url . ' . <br />';
-  $message .= _storage_api_file_log_info($file);
-  
-  watchdog('storage_api', $message, NULL);
-
-  return $file_id;
 }
 
 
@@ -1510,7 +1605,7 @@ function _storage_api_acquire_from_source_url(&$file) {
       );
       
       // we need to reload $file to get the filesize, etc
-      $file = storage_api_file_load($file['file_id']);
+      $file = storage_api_file_load($file['file_id'], TRUE);
       $file['new_object'] = $new_object;    // _storage_api_ensure_instance_exists() will make use of this
 
       $message = 'Acquired file from url: ' . $file['source_url'] . ' . <br />';
@@ -1539,8 +1634,6 @@ function _storage_api_acquire_from_source_url(&$file) {
       $file['file_id']
     );
     
-    $file['source_url'] = '';
-
     $message = 'Failed acquiring file from url: ' . $file['source_url'] . ' . <br />';
     $message .= _storage_api_file_log_info($file);
     
@@ -1578,7 +1671,7 @@ function _storage_api_acquire_from_source_url(&$file) {
 /**
  * Get a filepath that can be used to access a file locally.
  *
- * The file will be made available locally (this may involve downloading it). If $keep_me is set to TRUE, then the filepath must not be deleted / modified. If it is set to FALSE, then it must be deleted with unlink() after use.
+ * The file will be made available locally (this may involve downloading it or generating it). If $keep_me is set to TRUE, then the filepath must not be deleted / modified. If it is set to FALSE, then it must be deleted with unlink() after use.
  *
  * @param $file
  *   File to accessed locally.
@@ -1655,14 +1748,54 @@ function storage_api_get_local_filepath(&$file, &$keep_me) {
 
     $service_info = _storage_api_service_invoke($container['service_id'], 'service_info');
     $keep_me = $service_info['local'];
+    
+    return $filepath;
   }
-  else if($file['source_url']) {
+  
+  if($file['source_url']) {
 
     $filepath = _storage_api_acquire_from_source_url($file);
-    $keep_me = FALSE;
+
+    if($filepath) {
+      return $filepath;
+    }
   }
 
-  return $filepath;
+  if($file['module']) {
+
+    $filepath = module_invoke($file['module'], 'storage_file_generate', $file);
+    
+    $object_id = _storage_api_get_object_id($filepath, $new_object);
+
+    if(!$file['object_id'])
+      $file['object_id'] = $object_id;
+    
+    if($file['object_id'] != $object_id) {    // the file has changed
+
+      _storage_api_delete_object_if_unrequired($object_id);
+      @unlink($filepath);
+      return FALSE;
+    }
+
+    db_query("
+      UPDATE {storage_file}
+      SET object_id = %d,
+        obtained = %d
+      WHERE file_id = %d
+    ",
+      $file['object_id'],
+      $_SERVER['REQUEST_TIME'],
+      $file['file_id']
+    );
+    
+    // we need to reload $file to get the filesize, etc
+    $file = storage_api_file_load($file['file_id'], TRUE);
+    $file['new_object'] = $new_object;    // _storage_api_ensure_instance_exists() will make use of this
+    
+    return $filepath;
+  }
+
+  return FALSE;
 }
 
 
@@ -1674,24 +1807,27 @@ function storage_api_get_local_filepath(&$file, &$keep_me) {
  * @param $file_id
  *   file_id of the file to be removed.
  */
-function storage_api_remove_file($file_id) {
+function storage_api_file_remove($file_id) {
 
   if(!$file_id)
-    return;
-  
+    return FALSE;
+
   $file = storage_api_file_load($file_id);
   
   if(!$file)
-    return;
+    return FALSE;
   
   db_query("
     UPDATE {storage_file}
     SET selector_id = NULL,
-      check_me = 1
+      check_me = 1,
+      serve_url = NULL
     WHERE file_id = %d
   ",
     $file_id
   );
+  
+  storage_api_file_flush($file_id);
   
   $message = 'File removed' . ($file['filename'] ? (': ' . $file['filename'] . ' ') : '') . ' <br />';
   $message .= _storage_api_file_log_info($file);
@@ -1783,7 +1919,8 @@ function storage_api_class_add_container($class, $container) {
   
   db_query("
     UPDATE {storage_file}
-    SET check_me = 1
+    SET check_me = 1,
+      serve_url = NULL
     WHERE selector_id IN (
     
       SELECT selector_id
@@ -1815,7 +1952,8 @@ function storage_api_drain_container($container) {
 
   db_query("
     UPDATE {storage_file}
-    SET check_me = 1
+    SET check_me = 1,
+      serve_url = NULL
     WHERE selector_id IN (
     
       SELECT {storage_selector}.selector_id
@@ -1846,7 +1984,7 @@ function storage_api_drain_container($container) {
 }
 
 
-function _storage_bcmath() {
+function _storage_api_bcmath() {
 
   // crappy bcmath replacements
 
@@ -1885,7 +2023,7 @@ function _storage_bcmath() {
  *   Formatted size.
  */
 function storage_api_format_size($count) {
-  _storage_bcmath();
+  _storage_api_bcmath();
 
   if(bccomp($count, 1000) < 0) {
     return format_plural((int)$count, '1 byte', '@count bytes');

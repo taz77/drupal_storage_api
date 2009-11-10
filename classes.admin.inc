@@ -23,7 +23,7 @@ function _storage_api_class_name($class_id) {
 }
 
 
-function _storage_api_classes_list() {
+function storage_api_classes_list() {
 
   drupal_set_title(t('Storage classes'));
 
@@ -146,7 +146,7 @@ function storage_api_create_class_form_submit($form, &$form_state) {
 }
 
 
-function _storage_api_class($class) {
+function storage_api_class($class) {
 
   drupal_set_title(t('Storage class: ') . $class['name']);
   
@@ -375,6 +375,20 @@ function storage_api_class_edit_form_submit($form, &$form_state) {
     );
   }
   
+  db_query("
+    UPDATE {storage_file}
+    SET serve_url = NULL
+    WHERE selector_id IN (
+    
+      SELECT selector_id
+      FROM {storage_selector}
+      WHERE class_id = %d
+      
+    )
+  ",
+    $class['class_id']
+  );
+  
   $path = 'admin/build/storage/classes/' . $class['class_id'];
 
   $message = 'Storage class <i>' . $class['name'] . '</i> has been updated.';
@@ -541,7 +555,8 @@ function storage_api_class_remove_container_form_submit($form, &$form_state) {
   
   db_query("
     UPDATE {storage_file}
-    SET check_me = 1
+    SET check_me = 1,
+      serve_url = NULL
     WHERE selector_id IN (
     
       SELECT selector_id

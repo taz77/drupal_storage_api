@@ -7,7 +7,7 @@
 _storage_api_update_services();
 
 
-function _storage_api_services() {
+function storage_api_services() {
 
   drupal_set_title(t('Storage services'));
 
@@ -68,6 +68,28 @@ function _storage_api_services() {
   }
 
   return theme('table', $header, $rows);
+}
+
+
+function _storage_api_service_flush_serve_url($service_id) {
+
+  db_query("
+    UPDATE {storage_file}
+    SET serve_url = NULL
+    WHERE selector_id IN (
+    
+      SELECT {storage_selector}.selector_id
+      FROM {storage_container}
+      INNER JOIN {storage_class_container}
+        ON {storage_container}.container_id = {storage_class_container}.container_id
+      INNER JOIN {storage_selector}
+        ON {storage_class_container}.class_id = {storage_selector}.class_id
+      WHERE {storage_container}.service_id = %d
+      
+    )
+  ",
+    $service_id
+  );
 }
 
 
@@ -153,7 +175,6 @@ function storage_api_service_suspend_form($form_state, $service) {
  * @see storage_api_service_suspend_form()
  */
 function storage_api_service_suspend_form_submit($form, &$form_state) {
-
   $service = $form['#parameters'][2];
   
   db_query("
@@ -164,6 +185,8 @@ function storage_api_service_suspend_form_submit($form, &$form_state) {
     $service['service_id']
   );
   
+  _storage_api_service_flush_serve_url($service['service_id']);
+
   $message = 'Storage service <i>' . $service['name'] . '</i> has been suspended.';
   $path = 'admin/build/storage/services/' . $service['service_id']; 
 
@@ -193,7 +216,8 @@ function storage_api_service_unsuspend_form($form_state, $service) {
  * @see storage_api_service_unsuspend_form()
  */
 function storage_api_service_unsuspend_form_submit($form, &$form_state) {
-
+  $service = $form['#parameters'][2];
+  
   db_query("
     UPDATE {storage_service}
     SET suspended = 0
@@ -202,9 +226,11 @@ function storage_api_service_unsuspend_form_submit($form, &$form_state) {
     $form['#parameters'][2]['service_id']
   );
   
-  $path = 'admin/build/storage/services/' . $form['#parameters'][2]['service_id']; 
+  _storage_api_service_flush_serve_url($service['service_id']);
 
-  $message = 'Storage service <i>' . $form['#parameters'][2]['name'] . '</i> has been unsuspended.';
+  $path = 'admin/build/storage/services/' . $service['service_id']; 
+
+  $message = 'Storage service <i>' . $service['name'] . '</i> has been unsuspended.';
 
   drupal_set_message($message);
   watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));

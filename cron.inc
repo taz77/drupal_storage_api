@@ -23,6 +23,8 @@ function _storage_api_object_instance_copy($container, $file, $source_container)
     $success !== TRUE ? $success : ''
   );
   
+  _storage_api_flush_serve_url($file['file_id']);
+  
   $message = 'Object instance copied. <br />';
   $message .= _storage_api_container_log_info($container);
   $message .= _storage_api_object_log_info($file);
@@ -51,6 +53,8 @@ function _storage_api_file_instance_copy($container, $file, $source_container) {
     $container['container_id'],
     $success !== TRUE ? $success : ''
   );
+  
+  _storage_api_flush_serve_url($file['file_id']);
   
   $message = 'File instance copied' . ($file['filename'] ? (': ' . $file['filename'] . ' ') : '') . '. <br />';
   $message .= _storage_api_container_log_info($container);
@@ -540,7 +544,7 @@ function _storage_api_check_migrations() {
 }
 
 
-function _storage_api_purge_storage_servings() {
+function _storage_api_flush_storage_servings() {
 
   db_query("
     DELETE FROM {storage_serving}
@@ -555,6 +559,6 @@ function _storage_api_cron() {
 
   _storage_api_check_files();
   _storage_api_check_migrations();
-  _storage_api_purge_storage_servings();
+  _storage_api_flush_storage_servings();
 }
 

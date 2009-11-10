@@ -80,6 +80,7 @@ function storage_api_schema() {
       'nid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => FALSE),
       'check_me' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE),
       'data' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
+      'serve_url' => array('type' => 'varchar', 'length' => 4095, 'not null' => FALSE),
       'servings' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
       'last_served' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE)
     ),
@@ -206,6 +207,18 @@ function storage_api_update_6104() {
 }
 
 
+function storage_api_update_6105() {
+  $ret = array();
+
+  $ret[] = update_sql("
+    ALTER TABLE {storage_file}
+    ADD serve_url VARCHAR(4095) NULL
+  ");
+  
+  return $ret;
+}
+
+ 
 function storage_api_uninstall() {
 
   drupal_uninstall_schema('storage_api');

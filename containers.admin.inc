@@ -4,7 +4,7 @@
 // Copyright 2008-2009 Jonathan Brown
 
 
-function _storage_api_containers() {
+function storage_api_containers() {
 
   drupal_set_title(t('Storage containers'));
 
@@ -274,6 +274,26 @@ function storage_api_create_container_form_submit($form, &$form_state) {
 }
 
 
+function _storage_api_container_flush_serve_url($container_id) {
+
+  db_query("
+    UPDATE {storage_file}
+    SET serve_url = NULL
+    WHERE selector_id IN (
+    
+      SELECT {storage_selector}.selector_id
+      FROM {storage_class_container}
+      INNER JOIN {storage_selector}
+        ON {storage_class_container}.class_id = {storage_selector}.class_id
+      WHERE {storage_class_container}.container_id = %d
+      
+    )
+  ",
+    $container_id
+  );
+}
+
+
 /**
  * FAPI definition for the container form.
  *
@@ -438,6 +458,8 @@ function storage_api_container_suspend_form_submit($form, &$form_state) {
     $container['container_id']
   );
   
+  _storage_api_container_flush_serve_url($container['container_id']);
+
   $path = 'admin/build/storage/containers/' . $container['container_id'];
   
   $message = 'Storage container <i>' . $container['name'] . '</i> has been suspended.';
@@ -478,6 +500,8 @@ function storage_api_container_unsuspend_form_submit($form, &$form_state) {
     $container['container_id']
   );
   
+  _storage_api_container_flush_serve_url($container['container_id']);
+
   $path = 'admin/build/storage/containers/' . $container['container_id'];
   
   $message = 'Storage container <i>' . $container['name'] . '</i> has been unsuspended.';
@@ -565,6 +589,8 @@ function storage_api_container_destroy_form_submit($form, &$form_state) {
     $container['container_id']
   );
   
+  _storage_api_container_flush_serve_url($container['container_id']);
+
   $success = _storage_api_service_invoke($container['service_id'], 'container_destroy', $container);
 
   $message = 'Storage container <i>' . $container['name'] . '</i> has been destroyed.';
