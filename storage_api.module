@@ -1413,6 +1413,9 @@ function storage_api_file_add($selector_id, $options = array()) {
   
   $options['selector_id'] = $selector_id;
   
+  if(!$options['obtained'])
+    $options['obtained'] = $_SERVER['REQUEST_TIME'];
+
   if($options['filepath']) {
     $container = _storage_api_get_initial_container($selector_id);
     
@@ -1420,9 +1423,6 @@ function storage_api_file_add($selector_id, $options = array()) {
       return FALSE;
 
     $options['object_id'] = _storage_api_get_object_id($options['filepath'], $new_object);
-    
-    if(!$options['obtained'])
-      $options['obtained'] = $_SERVER['REQUEST_TIME'];
   }
 
   if($options['get_filename']) {
