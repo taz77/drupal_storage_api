@@ -1146,6 +1146,9 @@ function _storage_api_get_object_id($filepath, &$new_object = NULL) {
   ));
   
   if(!$object_id) {
+  
+    // there is a common race condition where the object will have just been inserted
+    // detect this during the insert and update last insert id accordingly
     
     db_query("
       INSERT INTO {storage_object}
@@ -1153,6 +1156,7 @@ function _storage_api_get_object_id($filepath, &$new_object = NULL) {
         md5 = %s,
         whirlpool = %s,
         mimetype = '%s'
+      ON DUPLICATE KEY UPDATE object_id = LAST_INSERT_ID(object_id)
     ",
       $fileinfo['size'],
       $md5,
@@ -1161,7 +1165,7 @@ function _storage_api_get_object_id($filepath, &$new_object = NULL) {
     );
     
     $object_id = db_last_insert_id('storage_object', 'object_id');
-    $new_object = TRUE;
+    $new_object = FALSE;  // we can't determine this atm because of the race condition fixup above
   }
   
   return $object_id;
