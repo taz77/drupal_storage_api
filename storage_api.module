@@ -738,10 +738,13 @@ function _storage_api_create_instance(&$container, $file) {
     // if the file's object is already in the system, then the instance might already exist
 
     if(!$file['new_object']) {
-      $exists = _storage_api_object_instance_exists($file['object_id'], $container['container_id']);
+      $instance = _storage_api_object_instance_exists($file['object_id'], $container['container_id']);
+      
+      if($instance)
+        $container['reference'] = $instance['reference'];
     }
     
-    if(!$exists) {
+    if(!$instance) {
       $failure = !_storage_api_create_object_instance($container, $file);
     }
   }
@@ -1172,7 +1175,7 @@ function _storage_api_get_object_id($filepath, &$new_object = NULL) {
 }
 
 
-function _storage_api_create_object_instance($container, $file) {
+function _storage_api_create_object_instance(&$container, $file) {
 
   $success = _storage_api_service_invoke($container['service_id'], 'object_instance_create', 
     $container, $file);
@@ -1190,6 +1193,9 @@ function _storage_api_create_object_instance($container, $file) {
     $container['container_id'],
     $success !== TRUE ? $success : ''
   );
+  
+  if($success !== TRUE)
+    $container['reference'] = $success;
   
   _storage_api_flush_serve_url($file['file_id']);
   
@@ -1296,8 +1302,8 @@ function _storage_api_create_file_instance($container, $file) {
 
 function _storage_api_object_instance_exists($object_id, $container_id) {
 
-  return db_result(db_query("
-    SELECT COUNT(*)
+  return db_fetch_array(db_query("
+    SELECT reference
     FROM {storage_object_instance}
     WHERE object_id = %d
       AND container_id = %d
@@ -1310,8 +1316,8 @@ function _storage_api_object_instance_exists($object_id, $container_id) {
 
 function _storage_api_file_instance_exists($file_id, $container_id) {
 
-  return db_result(db_query("
-    SELECT COUNT(*)
+  return db_fetch_array(db_query("
+    SELECT reference
     FROM {storage_file_instance}
     WHERE file_id = %d
       AND container_id = %d
