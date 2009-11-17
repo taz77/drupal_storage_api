@@ -247,23 +247,17 @@ function storage_api_create_container_form_submit($form, &$form_state) {
 
   _storage_api_service_invoke($form_state['storage']['service_id'], 'container_create', $form_state['storage']);
 
-  db_query("
-    INSERT INTO {storage_container}
-    SET name = '%s',
-      service_id = '%s',
-      serving = %d,
-      settings = '%s'
-  ",
-    $form_state['storage']['name'],
-    $form_state['storage']['service_id'],
-    $form_state['storage']['serving'],
-    serialize($form_state['storage']['settings'])
+  $container = array(
+    'name' => $form_state['storage']['name'],
+    'service_id' => $form_state['storage']['service_id'],
+    'serving' => $form_state['storage']['serving'],
+    'settings' => $form_state['storage']['settings'],
   );
   
-  $container_id = db_last_insert_id('storage_container', 'container_id');
-  $path = 'admin/build/storage/containers/' . $container_id;
-  
+  drupal_write_record('storage_container', $container);
+
   $message = 'Storage container <i>' . $form_state['storage']['name'] . '</i> has been created.';
+  $path = 'admin/build/storage/containers/' . $container['container_id'];
 
   drupal_set_message($message);
   watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));
@@ -450,19 +444,16 @@ function storage_api_container_suspend_form($form_state, $container) {
 function storage_api_container_suspend_form_submit($form, &$form_state) {
   $container = $form['#parameters'][2];
 
-  db_query("
-    UPDATE {storage_container}
-    SET suspended = 1
-    WHERE container_id = %d
-  ",
-    $container['container_id']
+  $update = array(
+    'container_id' => $container['container_id'],
+    'suspended' => TRUE,
   );
   
+  drupal_write_record('storage_container', $update, 'container_id');
   _storage_api_container_flush_serve_url($container['container_id']);
 
-  $path = 'admin/build/storage/containers/' . $container['container_id'];
-  
   $message = 'Storage container <i>' . $container['name'] . '</i> has been suspended.';
+  $path = 'admin/build/storage/containers/' . $container['container_id'];
 
   drupal_set_message($message);
   watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));
@@ -492,19 +483,16 @@ function storage_api_container_unsuspend_form($form_state, $container) {
 function storage_api_container_unsuspend_form_submit($form, &$form_state) {
   $container = $form['#parameters'][2];
 
-  db_query("
-    UPDATE {storage_container}
-    SET suspended = 0
-    WHERE container_id = %d
-  ",
-    $container['container_id']
+  $update = array(
+    'container_id' => $container['container_id'],
+    'suspended' => FALSE,
   );
   
+  drupal_write_record('storage_container', $update, 'container_id');
   _storage_api_container_flush_serve_url($container['container_id']);
 
-  $path = 'admin/build/storage/containers/' . $container['container_id'];
-  
   $message = 'Storage container <i>' . $container['name'] . '</i> has been unsuspended.';
+  $path = 'admin/build/storage/containers/' . $container['container_id'];
 
   drupal_set_message($message);
   watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));
@@ -642,15 +630,13 @@ function storage_api_container_edit_form($form_state, $container) {
 function storage_api_container_edit_form_submit($form, &$form_state) {
   $container = $form['#parameters'][2];
 
-  db_query("
-    UPDATE {storage_container}
-    SET name = '%s'
-    WHERE container_id = %d
-  ",
-    $form_state['values']['name'],
-    $container['container_id']
+  $update = array(
+    'container_id' => $container['container_id'],
+    'name' => $form_state['values']['name'],
   );
   
+  drupal_write_record('storage_container', $update, 'container_id');
+
   $form_state['redirect'] = 'admin/build/storage/containers/' . $container['container_id'];
 }
 

@@ -125,24 +125,20 @@ function storage_api_create_class_form($form_state) {
  */
 function storage_api_create_class_form_submit($form, &$form_state) {
 
-  db_query("
-    INSERT INTO {storage_class}
-    SET name = '%s',
-      options = '%s'
-  ",
-    $form_state['values']['name'],
-    serialize($form_state['values']['options'])
+  $class = array(
+    'name' => $form_state['values']['name'],
+    'options' => $form_state['values']['options'],
   );
   
-  $class_id = db_last_insert_id('storage_class', 'class_id');
-  $path = 'admin/build/storage/classes/' . $class_id . '/add';
-  
+  drupal_write_record('storage_class', $class);
+
   $message = 'Storage class <i>' . $form_state['values']['name'] . '</i> has been created.';
+  $path = 'admin/build/storage/classes/' . $class['class_id'];
 
   drupal_set_message($message);
   watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));
 
-  $form_state['redirect'] = $path;
+  $form_state['redirect'] = $path . '/add';
 }
 
 
@@ -349,30 +345,24 @@ function theme_storage_api_class_edit_form($form) {
 function storage_api_class_edit_form_submit($form, &$form_state) {
   $class = $form['#parameters'][2];
 
-  db_query("
-    UPDATE {storage_class}
-    SET name = '%s',
-      options = '%s'
-    WHERE class_id = %d
-  ",
-    $form_state['values']['name'],
-    serialize($form_state['values']['options']),
-    $class['class_id']
+  $update = array(
+    'class_id' => $class['class_id'],
+    'name' => $form_state['values']['name'],
+    'options' => $form_state['values']['options'],
   );
+  
+  drupal_write_record('storage_class', $update, 'class_id');
   
   foreach($form['#container_ids'] as $container_id) {
 
-    db_query("
-      UPDATE {storage_class_container}
-      SET weight = %d,
-        serving = %d
-      WHERE class_id = %d
-        AND container_id = %d
-    ", 
-      $form_state['values']['weights'][$container_id],
-      $form_state['values']['servings'][$container_id],
-      $class['class_id'], $container_id
+    $update = array(
+      'class_id' => $class['class_id'],
+      'container_id' => $container_id,
+      'weight' => $form_state['values']['weights'][$container_id],
+      'serving' => $form_state['values']['servings'][$container_id],
     );
+
+    drupal_write_record('storage_class_container', $update, array('class_id', 'container_id'));
   }
   
   db_query("

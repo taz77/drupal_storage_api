@@ -17,7 +17,7 @@ function storage_api_schema() {
       'container_id' => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
       'name' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
       'service_id' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
-      'settings' => array('type' => 'varchar', 'length' => 16383, 'not null' => TRUE),
+      'settings' => array('type' => 'varchar', 'length' => 16383, 'not null' => TRUE, 'serialize' => TRUE),
       'serving' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE),
       'suspended' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE)
     ),
@@ -28,7 +28,7 @@ function storage_api_schema() {
     'fields' => array(
       'class_id' => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
       'name' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
-      'options' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE)
+      'options' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'serialize' => TRUE)
     ),
     'primary key' => array('class_id')
   );
@@ -69,18 +69,18 @@ function storage_api_schema() {
   $schema['storage_file'] = array(
     'fields' => array(
       'file_id' => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
-      'selector_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => FALSE),
-      'object_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => FALSE),
+      'selector_id' => array('type' => 'int', 'unsigned' => TRUE),
+      'object_id' => array('type' => 'int', 'unsigned' => TRUE),
       'source_url' => array('type' => 'varchar', 'length' => 4095, 'not null' => TRUE),
       'obtained' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
       'filename' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
       'force_download' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE),
       'module' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
       'type' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
-      'nid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => FALSE),
+      'nid' => array('type' => 'int', 'unsigned' => TRUE),
       'check_me' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE),
-      'data' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
-      'serve_url' => array('type' => 'varchar', 'length' => 4095, 'not null' => FALSE),
+      'data' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'serialize' => TRUE),
+      'serve_url' => array('type' => 'varchar', 'length' => 4095),
       'servings' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
       'last_served' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE)
     ),
@@ -114,7 +114,7 @@ function storage_api_schema() {
     'fields' => array(
       'timestamp' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
       'file_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
-      'container_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => FALSE),
+      'container_id' => array('type' => 'int', 'unsigned' => TRUE),
       'size' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
       'uid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
       'sid' => array('type' => 'char', 'length' => '32', 'not null' => TRUE),

@@ -177,14 +177,12 @@ function storage_api_service_suspend_form($form_state, $service) {
 function storage_api_service_suspend_form_submit($form, &$form_state) {
   $service = $form['#parameters'][2];
   
-  db_query("
-    UPDATE {storage_service}
-    SET suspended = 1
-    WHERE service_id = '%s'
-  ",
-    $service['service_id']
+  $update = array(
+    'service_id' => $service['service_id'],
+    'suspended' => TRUE,
   );
   
+  drupal_write_record('storage_service', $update, 'service_id');
   _storage_api_service_flush_serve_url($service['service_id']);
 
   $message = 'Storage service <i>' . $service['name'] . '</i> has been suspended.';
@@ -218,19 +216,16 @@ function storage_api_service_unsuspend_form($form_state, $service) {
 function storage_api_service_unsuspend_form_submit($form, &$form_state) {
   $service = $form['#parameters'][2];
   
-  db_query("
-    UPDATE {storage_service}
-    SET suspended = 0
-    WHERE service_id = '%s'
-  ",
-    $form['#parameters'][2]['service_id']
+  $update = array(
+    'service_id' => $service['service_id'],
+    'suspended' => FALSE,
   );
   
+  drupal_write_record('storage_service', $update, 'service_id');
   _storage_api_service_flush_serve_url($service['service_id']);
 
-  $path = 'admin/build/storage/services/' . $service['service_id']; 
-
   $message = 'Storage service <i>' . $service['name'] . '</i> has been unsuspended.';
+  $path = 'admin/build/storage/services/' . $service['service_id']; 
 
   drupal_set_message($message);
   watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));

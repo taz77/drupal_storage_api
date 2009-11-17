@@ -4,7 +4,7 @@
 // Copyright 2008-2009 Jonathan Brown
 
 
-function _storage_api_object_instance_copy($container, $file, $source_container) {
+function _storage_api_object_instance_copy(&$container, $file, $source_container) {
 
   $success = _storage_api_service_invoke($container['service_id'], 'object_instance_copy', 
     $container, $file, $source_container);
@@ -12,16 +12,16 @@ function _storage_api_object_instance_copy($container, $file, $source_container)
   if(!$success)
     return FALSE;
   
-  db_query("
-    INSERT INTO {storage_object_instance}
-    SET object_id = %d,
-      container_id = %d,
-      reference = '%s'
-  ",
-    $file['object_id'],
-    $container['container_id'],
-    $success !== TRUE ? $success : ''
+  if($success !== TRUE)
+    $container['reference'] = $success;
+  
+  $instance = array(
+    'object_id' => $file['object_id'],
+    'container_id' => $container['container_id'],
+    'reference' => $container['reference'],
   );
+
+  drupal_write_record('storage_object_instance', $instance);
   
   _storage_api_flush_serve_url($file['file_id']);
   
@@ -35,7 +35,7 @@ function _storage_api_object_instance_copy($container, $file, $source_container)
 }
 
 
-function _storage_api_file_instance_copy($container, $file, $source_container) {
+function _storage_api_file_instance_copy(&$container, $file, $source_container) {
 
   $success = _storage_api_service_invoke($container['service_id'], 'file_instance_copy', 
     $container, $file, $source_container);
@@ -43,16 +43,16 @@ function _storage_api_file_instance_copy($container, $file, $source_container) {
   if(!$success)
     return FALSE;
     
-  db_query("
-    INSERT INTO {storage_file_instance}
-    SET file_id = %d,
-      container_id = %d,
-      reference = '%s'
-  ",
-    $file['file_id'],
-    $container['container_id'],
-    $success !== TRUE ? $success : ''
+  if($success !== TRUE)
+    $container['reference'] = $success;
+  
+  $instance = array(
+    'file_id' => $file['file_id'],
+    'container_id' => $container['container_id'],
+    'reference' => $container['reference'],
   );
+
+  drupal_write_record('storage_file_instance', $instance);
   
   _storage_api_flush_serve_url($file['file_id']);
   
@@ -446,13 +446,12 @@ function _storage_api_check_file($file) {
   
     if($file['selector_id']) {
 
-      db_query("
-        UPDATE {storage_file}
-        SET check_me = 0
-        WHERE file_id = %d
-      ",
-        $file['file_id']
+      $update = array(
+        'file_id' => $file['file_id'],
+        'check_me' => FALSE,
       );
+      
+      drupal_write_record('storage_file', $update, 'file_id');
     }
     else {
     

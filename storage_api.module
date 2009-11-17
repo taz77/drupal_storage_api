@@ -387,52 +387,6 @@ function storage_api_class_load($class_id) {
 }
 
 
-/**
- * Inserts a row into a db table.
- *
- * This function is useful because when the value for a field is missing, the field is left out of the insert. This means the field will get its default value, e.g. NULL .
- *
- * @param $table
- *   Table the row should be inserted into, excluding {} .
- * @param $fields
- *   Array of fields where the key is the field name and the value is the placeholder.
- * @param $values
- *   Array of values to be inserted where the key is the field name.
- * @return
- *   ID of the inserted row.
- */
-function storage_api_db_insert($table, $fields = array(), $values = array()) {
-
-  if(count($fields)) {
-    foreach($fields as $field => $format) {
-      if(isset($values[$field])) {
-        $sql_params[] = $field . ' = ' . $format;
-        $sql_values[] = $values[$field];
-      }
-    }
-  }
-
-  if(count($sql_params)) {
-    $sql_params = 'SET ' . implode(',', $sql_params);
-
-    db_query("
-      INSERT INTO {{$table}}
-      $sql_params
-    ",
-      $sql_values
-    );
-  }
-  else {
-    db_query("
-      INSERT INTO {{$table}}
-      () VALUES ()
-    ");
-  }
-
-  return db_last_insert_id($table, $serial_field);    // todo: determine $serial_field for postgres
-}
-
-
 function _storage_api_update_services() {
 
   $modules = module_implements('storage_service_info');
@@ -471,12 +425,8 @@ function _storage_api_update_services() {
   
     if(!in_array($service_id, $db_service_ids)) {
     
-      db_query("
-        INSERT INTO {storage_service}
-        SET service_id = '%s'
-      ",
-        $service_id
-      );
+      $service = array('service_id' => $service_id);
+      drupal_write_record('storage_service', $service);
     }
   }
 }  
@@ -530,17 +480,7 @@ function _storage_api_get_service_name($service_id) {
 function _storage_api_log_serving($file, $container_id = NULL) {
   global $user;
   
-  $fields = array(
-    'file_id' => "%d",
-    'size' => "%d",
-    'uid' => "%d",
-    'sid' => "'%s'",
-    'ip_addr' => "%d",
-    'timestamp' => "%d",
-    'referrer' => "'%s'"
-  );
-  
-  $values = array(
+  $serving = array(
     'file_id' => $file['file_id'],
     'size' => $file['size'],
     'uid' => $user->uid,
@@ -551,11 +491,10 @@ function _storage_api_log_serving($file, $container_id = NULL) {
   );
   
   if($container_id) {
-    $fields['container_id'] = "%d";
-    $values['container_id'] = $container_id;
+    $serving['container_id'] = $container_id;
   }
 
-  storage_api_db_insert('storage_serving', $fields, $values);
+  drupal_write_record('storage_serving', $serving);
   
   db_query("
     UPDATE {storage_file}
@@ -876,6 +815,7 @@ function storage_api_serve_url($file, $absolute = FALSE) {
   if($file['serve_url'])
     return url($file['serve_url'], array('absolute' => $absolute));
 
+
   $container = _storage_api_serving_container($file);
 
   if($container) {
@@ -902,8 +842,12 @@ function storage_api_serve_url($file, $absolute = FALSE) {
     $url = $file['source_url'];
   }
   
+  // if we don't have a url, we can cache that we serve from source
+  // if we don't have a container, we are serving the source_url and can cache that
+  // if the container isn't secure, then we can cache because the url will not expire
+  
   if(!$url || !$container || $container['serving'] != STORAGE_API_ACCESS_CONTROL)
-    _storage_api_cache_serve_url($file['file_id'], $url);
+    _storage_api_cache_serve_url($file['file_id'], (string)$url);
 
   if(!$url)
     $url = _storage_api_serve_path($file);
@@ -927,10 +871,10 @@ function storage_api_new_selector_id() {
     LIMIT 1
   "));
 
-  $fields = array('class_id' => "%d");
-  $data = array('class_id' => $class_id);
-
-  return storage_api_db_insert('storage_selector', $fields, $data);
+  $selector = array('class_id' => $class_id);
+  drupal_write_record('storage_selector', $selector);
+  
+  return $selector['selector_id'];
 }
 
 
@@ -1183,19 +1127,16 @@ function _storage_api_create_object_instance(&$container, $file) {
   if(!$success)
     return FALSE;
     
-  db_query("
-    INSERT INTO {storage_object_instance}
-    SET object_id = %d,
-      container_id = %d,
-      reference = '%s'
-  ",
-    $file['object_id'],
-    $container['container_id'],
-    $success !== TRUE ? $success : ''
-  );
-  
   if($success !== TRUE)
     $container['reference'] = $success;
+  
+  $instance = array(
+    'object_id' => $file['object_id'],
+    'container_id' => $container['container_id'],
+    'reference' => $container['reference'],
+  );
+
+  drupal_write_record('storage_object_instance', $instance);
   
   _storage_api_flush_serve_url($file['file_id']);
   
@@ -1269,7 +1210,7 @@ function storage_api_unique_filename($container, $filename) {
 }
 
 
-function _storage_api_create_file_instance($container, $file) {
+function _storage_api_create_file_instance(&$container, $file) {
 
   $success = _storage_api_service_invoke($container['service_id'], 'file_instance_create', 
     $container, $file);
@@ -1277,16 +1218,16 @@ function _storage_api_create_file_instance($container, $file) {
   if(!$success)
     return FALSE;
     
-  db_query("
-    INSERT INTO {storage_file_instance}
-    SET file_id = %d,
-      container_id = %d,
-      reference = '%s'
-  ",
-    $file['file_id'],
-    $container['container_id'],
-    $success !== TRUE ? $success : ''
+  if($success !== TRUE)
+    $container['reference'] = $success;
+  
+  $instance = array(
+    'file_id' => $file['file_id'],
+    'container_id' => $container['container_id'],
+    'reference' => $container['reference'],
   );
+
+  drupal_write_record('storage_file_instance', $instance);
   
   _storage_api_flush_serve_url($file['file_id']);
   
@@ -1406,21 +1347,6 @@ function storage_api_inherit_servings($new_file_id, $old_file_id) {
  *   file_id of the added file or FALSE for failure.
  */
 function storage_api_file_add($selector_id, $options = array()) {
-
-  $fields = array(
-    'selector_id' => '%d',
-    'object_id' => '%d',
-    'source_url' => "'%s'",
-    'obtained' => '%d',
-    'filename' => "'%s'",
-    'force_download' => '%d',
-    'module' => "'%s'",
-    'type' => "'%s'",
-    'nid' => '%d',
-    'check_me' => '%d',
-    'data' => "'%s'"
-  );
-  
   $options['selector_id'] = $selector_id;
   
   if(!$options['obtained'])
@@ -1446,11 +1372,8 @@ function storage_api_file_add($selector_id, $options = array()) {
   }
   
   $options['check_me'] = TRUE;
-  $options['data'] = serialize($options['data']);
-  
-
-  $file_id = storage_api_db_insert('storage_file', $fields, $options);
-  $file = storage_api_file_load($file_id);
+  drupal_write_record('storage_file', $options);
+  $file = storage_api_file_load($options['file_id']);
 
   
   $link = $file['nid'] ? l(t('view'), 'node/' . $file['nid']) : NULL;
@@ -1459,7 +1382,7 @@ function storage_api_file_add($selector_id, $options = array()) {
   
     $file['filepath'] = $options['filepath'];
     $file['keep_me'] = $options['keep_me'];
-    $file['new_object'] = $options['new_object'];
+    $file['new_object'] = $new_object;
     
     if(!_storage_api_create_instance($container, $file)) {
 
@@ -1482,7 +1405,7 @@ function storage_api_file_add($selector_id, $options = array()) {
   
   watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, $link);
 
-  return $file_id;
+  return $file['file_id'];
 }
 
 
@@ -1601,18 +1524,14 @@ function _storage_api_acquire_from_source_url(&$file) {
       unset($file['data']['next_acquire_time']);
       unset($file['data']['next_acquire_delay']);
 
-      db_query("
-        UPDATE {storage_file}
-        SET object_id = %d,
-          obtained = %d,
-          data = '%s'
-        WHERE file_id = %d
-      ",
-        $file['object_id'],
-        $_SERVER['REQUEST_TIME'],
-        serialize($file['data']),
-        $file['file_id']
+      $update = array(
+        'file_id' => $file['file_id'],
+        'object_id' => $file['object_id'],
+        'obtained' => $_SERVER['REQUEST_TIME'],
+        'data' => $file['data'],
       );
+      
+      drupal_write_record('storage_file', $update, 'file_id');
       
       // we need to reload $file to get the filesize, etc
       $file = storage_api_file_load($file['file_id'], TRUE);
@@ -1634,16 +1553,14 @@ function _storage_api_acquire_from_source_url(&$file) {
     unset($file['data']['next_acquire_time']);
     unset($file['data']['next_acquire_delay']);
 
-    db_query("
-      UPDATE {storage_file}
-      SET source_url = '',
-        data = '%s'
-      WHERE file_id = %d
-    ",
-      serialize($file['data']),
-      $file['file_id']
+    $update = array(
+      'file_id' => $file['file_id'],
+      'source_url' => '',
+      'data' => $file['data'],
     );
     
+    drupal_write_record('storage_file', $update, 'file_id');
+
     $message = 'Failed acquiring file from url: ' . $file['source_url'] . ' . <br />';
     $message .= _storage_api_file_log_info($file);
     
@@ -1667,14 +1584,12 @@ function _storage_api_acquire_from_source_url(&$file) {
     $file['data']['next_acquire_delay'] = 120;
   }
   
-  db_query("
-    UPDATE {storage_file}
-    SET data = '%s'
-    WHERE file_id = %d
-  ",
-    serialize($file['data']),
-    $file['file_id']
+  $update = array(
+    'file_id' => $file['file_id'],
+    'data' => $file['data'],
   );
+  
+  drupal_write_record('storage_file', $update, 'file_id');
 }
 
 
@@ -1776,6 +1691,11 @@ function storage_api_get_local_filepath(&$file, &$keep_me) {
     $filepath = module_invoke($file['module'], 'storage_file_generate', $file);
     
     $object_id = _storage_api_get_object_id($filepath, $new_object);
+    
+    if(!$object_id) {
+      @unlink($filepath);
+      return FALSE;
+    }
 
     if(!$file['object_id'])
       $file['object_id'] = $object_id;
@@ -1787,17 +1707,14 @@ function storage_api_get_local_filepath(&$file, &$keep_me) {
       return FALSE;
     }
 
-    db_query("
-      UPDATE {storage_file}
-      SET object_id = %d,
-        obtained = %d
-      WHERE file_id = %d
-    ",
-      $file['object_id'],
-      $_SERVER['REQUEST_TIME'],
-      $file['file_id']
+    $update = array(
+      'file_id' => $file['file_id'],
+      'object_id' => $file['object_id'],
+      'obtained' => $_SERVER['REQUEST_TIME'],
     );
     
+    drupal_write_record('storage_file', $update, 'file_id');
+
     // we need to reload $file to get the filesize, etc
     $file = storage_api_file_load($file['file_id'], TRUE);
     $file['new_object'] = $new_object;    // _storage_api_ensure_instance_exists() will make use of this
@@ -1831,7 +1748,7 @@ function storage_api_file_remove($file_id) {
     UPDATE {storage_file}
     SET selector_id = NULL,
       check_me = 1,
-      serve_url = NULL
+      serve_url = ''
     WHERE file_id = %d
   ",
     $file_id
