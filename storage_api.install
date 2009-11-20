@@ -82,7 +82,7 @@ function storage_api_schema() {
       'data' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'serialize' => TRUE),
       'serve_url' => array('type' => 'varchar', 'length' => 4095),
       'servings' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
-      'last_served' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE)
+      'last_touched' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE)
     ),
     'primary key' => array('file_id'),
     'indexes' => array(
@@ -213,6 +213,18 @@ function storage_api_update_6105() {
   $ret[] = update_sql("
     ALTER TABLE {storage_file}
     ADD serve_url VARCHAR(4095) NULL
+  ");
+  
+  return $ret;
+}
+
+
+function storage_api_update_6106() {
+  $ret = array();
+
+  $ret[] = update_sql("
+    ALTER TABLE {storage_file}
+    CHANGE last_served last_touched INT UNSIGNED NOT NULL
   ");
   
   return $ret;

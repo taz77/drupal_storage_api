@@ -499,12 +499,23 @@ function _storage_api_log_serving($file, $container_id = NULL) {
   db_query("
     UPDATE {storage_file}
     SET servings = servings + 1,
-      last_served = %d
+      last_touched = %d
     WHERE file_id = %d
   ",
     $_SERVER['REQUEST_TIME'],
     $file['file_id']
   );
+}
+
+
+function _storage_api_file_touch($file) {
+
+  $update = array(
+    'file_id' => $file['file_id'],
+    'last_touched' => $_SERVER['REQUEST_TIME'],
+  );
+
+  drupal_write_record('storage_file', $update, 'file_id');
 }
 
 
@@ -740,8 +751,10 @@ function _storage_api_file_generate(&$file) {
  */
 function storage_api_serve($file) {
   
-  if($file['serve_url'])
+  if($file['serve_url']) {
+    _storage_api_log_serving($file);
     drupal_goto($file['serve_url']);    // 302 redirect (don't cache)
+  }
 
   $container = _storage_api_serving_container($file);
   
@@ -801,7 +814,7 @@ function _storage_api_serve_path($file) {
  *   The generated URL.
  */
 function storage_api_serve_url($file, $absolute = FALSE) {
-
+  
   if($file['serve_url'] === '' || $file['options']['redirect']) {
     $serve_from_site = TRUE;
   }
@@ -812,8 +825,10 @@ function storage_api_serve_url($file, $absolute = FALSE) {
   if($serve_from_site)
     return url(_storage_api_serve_path($file), array('absolute' => $absolute));
   
-  if($file['serve_url'])
+  if($file['serve_url']) {
+    _storage_api_file_touch($file);
     return url($file['serve_url'], array('absolute' => $absolute));
+  }
 
 
   $container = _storage_api_serving_container($file);
@@ -851,6 +866,8 @@ function storage_api_serve_url($file, $absolute = FALSE) {
 
   if(!$url)
     $url = _storage_api_serve_path($file);
+  else
+    _storage_api_file_touch($file);
 
   return url($url, array('absolute' => $absolute));
 }
@@ -1292,7 +1309,7 @@ function storage_api_inherit_servings($new_file_id, $old_file_id) {
   );
   
   $old_stats = db_fetch_array(db_query("
-    SELECT servings, last_served
+    SELECT servings, last_touched
     FROM {storage_file}
     WHERE file_id = %d
   ",
@@ -1302,11 +1319,11 @@ function storage_api_inherit_servings($new_file_id, $old_file_id) {
   db_query("
     UPDATE {storage_file}
     SET servings = servings + %d,
-      last_served = GREATEST(last_served, %d)
+      last_touched = GREATEST(last_touched, %d)
     WHERE file_id = %d
   ",
     $old_stats['servings'],
-    $old_stats['last_served'],
+    $old_stats['last_touched'],
     $new_file_id
   );
 }
