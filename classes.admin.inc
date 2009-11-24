@@ -23,11 +23,9 @@ function _storage_api_class_name($class_id) {
 }
 
 
-function storage_api_classes_list() {
+function _storage_api_classes_query() {
 
-  drupal_set_title(t('Storage classes'));
-
-  $result = db_query("
+  $query = "
     SELECT {storage_class}.*,
       COUNT({storage_file}.file_id) AS files,
       SUM({storage_object}.size) AS size
@@ -39,8 +37,18 @@ function storage_api_classes_list() {
     LEFT JOIN {storage_object}
       ON {storage_file}.object_id = {storage_object}.object_id
     GROUP BY {storage_class}.class_id
-    ORDER BY name, class_id
-  ");
+  ";
+  
+  return $query;
+}
+
+
+function storage_api_classes_list() {
+
+  drupal_set_title(t('Storage classes'));
+
+  $query = _storage_api_classes_query();
+  $result = db_query($query . "ORDER BY name, class_id");
 
   $header = array(
     t('Name'), t('Files'), t('Size')
@@ -146,6 +154,22 @@ function storage_api_class($class) {
 
   drupal_set_title(t('Storage class: ') . $class['name']);
   
+  $query = _storage_api_classes_query();
+  $class_info = db_fetch_array(db_query($query . "HAVING class_id = %d", $class['class_id']));
+
+  $rows[] = array(t('Files'), $class_info['files']);
+  $rows[] = array(t('Size'), storage_api_format_size($class_info['size']));
+  
+  foreach($rows as &$row) {
+    $row[0] = array(
+      'data' => $row[0] . ':',
+      'style' => 'font-weight: bold',
+    );
+  }
+  
+  $output = theme('table', NULL, $rows);
+  
+  unset($rows);
 
   $result = db_query("
     SELECT {storage_container}.*, {storage_class_container}.serving AS serving, 
@@ -211,7 +235,7 @@ function storage_api_class($class) {
   }
 
   $header = array(t('Container'), t('Service'), t('Serving'), t('Files'), t('Size'));
-  $output = theme('table', $header, $rows);
+  $output .= theme('table', $header, $rows);
 
   return $output;
 }

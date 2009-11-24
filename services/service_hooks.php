@@ -44,10 +44,12 @@ function hook_storage_service_info() {
  *   
  * @param $serving
  *   Whether this is a serving container.
+ * @param $edit
+ *   Whether this is a container being edited.
  * @return
  *   
  */
-function hook_storage_container_settings_form($settings, $serving) {
+function hook_storage_container_settings_form($settings, $serving, $edit) {
 }
 
 
@@ -55,11 +57,11 @@ function hook_storage_container_settings_form($settings, $serving) {
  * Validate the settings for a storage container.
  *
  * @param $container
- *   
- * @return
- *   
+ *   The container to be validated.
+ * @param $edit
+ *   Whether this is a container being edited.
  */
-function hook_storage_container_validate($container) {
+function hook_storage_container_validate($container, $edit) {
 }
 
 
@@ -68,6 +70,8 @@ function hook_storage_container_validate($container) {
  *
  * @param $container
  *   Container to be created.
+ * @return
+ *   The container (with any modifications).
  */
 function hook_storage_container_create($container) {
 }

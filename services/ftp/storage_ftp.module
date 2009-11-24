@@ -42,7 +42,7 @@ function _storage_ftp_login($container) {
 /**
 * Implements hook_storage_container_settings_form() .
 */
-function storage_ftp_storage_container_settings_form($settings, $serving) {
+function storage_ftp_storage_container_settings_form($settings, $serving, $edit) {
 
   $items['host'] = array(
     '#type' => 'textfield',
@@ -114,7 +114,7 @@ function storage_ftp_storage_container_settings_form($settings, $serving) {
 /**
 * Implements hook_storage_container_validate() .
 */
-function storage_ftp_storage_container_validate($container) {
+function storage_ftp_storage_container_validate($container, $edit) {
 
   if(!$container['settings']['host']) {
     form_set_error('settings][host', t('Host field is required.'));
@@ -155,7 +155,7 @@ function storage_ftp_storage_container_create($container) {
   if(!$ftp)
     return FALSE;
     
-  $path = drupal_get_path('module', 'storage_ftp');
+  $path = drupal_get_path('module', 'storage_api');
 
   $success = ftp_mkdir($ftp, $container['settings']['directory']);
   
@@ -191,7 +191,7 @@ function storage_ftp_storage_container_create($container) {
 
   @ftp_close($ftp);
   
-  return $success;
+  return $container;
 }
 
 
@@ -231,7 +231,7 @@ function storage_ftp_storage_object_instance_create($container, $file) {
 
   
   // We need the filename to have an extension that matches its mime type
-  // so the webserver serves the file with the correct mimetype.
+  // so the webserver serves the file with the correct mime type.
 
   $extension = storage_api_mime_extension($file['mimetype']);
   

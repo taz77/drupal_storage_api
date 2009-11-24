@@ -469,11 +469,14 @@ function _storage_api_get_service_names() {
 }
 
 
-function _storage_api_get_service_name($service_id) {
+function _storage_api_get_service_name($service_id, $link = FALSE) {
 
   $info = _storage_api_service_invoke($service_id, 'service_info');
   
-  return $info['name'];
+  if($link)
+    return l($info['name'], 'admin/build/storage/services/' . $service_id);
+  else
+    return $info['name'];
 }
 
 

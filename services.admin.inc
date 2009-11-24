@@ -7,13 +7,9 @@
 _storage_api_update_services();
 
 
-function storage_api_services() {
+function _storage_api_services_query() {
 
-  drupal_set_title(t('Storage services'));
-
-  $header = array(t('Service'), t('Suspended'), t('Instances'), t('Size'));
-
-  $result = db_query("
+  $query = "
     SELECT {storage_service}.*, 
       objects.count AS objects_count, files.count AS files_count, 
       objects.size AS objects_size, files.size AS files_size
@@ -46,9 +42,20 @@ function storage_api_services() {
       
     ) AS files
       ON {storage_service}.service_id = files.service_id
-    ORDER BY service_id
-  ");
+  ";
+  
+  return $query;
+}
 
+
+function storage_api_services() {
+
+  drupal_set_title(t('Storage services'));
+
+  $header = array(t('Service'), t('Suspended'), t('Instances'), t('Size'));
+
+  $query = _storage_api_services_query();
+  $result = db_query($query . "ORDER BY service_id");
 
   while($service = db_fetch_array($result)) {
     unset($row);
@@ -104,12 +111,25 @@ function storage_api_service_form($form_state, $service) {
 
   drupal_set_title(t('Storage service: ') . $service['name']);
 
-  $output = t('Suspended: ') . ($service['suspended'] ? t('Yes') : t('No'));
+  $rows[] = array(t('Suspended'), $service['suspended'] ? t('Yes') : t('No'));
+
+  $query = _storage_api_services_query();
+  $info = db_fetch_array(db_query($query . "WHERE {storage_service}.service_id = '%s'", $service['service_id']));
+
+  $rows[] = array(t('Instances'), $info['objects_count'] + $info['files_count']);
+  $rows[] = array(t('Size'), storage_api_format_size($info['objects_size'] + $info['files_size']));
+  
+  foreach($rows as &$row) {
+    $row[0] = array(
+      'data' => $row[0] . ':',
+      'style' => 'font-weight: bold',
+    );
+  }
   
   $form['status'] = array(
-    '#value' => '<p>' . $output . '</p>'
+    '#value' => '<p>' . theme('table', NULL, $rows) . '</p>'
   );
-  
+
   if(!$service['suspended']) {
 
     $form['suspend'] = array(

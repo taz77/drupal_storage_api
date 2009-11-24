@@ -4,13 +4,9 @@
 // Copyright 2008-2009 Jonathan Brown
 
 
-function storage_api_containers() {
+function _storage_api_containers_query() {
 
-  drupal_set_title(t('Storage containers'));
-
-  $header = array(t('Container'), t('Service'), t('Serving'), t('Suspended'), t('Instances'), t('Size'));
-
-  $result = db_query("
+  $query = "
     SELECT {storage_container}.*, 
       objects.count AS objects_count, objects.size AS objects_size,
       files.count AS files_count, files.size AS files_size
@@ -39,17 +35,28 @@ function storage_api_containers() {
       
     ) AS files
       ON {storage_container}.container_id = files.container_id
-    ORDER BY name, container_id
-  ");
+  ";
+  
+  return $query;
+}
+
+
+function storage_api_containers() {
+
+  drupal_set_title(t('Storage containers'));
+
+  $header = array(t('Container'), t('Service'), t('Serving'), t('Suspended'), t('Instances'), t('Size'));
+
+  $query = _storage_api_containers_query();
+  $result = db_query($query . "ORDER BY name, container_id");
 
   while($container = db_fetch_array($result)) {
     unset($row);
   
     $row[] = l($container['name'], 'admin/build/storage/containers/' . $container['container_id']);
-    $row[] = l(_storage_api_get_service_name($container['service_id']), 
-      'admin/build/storage/services/' . $container['service_id']);
-    $row[] =  $container['serving'] ? 'Yes' : 'No';
-    $row[] =  $container['suspended'] ? 'Yes' : 'No';
+    $row[] = _storage_api_get_service_name($container['service_id'], TRUE);
+    $row[] = $container['serving'] ? 'Yes' : 'No';
+    $row[] = $container['suspended'] ? 'Yes' : 'No';
     $row[] = $container['objects_count'] + $container['files_count'];
     $row[] = storage_api_format_size($container['objects_size'] + $container['files_size']);
     
@@ -177,7 +184,7 @@ function storage_api_create_container_form($form_state) {
       );
       
       $form['settings'] += _storage_api_service_invoke($form_state['storage']['service_id'], 
-        'container_settings_form', $form_state['storage']['settings'], $form_state['storage']['serving']);
+        'container_settings_form', $form_state['storage']['settings'], $form_state['storage']['serving'], FALSE);
       
       $form['back'] = array(
         '#type' => 'submit',
@@ -227,7 +234,8 @@ function storage_api_create_container_form_validate($form, &$form_state) {
       if($form_state['clicked_button']['#value'] == t('Back'))
         break;
 
-      _storage_api_service_invoke($form_state['storage']['service_id'], 'container_validate', $form_state['storage']);
+      _storage_api_service_invoke($form_state['storage']['service_id'], 'container_validate', 
+        $form_state['storage'], FALSE);
 
       break;
   }
@@ -245,14 +253,8 @@ function storage_api_create_container_form_submit($form, &$form_state) {
   if($form_state['clicked_button']['#value'] != t('Create'))
     return;
 
-  _storage_api_service_invoke($form_state['storage']['service_id'], 'container_create', $form_state['storage']);
-
-  $container = array(
-    'name' => $form_state['storage']['name'],
-    'service_id' => $form_state['storage']['service_id'],
-    'serving' => $form_state['storage']['serving'],
-    'settings' => $form_state['storage']['settings'],
-  );
+  $container = _storage_api_service_invoke($form_state['storage']['service_id'], 'container_create', 
+    $form_state['storage']);
   
   drupal_write_record('storage_container', $container);
 
@@ -316,19 +318,30 @@ function storage_api_container_form($form_state, $container) {
       break;
   }
   
-  $info = array(
-    t('Service') => _storage_api_get_service_name($container['service_id']),
-    t('Serving') => $serving,
-    t('Suspended') => ($container['suspended'] ? t('Yes') : t('No'))
-  );
+  $query = _storage_api_containers_query();
+  $container_info = db_fetch_array(db_query($query . "WHERE {storage_container}.container_id = %d", 
+    $container['container_id']));
+
+  $rows[] = array(t('Service'), _storage_api_get_service_name($container['service_id'], TRUE));
+  $rows[] = array(t('Serving'), $serving);
+  $rows[] = array(t('Suspended'), $container['suspended'] ? t('Yes') : t('No'));
+  $rows[] = array(t('Instances'), $container_info['objects_count'] + $container_info['files_count']);
+  $rows[] = array(t('Size'), storage_api_format_size($container_info['objects_size'] + $container_info['files_size']));
   
-  $info += _storage_api_service_invoke($container['service_id'], 'container_info', $container);
-  
+  $info = _storage_api_service_invoke($container['service_id'], 'container_info', $container);
+
   foreach($info as $key => $item)
-    $output[] = $key . ': ' . $item;
+    $rows[] = array($key, $item);
+    
+  foreach($rows as &$row) {
+    $row[0] = array(
+      'data' => $row[0] . ':',
+      'style' => 'font-weight: bold',
+    );
+  }
   
   $form['status'] = array(
-    '#value' => '<p>' . implode("<br />\n", $output) . '</p>'
+    '#value' => '<p>' . theme('table', NULL, $rows) . '</p>'
   );
   
   if(!$container['suspended']) {
@@ -595,11 +608,14 @@ function storage_api_container_destroy_form_submit($form, &$form_state) {
  *
  * @ingroup forms
  * @see storage_api_container_edit_form_submit()
+ * @see storage_api_container_edit_form_validate()
  */
 function storage_api_container_edit_form($form_state, $container) {
 
+  $service_name = _storage_api_get_service_name($container['service_id']);
+
   drupal_set_title(t('Storage container: ') . $container['name'] . 
-    ' (' . _storage_api_get_service_name($container['service_id']) . ')');
+    ' (' . $service_name . ')');
   
   $form['name'] = array(
     '#title' => 'Name',
@@ -607,12 +623,16 @@ function storage_api_container_edit_form($form_state, $container) {
     '#required' => TRUE,
     '#default_value' => $container['name']
   );
-/*
-  $form['settings'] = _storage_api_service_invoke($container['service_id'], 
-    'container_settings_form', $container['settings']);
-    
-  $form['settings']['#tree'] = TRUE;
-*/  
+
+  $form['settings'] = array(
+    '#type' => 'fieldset',
+    '#title' => $service_name . t(' settings'),
+    '#tree' => TRUE
+  );
+  
+  $form['settings'] += _storage_api_service_invoke($container['service_id'], 'container_settings_form', 
+    $container['settings'], $container['serving'], TRUE);
+
   $form['submit'] = array(
     '#type' => 'submit',
     '#value' => 'Save'
@@ -623,16 +643,35 @@ function storage_api_container_edit_form($form_state, $container) {
 
 
 /**
+ * Validate handler for the container edit form.
+ *
+ * @see storage_api_container_edit_form()
+ * @see storage_api_container_edit_form_submit()
+ */
+function storage_api_container_edit_form_validate($form, &$form_state) {
+  $container = $form['#parameters'][2];
+  
+  $container['settings'] = $form_state['values']['settings'] + $container['settings'];
+
+  _storage_api_service_invoke($container['service_id'], 'container_validate', $container, TRUE);
+}
+
+
+/**
  * Submit handler for the container edit form.
  *
  * @see storage_api_container_edit_form()
+ * @see storage_api_container_edit_form_validate()
  */
 function storage_api_container_edit_form_submit($form, &$form_state) {
   $container = $form['#parameters'][2];
+  
+  $form_state['values']['settings'] += $container['settings'];
 
   $update = array(
     'container_id' => $container['container_id'],
     'name' => $form_state['values']['name'],
+    'settings' => $form_state['values']['settings'],
   );
   
   drupal_write_record('storage_container', $update, 'container_id');

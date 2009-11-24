@@ -156,7 +156,7 @@ function _storage_s3_url($container, $s3_object) {
 /**
 * Implements hook_storage_container_settings_form() .
 */
-function storage_s3_storage_container_settings_form($settings, $serving) {
+function storage_s3_storage_container_settings_form($settings, $serving, $edit) {
 
   $items['access_key_id'] = array(
     '#type' => 'textfield',
@@ -174,13 +174,16 @@ function storage_s3_storage_container_settings_form($settings, $serving) {
     '#default_value' => $settings['secret_access_key']
   );
 
-  $items['bucket'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Bucket name'),
-    '#required' => TRUE,
-    '#validated' => TRUE,
-    '#default_value' => $settings['bucket']
-  );
+  if(!$edit) {
+
+    $items['bucket'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Bucket name'),
+      '#required' => TRUE,
+      '#validated' => TRUE,
+      '#default_value' => $settings['bucket']
+    );
+  }
   
 /*
   $items['prefix'] = array(
@@ -197,7 +200,7 @@ function storage_s3_storage_container_settings_form($settings, $serving) {
 /**
 * Implements hook_storage_container_validate() .
 */
-function storage_s3_storage_container_validate($container) {
+function storage_s3_storage_container_validate($container, $edit) {
 
   if(!$container['settings']['access_key_id']) {
     form_set_error('settings][access_key_id', t('Access Key ID field is required.'));
@@ -241,6 +244,8 @@ function storage_s3_storage_container_validate($container) {
 function storage_s3_storage_container_create($container) {
 
   $result = _storage_s3_request($container, 'PUT', $container['settings']['bucket']);
+  
+  return $container;
 }
 
 

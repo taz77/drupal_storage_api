@@ -23,15 +23,13 @@ function storage_fs_drupal_storage_service_info() {
 /**
 * Implements hook_storage_container_settings_form() .
 */
-function storage_fs_drupal_storage_container_settings_form($settings) {
+function storage_fs_drupal_storage_container_settings_form($settings, $serving, $edit) {
 
   $items['path'] = array(
     '#type' => 'textfield',
     '#title' => t('Directory path'),
-    '#default_value' => file_directory_path(),
+    '#default_value' => $settings['path'] ? $settings['path'] : file_directory_path(),
     '#maxlength' => 255,
-//    '#description' => t('A file system path where the files will be stored. This directory has to exist and be writable by Drupal. If the download method is set to public this directory has to be relative to the Drupal installation directory, and be accessible over the web. When download method is set to private this directory should not be accessible over the web. Changing this location after the site has been in use will cause problems so only change this setting on an existing site if you know what you are doing.'),
-//    '#after_build' => array('system_check_directory'),
     '#required' => TRUE,
     '#validated' => TRUE
   );
@@ -43,14 +41,17 @@ function storage_fs_drupal_storage_container_settings_form($settings) {
 /**
 * Implements hook_storage_container_validate() .
 */
-function storage_fs_drupal_storage_container_validate($container) {
+function storage_fs_drupal_storage_container_validate($container, $edit) {
 
   if(!$container['settings']['path']) {
     form_set_error('settings][path', t('Directory path field is required.'));
-    return;
   }
+  else if(!$edit) {
   
-  return TRUE;
+    if(file_check_directory($container['settings']['path'])) {
+      form_set_error('settings][path', t('Directory already exists.'));
+    }
+  }
 }
 
 
@@ -60,11 +61,10 @@ function storage_fs_drupal_storage_container_validate($container) {
 function storage_fs_drupal_storage_container_create($container) {
 
   if(!file_check_directory($container['settings']['path'], FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS)) {
-  
     return FALSE;
   }
   
-  return TRUE;
+  return $container;
 }
 
 
@@ -74,7 +74,7 @@ function storage_fs_drupal_storage_container_create($container) {
 function storage_fs_drupal_storage_container_info($container) {
 
   $info['Directory path'] = $container['settings']['path'];
-  $info['Free space'] = format_size(disk_free_space($container['settings']['path']));
+  $info['Free space'] = storage_api_format_size(@disk_free_space($container['settings']['path']));
 
   return $info;
 }

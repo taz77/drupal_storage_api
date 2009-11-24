@@ -23,7 +23,7 @@ function storage_db_storage_service_info() {
 /**
 * Implements hook_storage_container_settings_form() .
 */
-function storage_db_storage_container_settings_form($settings) {
+function storage_db_storage_container_settings_form($settings, $serving, $edit) {
   global $db_url;
   
   if(is_array($db_url)) {
@@ -58,11 +58,10 @@ function storage_db_storage_container_settings_form($settings) {
 /**
 * Implements hook_storage_container_validate() .
 */
-function storage_db_storage_container_validate($container) {
+function storage_db_storage_container_validate($container, $edit) {
 
   if(!$container['settings']['table']) {
     form_set_error('settings][path', t('Database table field is required.'));
-    return;
   }
 }
 
@@ -86,7 +85,7 @@ function storage_db_storage_container_create($container) {
   
   db_set_active();
   
-  return $success;
+  return $container;
 }
 
 
