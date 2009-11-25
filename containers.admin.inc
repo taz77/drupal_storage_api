@@ -287,6 +287,8 @@ function _storage_api_container_flush_serve_url($container_id) {
   ",
     $container_id
   );
+
+  cache_clear_all();
 }
 
 
@@ -675,7 +677,8 @@ function storage_api_container_edit_form_submit($form, &$form_state) {
   );
   
   drupal_write_record('storage_container', $update, 'container_id');
-
+  _storage_api_container_flush_serve_url($container['container_id']);
+  
   $form_state['redirect'] = 'admin/build/storage/containers/' . $container['container_id'];
 }
 

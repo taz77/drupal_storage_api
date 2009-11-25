@@ -403,9 +403,10 @@ function storage_api_class_edit_form_submit($form, &$form_state) {
     $class['class_id']
   );
   
-  $path = 'admin/build/storage/classes/' . $class['class_id'];
-
+  cache_clear_all();
+  
   $message = 'Storage class <i>' . $class['name'] . '</i> has been updated.';
+  $path = 'admin/build/storage/classes/' . $class['class_id'];
 
   drupal_set_message($message);
   watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));
@@ -582,6 +583,8 @@ function storage_api_class_remove_container_form_submit($form, &$form_state) {
     $class['class_id']
   );
   
+  cache_clear_all();
+
   $container = storage_api_container_load($container['container_id']);
   $path = 'admin/build/storage/classes/' . $class['class_id'];
   

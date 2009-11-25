@@ -97,6 +97,8 @@ function _storage_api_service_flush_serve_url($service_id) {
   ",
     $service_id
   );
+
+  cache_clear_all();
 }
 
 
