@@ -68,7 +68,7 @@ function storage_api_classes_list() {
     $rows[] = array(array('data' => t('No classes configured.'), 'colspan' => 3, 'class' => 'message'));
   }
 
-  return theme('table', $header, $rows);
+  return theme('table', $header, $rows, array('style' => 'width: auto;'));
 }
 
 
@@ -167,7 +167,7 @@ function storage_api_class($class) {
     );
   }
   
-  $output = theme('table', NULL, $rows);
+  $output = theme('table', NULL, $rows, array('style' => 'width: auto;'));
   
   unset($rows);
 
@@ -235,7 +235,7 @@ function storage_api_class($class) {
   }
 
   $header = array(t('Container'), t('Service'), t('Serving'), t('Files'), t('Size'));
-  $output .= theme('table', $header, $rows);
+  $output .= theme('table', $header, $rows, array('style' => 'width: auto;'));
 
   return $output;
 }
@@ -351,7 +351,7 @@ function theme_storage_api_class_edit_form($form) {
     }
   }
 
-  $output .= theme('table', $header, $rows, array('id' => 'my-module-table'));
+  $output .= theme('table', $header, $rows, array('id' => 'my-module-table', 'style' => 'width: auto;'));
   
   $output .= drupal_render($form);
   

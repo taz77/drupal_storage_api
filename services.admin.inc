@@ -74,7 +74,7 @@ function storage_api_services() {
     $rows[] = array(array('data' => t('No service modules enabled.'), 'colspan' => 4, 'class' => 'message'));
   }
 
-  return theme('table', $header, $rows);
+  return theme('table', $header, $rows, array('style' => 'width: auto;'));
 }
 
 
@@ -129,7 +129,7 @@ function storage_api_service_form($form_state, $service) {
   }
   
   $form['status'] = array(
-    '#value' => '<p>' . theme('table', NULL, $rows) . '</p>'
+    '#value' => '<p>' . theme('table', NULL, $rows, array('style' => 'width: auto;')) . '</p>'
   );
 
   if(!$service['suspended']) {

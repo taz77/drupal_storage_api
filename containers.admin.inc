@@ -67,7 +67,7 @@ function storage_api_containers() {
     $rows[] = array(array('data' => t('No containers exist.'), 'colspan' => 6, 'class' => 'message'));
   }
 
-  return theme('table', $header, $rows);
+  return theme('table', $header, $rows, array('style' => 'width: auto;'));
 }
 
 
@@ -343,7 +343,7 @@ function storage_api_container_form($form_state, $container) {
   }
   
   $form['status'] = array(
-    '#value' => '<p>' . theme('table', NULL, $rows) . '</p>'
+    '#value' => '<p>' . theme('table', NULL, $rows, array('style' => 'width: auto;')) . '</p>'
   );
   
   if(!$container['suspended']) {
