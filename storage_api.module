@@ -10,8 +10,8 @@ define('STORAGE_API_ACCESS_CONTROL', 2);
 
 
 /**
-* Implements hook_menu() .
-*/
+ * Implement hook_menu() .
+ */
 function storage_api_menu() {
 
   $items['system/storage_api/serve/%storage_api_file'] = array(
@@ -1992,8 +1992,8 @@ function storage_api_format_size($count) {
 
 
 /**
-* Implements hook_theme() .
-*/
+ * Implement hook_theme() .
+ */
 function storage_api_theme() {
 
   return array(
@@ -2005,8 +2005,8 @@ function storage_api_theme() {
 
 
 /**
-* Implements hook_form_alter() .
-*/
+ * Implement hook_form_alter() .
+ */
 function storage_api_form_alter(&$form, $form_state, $form_id) {
 
   switch($form_id) {
@@ -2020,8 +2020,8 @@ function storage_api_form_alter(&$form, $form_state, $form_id) {
 
 
 /**
-* Implements hook_enable() .
-*/
+ * Implement hook_enable() .
+ */
 function storage_api_enable() {
 
   // in case the service modules are enabled simultaneously as the form_alter above wont have taken affect
@@ -2031,8 +2031,8 @@ function storage_api_enable() {
 
 
 /**
-* Implements hook_cron() .
-*/
+ * Implement hook_cron() .
+ */
 function storage_api_cron() {
 
   $path = drupal_get_path('module', 'storage_api');

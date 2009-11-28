@@ -5,8 +5,8 @@
 
 
 /**
-* Implements hook_storage_service_info() .
-*/
+ * Implement hook_storage_service_info() .
+ */
 function storage_s3_storage_service_info() {
   
   $info = array(
@@ -154,8 +154,8 @@ function _storage_s3_url($container, $s3_object) {
 
 
 /**
-* Implements hook_storage_container_settings_form() .
-*/
+ * Implement hook_storage_container_settings_form() .
+ */
 function storage_s3_storage_container_settings_form($settings, $serving, $edit) {
 
   $items['access_key_id'] = array(
@@ -198,8 +198,8 @@ function storage_s3_storage_container_settings_form($settings, $serving, $edit) 
 
 
 /**
-* Implements hook_storage_container_validate() .
-*/
+ * Implement hook_storage_container_validate() .
+ */
 function storage_s3_storage_container_validate($container, $edit) {
 
   if(!$container['settings']['access_key_id']) {
@@ -239,8 +239,8 @@ function storage_s3_storage_container_validate($container, $edit) {
 
 
 /**
-* Implements hook_storage_container_create() .
-*/
+ * Implement hook_storage_container_create() .
+ */
 function storage_s3_storage_container_create($container) {
 
   $result = _storage_s3_request($container, 'PUT', $container['settings']['bucket']);
@@ -250,8 +250,8 @@ function storage_s3_storage_container_create($container) {
 
 
 /**
-* Implements hook_storage_container_info() .
-*/
+ * Implement hook_storage_container_info() .
+ */
 function storage_s3_storage_container_info($container) {
 
   $info = array(
@@ -264,8 +264,8 @@ function storage_s3_storage_container_info($container) {
 
 
 /**
-* Implements hook_storage_object_instance_create() .
-*/
+ * Implement hook_storage_object_instance_create() .
+ */
 function storage_s3_storage_object_instance_create($container, $file) {
 
   $result = _storage_s3_request($container, 'PUT', $container['settings']['bucket'], 
@@ -276,8 +276,8 @@ function storage_s3_storage_object_instance_create($container, $file) {
 
 
 /**
-* Implements hook_storage_object_instance_copy() .
-*/
+ * Implement hook_storage_object_instance_copy() .
+ */
 function storage_s3_storage_object_instance_copy($container, $file, $source_container) {
 
   $file['copy_source'] = '/' . $source_container['settings']['bucket'] . '/object-' . $file['object_id'];
@@ -296,8 +296,8 @@ function storage_s3_storage_object_instance_copy($container, $file, $source_cont
 
 
 /**
-* Implements hook_storage_object_instance_destroy() .
-*/
+ * Implement hook_storage_object_instance_destroy() .
+ */
 function storage_s3_storage_object_instance_destroy($container, $file) {
   
   $result = _storage_s3_request($container, 'DELETE', $container['settings']['bucket'], 
@@ -308,8 +308,8 @@ function storage_s3_storage_object_instance_destroy($container, $file) {
 
 
 /**
-* Implements hook_storage_object_instance_get_filepath() .
-*/
+ * Implement hook_storage_object_instance_get_filepath() .
+ */
 function storage_s3_storage_object_instance_get_filepath($container, $file) {
   
   $result = _storage_s3_request($container, 'GET', $container['settings']['bucket'], 
@@ -320,8 +320,8 @@ function storage_s3_storage_object_instance_get_filepath($container, $file) {
 
 
 /**
-* Implements hook_storage_object_instance_serve() .
-*/
+ * Implement hook_storage_object_instance_serve() .
+ */
 function storage_s3_storage_object_instance_serve($container, $file) {
 
   return _storage_s3_url($container, 'object-' . $file['object_id']);
@@ -329,8 +329,8 @@ function storage_s3_storage_object_instance_serve($container, $file) {
 
 
 /**
-* Implements hook_storage_file_instance_create() .
-*/
+ * Implement hook_storage_file_instance_create() .
+ */
 function storage_s3_storage_file_instance_create($container, $file) {
   
   $result = _storage_s3_request($container, 'PUT', $container['settings']['bucket'], 
@@ -341,8 +341,8 @@ function storage_s3_storage_file_instance_create($container, $file) {
 
 
 /**
-* Implements hook_storage_file_instance_copy() .
-*/
+ * Implement hook_storage_file_instance_copy() .
+ */
 function storage_s3_storage_file_instance_copy($container, $file, $source_container) {
   
   $file['copy_source'] = '/' . $source_container['settings']['bucket'] . '/file-' . $file['file_id'];
@@ -361,8 +361,8 @@ function storage_s3_storage_file_instance_copy($container, $file, $source_contai
 
 
 /**
-* Implements hook_storage_file_instance_destroy() .
-*/
+ * Implement hook_storage_file_instance_destroy() .
+ */
 function storage_s3_storage_file_instance_destroy($container, $file) {
   
   $result = _storage_s3_request($container, 'DELETE', $container['settings']['bucket'], 
@@ -373,8 +373,8 @@ function storage_s3_storage_file_instance_destroy($container, $file) {
 
 
 /**
-* Implements hook_storage_file_instance_get_filepath() .
-*/
+ * Implement hook_storage_file_instance_get_filepath() .
+ */
 function storage_s3_storage_file_instance_get_filepath($container, $file) {
   
   $result = _storage_s3_request($container, 'GET', $container['settings']['bucket'], 
@@ -385,8 +385,8 @@ function storage_s3_storage_file_instance_get_filepath($container, $file) {
 
 
 /**
-* Implements hook_storage_file_instance_serve() .
-*/
+ * Implement hook_storage_file_instance_serve() .
+ */
 function storage_s3_storage_file_instance_serve($container, $file) {
 
   return _storage_s3_url($container, 'file-' . $file['file_id']);

@@ -5,8 +5,8 @@
 
 
 /**
-* Implements hook_storage_service_info() .
-*/
+ * Implement hook_storage_service_info() .
+ */
 function storage_ftp_storage_service_info() {
   
   $info = array(
@@ -40,8 +40,8 @@ function _storage_ftp_login($container) {
 
 
 /**
-* Implements hook_storage_container_settings_form() .
-*/
+ * Implement hook_storage_container_settings_form() .
+ */
 function storage_ftp_storage_container_settings_form($settings, $serving, $edit) {
 
   $items['host'] = array(
@@ -112,8 +112,8 @@ function storage_ftp_storage_container_settings_form($settings, $serving, $edit)
 
 
 /**
-* Implements hook_storage_container_validate() .
-*/
+ * Implement hook_storage_container_validate() .
+ */
 function storage_ftp_storage_container_validate($container, $edit) {
 
   if(!$container['settings']['host']) {
@@ -146,8 +146,8 @@ function storage_ftp_storage_container_validate($container, $edit) {
 
 
 /**
-* Implements hook_storage_container_create() .
-*/
+ * Implement hook_storage_container_create() .
+ */
 function storage_ftp_storage_container_create($container) {
 
   $ftp = _storage_ftp_login($container);
@@ -196,8 +196,8 @@ function storage_ftp_storage_container_create($container) {
 
 
 /**
-* Implements hook_storage_container_info() .
-*/
+ * Implement hook_storage_container_info() .
+ */
 function storage_ftp_storage_container_info($container) {
 
   $info = array(
@@ -218,8 +218,8 @@ function storage_ftp_storage_container_info($container) {
 
 
 /**
-* Implements hook_storage_object_instance_create() .
-*/
+ * Implement hook_storage_object_instance_create() .
+ */
 function storage_ftp_storage_object_instance_create($container, $file) {
   
   $ftp = _storage_ftp_login($container);
@@ -254,8 +254,8 @@ function storage_ftp_storage_object_instance_create($container, $file) {
 
 
 /**
-* Implements hook_storage_object_instance_destroy() .
-*/
+ * Implement hook_storage_object_instance_destroy() .
+ */
 function storage_ftp_storage_object_instance_destroy($container, $file) {
 
   $ftp = _storage_ftp_login($container);
@@ -272,8 +272,8 @@ function storage_ftp_storage_object_instance_destroy($container, $file) {
 
 
 /**
-* Implements hook_storage_object_instance_get_filepath() .
-*/
+ * Implement hook_storage_object_instance_get_filepath() .
+ */
 function storage_ftp_storage_object_instance_get_filepath($container, $file) {
 
   $ftp = _storage_ftp_login($container);
@@ -295,8 +295,8 @@ function storage_ftp_storage_object_instance_get_filepath($container, $file) {
 
 
 /**
-* Implements hook_storage_object_instance_serve() .
-*/
+ * Implement hook_storage_object_instance_serve() .
+ */
 function storage_ftp_storage_object_instance_serve($container, $file) {
 
   return $container['settings']['base_url'] . '/objects/' . $container['reference'];
@@ -304,8 +304,8 @@ function storage_ftp_storage_object_instance_serve($container, $file) {
 
 
 /**
-* Implements hook_storage_file_instance_create() .
-*/
+ * Implement hook_storage_file_instance_create() .
+ */
 function storage_ftp_storage_file_instance_create($container, $file) {
 
   $ftp = _storage_ftp_login($container);
@@ -338,8 +338,8 @@ function storage_ftp_storage_file_instance_create($container, $file) {
 
 
 /**
-* Implements hook_storage_file_instance_destroy() .
-*/
+ * Implement hook_storage_file_instance_destroy() .
+ */
 function storage_ftp_storage_file_instance_destroy($container, $file) {
 
   $ftp = _storage_ftp_login($container);
@@ -356,8 +356,8 @@ function storage_ftp_storage_file_instance_destroy($container, $file) {
 
 
 /**
-* Implements hook_storage_file_instance_get_filepath() .
-*/
+ * Implement hook_storage_file_instance_get_filepath() .
+ */
 function storage_ftp_storage_file_instance_get_filepath($container, $file) {
 
   $ftp = _storage_ftp_login($container);
@@ -379,8 +379,8 @@ function storage_ftp_storage_file_instance_get_filepath($container, $file) {
 
 
 /**
-* Implements hook_storage_file_instance_serve() .
-*/
+ * Implement hook_storage_file_instance_serve() .
+ */
 function storage_ftp_storage_file_instance_serve($container, $file) {
 
   return $container['settings']['base_url'] . '/files/' . $container['reference'];

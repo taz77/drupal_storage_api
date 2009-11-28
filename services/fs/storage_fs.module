@@ -5,8 +5,8 @@
 
 
 /**
-* Implements hook_storage_service_info() .
-*/
+ * Implement hook_storage_service_info() .
+ */
 function storage_fs_storage_service_info() {
   
   $info = array(
@@ -21,8 +21,8 @@ function storage_fs_storage_service_info() {
 
 
 /**
-* Implements hook_storage_container_settings_form() .
-*/
+ * Implement hook_storage_container_settings_form() .
+ */
 function storage_fs_storage_container_settings_form($settings, $serving, $edit) {
 
   $items['path'] = array(
@@ -55,8 +55,8 @@ function storage_fs_storage_container_settings_form($settings, $serving, $edit) 
 
 
 /**
-* Implements hook_storage_container_validate() .
-*/
+ * Implement hook_storage_container_validate() .
+ */
 function storage_fs_storage_container_validate($container, $edit) {
 
   if(!$container['settings']['path']) {
@@ -79,8 +79,8 @@ function storage_fs_storage_container_validate($container, $edit) {
 
 
 /**
-* Implements hook_storage_container_create() .
-*/
+ * Implement hook_storage_container_create() .
+ */
 function storage_fs_storage_container_create($container) {
 
   $storage_api_path = drupal_get_path('module', 'storage_api');
@@ -110,8 +110,8 @@ function storage_fs_storage_container_create($container) {
 
 
 /**
-* Implements hook_storage_container_info() .
-*/
+ * Implement hook_storage_container_info() .
+ */
 function storage_fs_storage_container_info($container) {
 
   $info['Directory path'] = $container['settings']['path'];
@@ -125,8 +125,8 @@ function storage_fs_storage_container_info($container) {
 
 
 /**
-* Implements hook_storage_container_destroy() .
-*/
+ * Implement hook_storage_container_destroy() .
+ */
 function storage_fs_storage_container_destroy($container) {
   
   return TRUE;
@@ -134,8 +134,8 @@ function storage_fs_storage_container_destroy($container) {
 
 
 /**
-* Implements hook_storage_object_instance_create() .
-*/
+ * Implement hook_storage_object_instance_create() .
+ */
 function storage_fs_storage_object_instance_create($container, $file) {
   
   $filename = $file['object_id'];
@@ -161,8 +161,8 @@ function storage_fs_storage_object_instance_create($container, $file) {
 
 
 /**
-* Implements hook_storage_object_instance_destroy() .
-*/
+ * Implement hook_storage_object_instance_destroy() .
+ */
 function storage_fs_storage_object_instance_destroy($container, $file) {
   
   @unlink($container['settings']['path'] . '/objects/' . $container['reference']);
@@ -172,8 +172,8 @@ function storage_fs_storage_object_instance_destroy($container, $file) {
 
 
 /**
-* Implements hook_storage_object_instance_get_filepath() .
-*/
+ * Implement hook_storage_object_instance_get_filepath() .
+ */
 function storage_fs_storage_object_instance_get_filepath($container, $file) {
   
   return $container['settings']['path'] . '/objects/' . $container['reference'];
@@ -181,8 +181,8 @@ function storage_fs_storage_object_instance_get_filepath($container, $file) {
 
 
 /**
-* Implements hook_storage_object_instance_serve() .
-*/
+ * Implement hook_storage_object_instance_serve() .
+ */
 function storage_fs_storage_object_instance_serve($container, $file) {
 
   return $container['settings']['base_url'] . '/objects/' . $container['reference'];
@@ -190,8 +190,8 @@ function storage_fs_storage_object_instance_serve($container, $file) {
 
 
 /**
-* Implements hook_storage_file_instance_create() .
-*/
+ * Implement hook_storage_file_instance_create() .
+ */
 function storage_fs_storage_file_instance_create($container, $file) {
 
   // File instances need to use the actual filename so the webserver serves them
@@ -215,8 +215,8 @@ function storage_fs_storage_file_instance_create($container, $file) {
 
 
 /**
-* Implements hook_storage_file_instance_destroy() .
-*/
+ * Implement hook_storage_file_instance_destroy() .
+ */
 function storage_fs_storage_file_instance_destroy($container, $file) {
     
   @unlink($container['settings']['path'] . '/files/' . $container['reference']);
@@ -226,8 +226,8 @@ function storage_fs_storage_file_instance_destroy($container, $file) {
 
 
 /**
-* Implements hook_storage_file_instance_get_filepath() .
-*/
+ * Implement hook_storage_file_instance_get_filepath() .
+ */
 function storage_fs_storage_file_instance_get_filepath($container, $file) {
 
   return $container['settings']['path'] . '/files/' . $container['reference'];
@@ -235,8 +235,8 @@ function storage_fs_storage_file_instance_get_filepath($container, $file) {
 
 
 /**
-* Implements hook_storage_file_instance_serve() .
-*/
+ * Implement hook_storage_file_instance_serve() .
+ */
 function storage_fs_storage_file_instance_serve($container, $file) {
 
   return $container['settings']['base_url'] . '/files/' . $container['reference'];

@@ -2,6 +2,9 @@
 // $Id$
 
 
+/**
+ * Implement hook_schema() .
+ */
 function storage_api_schema() {
 
   $schema['storage_service'] = array(
@@ -133,6 +136,9 @@ function storage_api_schema() {
 }
 
 
+/**
+ * Implement hook_install() .
+ */
 function storage_api_install() {
 
   drupal_install_schema('storage_api');
@@ -231,6 +237,9 @@ function storage_api_update_6106() {
 }
 
  
+/**
+ * Implement hook_uninstall() .
+ */
 function storage_api_uninstall() {
 
   drupal_uninstall_schema('storage_api');

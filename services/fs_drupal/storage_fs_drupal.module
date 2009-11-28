@@ -5,8 +5,8 @@
 
 
 /**
-* Implements hook_storage_service_info() .
-*/
+ * Implement hook_storage_service_info() .
+ */
 function storage_fs_drupal_storage_service_info() {
   
   $info = array(
@@ -21,8 +21,8 @@ function storage_fs_drupal_storage_service_info() {
 
 
 /**
-* Implements hook_storage_container_settings_form() .
-*/
+ * Implement hook_storage_container_settings_form() .
+ */
 function storage_fs_drupal_storage_container_settings_form($settings, $serving, $edit) {
 
   $items['path'] = array(
@@ -39,8 +39,8 @@ function storage_fs_drupal_storage_container_settings_form($settings, $serving, 
 
 
 /**
-* Implements hook_storage_container_validate() .
-*/
+ * Implement hook_storage_container_validate() .
+ */
 function storage_fs_drupal_storage_container_validate($container, $edit) {
 
   if(!$container['settings']['path']) {
@@ -56,8 +56,8 @@ function storage_fs_drupal_storage_container_validate($container, $edit) {
 
 
 /**
-* Implements hook_storage_container_create() .
-*/
+ * Implement hook_storage_container_create() .
+ */
 function storage_fs_drupal_storage_container_create($container) {
 
   if(!file_check_directory($container['settings']['path'], FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS)) {
@@ -69,8 +69,8 @@ function storage_fs_drupal_storage_container_create($container) {
 
 
 /**
-* Implements hook_storage_container_info() .
-*/
+ * Implement hook_storage_container_info() .
+ */
 function storage_fs_drupal_storage_container_info($container) {
 
   $info['Directory path'] = $container['settings']['path'];
@@ -81,8 +81,8 @@ function storage_fs_drupal_storage_container_info($container) {
 
 
 /**
-* Implements hook_storage_container_destroy() .
-*/
+ * Implement hook_storage_container_destroy() .
+ */
 function storage_fs_drupal_storage_container_destroy($container) {
   
   return TRUE;
@@ -90,8 +90,8 @@ function storage_fs_drupal_storage_container_destroy($container) {
 
 
 /**
-* Implements hook_storage_object_instance_create() .
-*/
+ * Implement hook_storage_object_instance_create() .
+ */
 function storage_fs_drupal_storage_object_instance_create($container, $file) {
   
   if(!$file['keep_me'])
@@ -104,8 +104,8 @@ function storage_fs_drupal_storage_object_instance_create($container, $file) {
 
 
 /**
-* Implements hook_storage_object_instance_destroy() .
-*/
+ * Implement hook_storage_object_instance_destroy() .
+ */
 function storage_fs_drupal_storage_object_instance_destroy($container, $file) {
   
   @unlink($container['settings']['path'] . '/' . $file['object_id']);
@@ -115,8 +115,8 @@ function storage_fs_drupal_storage_object_instance_destroy($container, $file) {
 
 
 /**
-* Implements hook_storage_object_instance_get_filepath() .
-*/
+ * Implement hook_storage_object_instance_get_filepath() .
+ */
 function storage_fs_drupal_storage_object_instance_get_filepath($container, $file) {
   
   return $container['settings']['path'] . '/' . $file['object_id'];
@@ -124,8 +124,8 @@ function storage_fs_drupal_storage_object_instance_get_filepath($container, $fil
 
 
 /**
-* Implements hook_storage_object_instance_serve() .
-*/
+ * Implement hook_storage_object_instance_serve() .
+ */
 function storage_fs_drupal_storage_object_instance_serve($container, $file) {
   storage_api_set_http_headers($file);
 
