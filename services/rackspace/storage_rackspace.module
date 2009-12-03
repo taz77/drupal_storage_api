@@ -1,6 +1,8 @@
 <?php
 // $Id$
 
+// Copyright 2009 Jonathan Brown
+
 
 /**
  * Implement hook_storage_service_info() .
