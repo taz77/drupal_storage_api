@@ -1,0 +1,29 @@
+<?php
+// $Id$
+
+
+/**
+ * Implement hook_requirements() .
+ */
+function storage_rackspace_requirements($phase) {
+
+  @include_once('php-cloudfiles/cloudfiles.php');
+
+  $ok = class_exists('CF_Authentication');
+  
+  $description = "In modules/storage_api/services/rackspace, run<br />";
+  $description .= "<code>git clone git://github.com/rackspace/php-cloudfiles.git</code><br />";
+  $description .= "Or, <a href=\"http://github.com/rackspace/php-cloudfiles/archives/master\">download</a> it, decompress it and rename the directory to 'php-cloudfiles'.";
+
+  $requirements = array(
+    array(
+      'title' => 'Rackspace Cloud Files storage service',
+      'value' => 'php-cloudfiles ' . ($ok ? 'found' : ' not found'),
+      'description' => $ok ? NULL : $description,
+      'severity' => $ok ? REQUIREMENT_OK : REQUIREMENT_ERROR,
+    ),
+  );
+    
+  return $requirements;
+}
+

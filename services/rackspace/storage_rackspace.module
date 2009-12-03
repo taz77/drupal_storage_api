@@ -1,0 +1,402 @@
+<?php
+// $Id$
+
+
+/**
+ * Implement hook_storage_service_info() .
+ */
+function storage_rackspace_storage_service_info() {
+  
+  $info = array(
+    'name' => t('Rackspace Cloud Files'),
+    'dynamic' => FALSE,
+    'local' => FALSE,
+    'direct' => FALSE,
+    'can_copy' => FALSE,
+  );
+  
+  return $info;
+}
+
+
+function _storage_rackspace_log_exception($e, $dsm = TRUE) {
+
+  watchdog('storage_rackspace', 'php-cloudfiles exception: @msg', array('@msg' => $e->getMessage()), WATCHDOG_ERROR);
+  
+  if($dsm && user_access('administer site configuration'))
+    drupal_set_message(t('php-cloudfiles exception: @msg', array('@msg' => $e->getMessage())), 'error');
+}
+
+
+function _storage_rackspace_init($container) {
+  static $conn;
+  
+  if($conn)
+    return $conn;
+
+  @include_once('php-cloudfiles/cloudfiles.php');
+
+  if(!class_exists('CF_Authentication')) {
+    watchdog('storage_rackspace', 'php-cloudfiles not found', array(), WATCHDOG_ERROR);
+    
+    if(user_access('administer site configuration')) {
+      drupal_set_message(t('php-cloudfiles not found. Check the <a href="!path">status report</a>.', 
+        array('!path' => url('admin/reports/status'))), 'error');
+    }
+    
+    return FALSE;
+  }
+
+  $auth = new CF_Authentication($container['settings']['username'], $container['settings']['api_key']);
+  $auth->ssl_use_cabundle();
+
+  try {
+    $auth->authenticate();
+  }
+  catch(AuthenticationException $e) {
+    _storage_rackspace_log_exception($e, FALSE);
+    
+    if(user_access('administer site configuration'))
+      drupal_set_message(t('Invalid username or access key.'));
+      
+    return FALSE;
+  }
+  catch(Exception $e) {
+    _storage_rackspace_log_exception($e);
+    return FALSE;
+  }
+
+  $conn = new CF_Connection($auth);
+  $conn->ssl_use_cabundle();
+  
+  return $conn;
+}
+
+
+function _storage_rackspace_container($container) {
+  static $rscf_containers = array();
+  
+  if($rscf_containers[$container['container_id']])
+    return $rscf_containers[$container['container_id']];
+
+  $conn = _storage_rackspace_init($container);
+  
+  if(!$conn)
+    return FALSE;
+  
+  try {
+    $rscf_container = $conn->get_container($container['settings']['rscf_container']);
+  }
+  catch(Exception $e) {
+    _storage_rackspace_log_exception($e);
+    return FALSE;
+  }
+
+  $rscf_containers[$container['container_id']] = $rscf_container;
+
+  return $rscf_container;
+}
+
+
+/**
+ * Implement hook_storage_container_settings_form() .
+ */
+function storage_rackspace_storage_container_settings_form($settings, $serving, $edit) {
+
+  $items['username'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Username'),
+    '#required' => TRUE,
+    '#validated' => TRUE,
+    '#default_value' => $settings['username']
+  );
+  
+  $items['api_key'] = array(
+    '#type' => 'textfield',
+    '#title' => t('API key'),
+    '#required' => TRUE,
+    '#validated' => TRUE,
+    '#default_value' => $settings['api_key']
+  );
+
+  if(!$edit) {
+
+    $items['rscf_container'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Cloud Files container name'),
+      '#required' => TRUE,
+      '#validated' => TRUE,
+      '#default_value' => $settings['rscf_container']
+    );
+  }
+  
+  return $items;
+}
+
+
+/**
+ * Implement hook_storage_container_validate() .
+ */
+function storage_rackspace_storage_container_validate($container, $edit) {
+
+  if(!$container['settings']['username']) {
+    form_set_error('settings][username', t('Username field is required.'));
+  }
+
+  if(!$container['settings']['api_key']) {
+    form_set_error('settings][api_key', t('API key field is required.'));
+  }
+  
+  if(!$container['settings']['rscf_container']) {
+    form_set_error('settings][rscf_container', t('Cloud Files container name field is required.'));
+  }
+  
+  if(form_get_errors())
+    return;
+  
+  $conn = _storage_rackspace_init($container);
+  
+  if(!$conn) {
+    form_set_error('settings');
+    return;
+  }
+
+  try {
+    $rscf_container = $conn->get_container($container['settings']['rscf_container']);
+  }
+  catch(NoSuchContainerException $e) {}
+  catch(Exception $e) {
+    _storage_rackspace_log_exception($e);
+    form_set_error('settings');
+    return;
+  }
+  
+  if($rscf_container)
+    form_set_error('settings][rscf_container', t('Cloud Files container already exists.'));
+  
+  try {
+    $conn->create_container($container['settings']['rscf_container']);
+  }
+  catch(Exception $e) {
+    _storage_rackspace_log_exception($e);
+    form_set_error('settings');
+    return;
+  }
+}
+
+
+/**
+ * Implement hook_storage_container_create() .
+ */
+function storage_rackspace_storage_container_create($container) {
+
+  $conn = _storage_rackspace_init($container);
+  
+  if(!$conn)
+    return FALSE;
+  
+  try {
+    $rscf_container = $conn->get_container($container['settings']['rscf_container']);
+  
+    if($container['serving'] == STORAGE_API_SERVING) {
+    
+      $rscf_container->make_public(60 * 60 * 24 * 3);    // 3 days is the maximum ttl that can be set in the api
+      $container['settings']['cdn_uri'] = $rscf_container->cdn_uri;
+    }
+  }  
+  catch(Exception $e) {
+    _storage_rackspace_log_exception($e);
+    return FALSE;
+  }
+  
+  return $container;
+}
+
+
+/**
+ * Implement hook_storage_container_info() .
+ */
+function storage_rackspace_storage_container_info($container) {
+
+  $info = array(
+    t('Username') => $container['settings']['username'],
+    t('Container') => $container['settings']['rscf_container'],
+  );
+
+  return $info;
+}
+
+
+/**
+ * Implement hook_storage_container_destroy() .
+ */
+function storage_rackspace_storage_container_destroy($container) {
+  
+  $conn = _storage_rackspace_init($container);
+  
+  if(!$conn)
+    return FALSE;
+  
+  try {
+    $conn->delete_container($container['settings']['rscf_container']);
+  }
+  catch(Exception $e) {
+    _storage_rackspace_log_exception($e);
+    return FALSE;
+  }
+  
+  return TRUE;
+}
+
+
+function _storage_rackspace_instance_create($container, $file, $name) {
+
+  $rscf_container = _storage_rackspace_container($container);
+  
+  if(!$rscf_container)
+    return FALSE;
+
+  try {
+    $object = $rscf_container->create_object($name);
+    $object->content_type = $file['mimetype'];
+    $object->set_etag(base64_encode($file['md5']));
+    $object->load_from_filename($file['filepath'], FALSE);
+
+    $object->metadata = array(
+      'file_id' => $file['file_id'],
+      'object_id' => $file['object_id'],
+      'filename' => $file['filename'],
+    );
+
+    $object->sync_metadata();
+  }
+  catch(Exception $e) {
+    _storage_rackspace_log_exception($e);
+
+    try {
+      $rscf_container->delete_object($name);
+    }
+    catch(Exception $e) {}
+
+    return FALSE;
+  }
+
+  return TRUE;
+}
+
+
+function _storage_rackspace_instance_destroy($container, $name) {
+
+  $rscf_container = _storage_rackspace_container($container);
+  
+  if(!$rscf_container)
+    return FALSE;
+    
+  try {
+    $rscf_container->delete_object($name);
+  }
+  catch(Exception $e) {
+    _storage_rackspace_log_exception($e);
+    return FALSE;
+  }
+  
+  return TRUE;
+}
+
+
+function _storage_rackspace_instance_get_filepath($container, $name) {
+
+  $rscf_container = _storage_rackspace_container($container);
+
+  if(!$rscf_container)
+    return FALSE;
+
+  $filepath = tempnam(file_directory_temp(), '');
+  
+  try {
+    $object = $rscf_container->get_object($name);
+    $object->save_to_filename($filepath);
+  }
+  catch(Exception $e) {
+    _storage_rackspace_log_exception($e);
+    @unlink($filepath);
+    return FALSE;
+  }
+
+  return $filepath;
+}
+
+
+/**
+ * Implement hook_storage_object_instance_create() .
+ */
+function storage_rackspace_storage_object_instance_create($container, $file) {
+
+  return _storage_rackspace_instance_create($container, $file, 'object-'. $file['object_id']);
+}
+
+
+/**
+ * Implement hook_storage_object_instance_destroy() .
+ */
+function storage_rackspace_storage_object_instance_destroy($container, $file) {
+
+  return _storage_rackspace_instance_destroy($container, 'object-'. $file['object_id']);
+}
+
+
+/**
+ * Implement hook_storage_object_instance_get_filepath() .
+ */
+function storage_rackspace_storage_object_instance_get_filepath($container, $file) {
+
+  return _storage_rackspace_instance_get_filepath($container, 'object-'. $file['object_id']);
+}
+
+
+/**
+ * Implement hook_storage_object_instance_serve() .
+ */
+function storage_rackspace_storage_object_instance_serve($container, $file) {
+
+  return $container['settings']['cdn_uri'] . '/object-' . $file['object_id'];
+}
+
+
+/**
+ * Implement hook_storage_file_instance_create() .
+ */
+function storage_rackspace_storage_file_instance_create($container, $file) {
+
+  return _storage_rackspace_instance_create($container, $file, 
+    'file-' . $file['file_id'] . '/' . $file['filename']);
+}
+
+
+/**
+ * Implement hook_storage_file_instance_destroy() .
+ */
+function storage_rackspace_storage_file_instance_destroy($container, $file) {
+
+  return _storage_rackspace_instance_destroy($container, 'file-'. $file['file_id'] . '/' . $file['filename']);
+}
+
+
+/**
+ * Implement hook_storage_file_instance_get_filepath() .
+ */
+function storage_rackspace_storage_file_instance_get_filepath($container, $file) {
+
+  return _storage_rackspace_instance_get_filepath($container, 
+    'file-'. $file['file_id'] . '/' . $file['filename']);
+}
+
+
+/**
+ * Implement hook_storage_file_instance_serve() .
+ */
+function storage_rackspace_storage_file_instance_serve($container, $file) {
+
+  return $container['settings']['cdn_uri'] . '/file-'. $file['file_id'] . '/' . $file['filename'];
+}
+
