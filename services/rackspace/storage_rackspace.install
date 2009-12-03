@@ -11,9 +11,9 @@ function storage_rackspace_requirements($phase) {
 
   $ok = class_exists('CF_Authentication');
   
-  $description = "In modules/storage_api/services/rackspace, run<br />";
+  $description .= "Download <a href=\"http://github.com/rackspace/php-cloudfiles/downloads\">php-cloudfiles</a>, decompress it, rename the directory to 'php-cloudfiles' and put it in 'modules/storage_api/services/rackspace'.<br />";
+  $description .= "Alternatively you can use git:<br />";
   $description .= "<code>git clone git://github.com/rackspace/php-cloudfiles.git</code><br />";
-  $description .= "Or, <a href=\"http://github.com/rackspace/php-cloudfiles/archives/master\">download</a> it, decompress it and rename the directory to 'php-cloudfiles'.";
 
   $requirements = array(
     array(
