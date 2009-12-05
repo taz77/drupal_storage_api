@@ -114,7 +114,7 @@ function storage_rackspace_storage_container_settings_form($settings, $serving, 
   );
   
   $items['api_key'] = array(
-    '#type' => 'textfield',
+    '#type' => 'password',
     '#title' => t('API key'),
     '#required' => TRUE,
     '#validated' => TRUE,
@@ -125,7 +125,7 @@ function storage_rackspace_storage_container_settings_form($settings, $serving, 
 
     $items['rscf_container'] = array(
       '#type' => 'textfield',
-      '#title' => t('Cloud Files container name'),
+      '#title' => t('Cloud Files container'),
       '#required' => TRUE,
       '#validated' => TRUE,
       '#default_value' => $settings['rscf_container']
@@ -160,29 +160,6 @@ function storage_rackspace_storage_container_validate($container, $edit) {
   
   if(!$conn) {
     form_set_error('settings');
-    return;
-  }
-
-  try {
-    $rscf_container = $conn->get_container($container['settings']['rscf_container']);
-  }
-  catch(NoSuchContainerException $e) {}
-  catch(Exception $e) {
-    _storage_rackspace_log_exception($e);
-    form_set_error('settings');
-    return;
-  }
-  
-  if($rscf_container)
-    form_set_error('settings][rscf_container', t('Cloud Files container already exists.'));
-  
-  try {
-    $conn->create_container($container['settings']['rscf_container']);
-  }
-  catch(Exception $e) {
-    _storage_rackspace_log_exception($e);
-    form_set_error('settings');
-    return;
   }
 }
 
@@ -192,23 +169,40 @@ function storage_rackspace_storage_container_validate($container, $edit) {
  */
 function storage_rackspace_storage_container_create($container) {
 
-  $conn = _storage_rackspace_init($container);
-  
-  if(!$conn)
-    return FALSE;
+  $conn = _storage_rackspace_init($container);    // cached
   
   try {
     $rscf_container = $conn->get_container($container['settings']['rscf_container']);
+  }
+  catch(NoSuchContainerException $e) {}
+  catch(Exception $e) {
+    _storage_rackspace_log_exception($e);
+    form_set_error('settings');
+    return $container;
+  }
+  
+  if($rscf_container) {
+    form_set_error('settings][rscf_container', t('Cloud Files container %name already exists.', 
+      array('%name' => $container['settings']['rscf_container'])));
+    return $container;
+  }
+  
+  try {
+    $rscf_container = $conn->create_container($container['settings']['rscf_container']);
   
     if($container['serving'] == STORAGE_API_SERVING) {
     
       $rscf_container->make_public(60 * 60 * 24 * 3);    // 3 days is the maximum ttl that can be set in the api
       $container['settings']['cdn_uri'] = $rscf_container->cdn_uri;
     }
+    else {
+      $rscf_container->make_private();    // strangely, this has to be done explicity, or it might be public
+    }
   }  
   catch(Exception $e) {
     _storage_rackspace_log_exception($e);
-    return FALSE;
+    form_set_error('settings');
+    return $container;
   }
   
   return $container;

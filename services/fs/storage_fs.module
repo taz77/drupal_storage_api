@@ -13,7 +13,8 @@ function storage_fs_storage_service_info() {
     'name' => t('Filesystem'),
     'dynamic' => FALSE,
     'local' => TRUE,
-    'direct' => FALSE
+    'direct' => FALSE,
+    'can_copy' => FALSE,
   );
   
   return $info;
@@ -86,13 +87,15 @@ function storage_fs_storage_container_create($container) {
   $storage_api_path = drupal_get_path('module', 'storage_api');
 
   if(!file_check_directory($container['settings']['path'], FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS)) {
-    return FALSE;
+    form_set_error('settings');
+    return $container;
   }
   
   $path = $container['settings']['path'] . '/objects';
   
   if(!file_check_directory($path, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS)) {
-    return FALSE;
+    form_set_error('settings');
+    return $container;
   }
 
   copy($storage_api_path . '/objects.htaccess', $path . '/.htaccess');
@@ -100,7 +103,8 @@ function storage_fs_storage_container_create($container) {
   $path = $container['settings']['path'] . '/files';
 
   if(!file_check_directory($path, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS)) {
-    return FALSE;
+    form_set_error('settings');
+    return $container;
   }
 
   copy($storage_api_path . '/files.htaccess', $path . '/.htaccess');

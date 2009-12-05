@@ -113,10 +113,12 @@ function hook_storage_container_settings_form($settings, $serving, $edit) {
 /**
  * Validate the settings for a storage container.
  *
+ * Call form_set_error() if there are any problems.
+ *
  * @param $container
  *   The container to be validated.
  * @param $edit
- *   Whether this is a container being edited.
+ *   Whether this is an existing container being edited.
  */
 function hook_storage_container_validate($container, $edit) {
 }
@@ -125,10 +127,12 @@ function hook_storage_container_validate($container, $edit) {
 /**
  * Create a storage container.
  *
+ * Call form_set_error() if there are any problems.
+ *
  * @param $container
  *   Container to be created.
  * @return
- *   The container (with any modifications).
+ *   The container (with any modifications). Even return on failure.
  */
 function hook_storage_container_create($container) {
 }

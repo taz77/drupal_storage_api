@@ -13,7 +13,8 @@ function storage_fs_drupal_storage_service_info() {
     'name' => t('Filesystem / Drupal'),
     'dynamic' => TRUE,
     'local' => TRUE,
-    'direct' => TRUE
+    'direct' => TRUE,
+    'can_copy' => FALSE,
   );
   
   return $info;
@@ -61,7 +62,7 @@ function storage_fs_drupal_storage_container_validate($container, $edit) {
 function storage_fs_drupal_storage_container_create($container) {
 
   if(!file_check_directory($container['settings']['path'], FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS)) {
-    return FALSE;
+    form_set_error('settings');
   }
   
   return $container;

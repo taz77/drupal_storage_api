@@ -14,7 +14,7 @@ function storage_s3_storage_service_info() {
     'dynamic' => FALSE,
     'local' => FALSE,
     'direct' => FALSE,
-    'can_copy' => TRUE
+    'can_copy' => TRUE,
   );
   
   return $info;
@@ -70,6 +70,17 @@ function _storage_s3_request($container, $method, $bucket = NULL, $object_name =
         $curl_options[CURLOPT_INFILE] = $fp;
         $curl_options[CURLOPT_INFILESIZE] = $file['size'];
       }
+      else if(!$object_name && $container['settings']['location']) {
+
+        $str = '<CreateBucketConfiguration><LocationConstraint>';
+        $str .= $container['settings']['location'];
+        $str .= '</LocationConstraint></CreateBucketConfiguration>';
+        
+        $fp = fopen('data:text/plain,' . $str, 'r');
+        $curl_options[CURLOPT_INFILE] = $fp;
+        $curl_options[CURLOPT_INFILESIZE] = strlen($str);
+        $headers[] = 'Expect:';
+      }
       else {
         $curl_options[CURLOPT_INFILESIZE] = 0;
         $headers[] = 'Expect:';
@@ -87,6 +98,7 @@ function _storage_s3_request($container, $method, $bucket = NULL, $object_name =
         $fp = fopen($result['filepath'], 'w');
         $curl_options[CURLOPT_FILE] = $fp;
       }
+      
       break;
       
     case 'DELETE':
@@ -124,6 +136,16 @@ function _storage_s3_request($container, $method, $bucket = NULL, $object_name =
   if(is_string($transfer) && $transfer != '') {
     $result['transfer'] = $transfer;
     $result['simplexml'] = @simplexml_load_string($transfer);
+
+    if($result['simplexml']->getName() == 'Error') {
+    
+      $msg = (string)$result['simplexml']->Message;
+
+      watchdog('storage_s3', 'Amazon S3 error: @msg', array('@msg' => $msg), WATCHDOG_ERROR);
+
+      if(user_access('administer site configuration'))
+        drupal_set_message(t('Amazon S3 error: @msg', array('@msg' => $msg)), 'error');
+    }
   }
   
   return $result;
@@ -136,7 +158,7 @@ function _storage_s3_url($container, $s3_object) {
 
   if($container['serving'] == STORAGE_API_ACCESS_CONTROL) {
     $query['AWSAccessKeyId'] = $container['settings']['access_key_id'];
-    $query['Expires'] = $_SERVER['REQUEST_TIME'] + 60 * 60;
+    $query['Expires'] = $_SERVER['REQUEST_TIME'] + $container['settings']['url_lifetime'];
     
     $components = array(
       'GET',
@@ -153,6 +175,16 @@ function _storage_s3_url($container, $s3_object) {
 }
 
 
+function _storage_s3_locations() {
+
+  return array(
+    '' => t('US Standard'),
+    'us-west-1' => t('US-West (Northern California)'),
+    'EU' => t('EU (Ireland)'),
+  );
+}
+
+
 /**
  * Implement hook_storage_container_settings_form() .
  */
@@ -160,15 +192,15 @@ function storage_s3_storage_container_settings_form($settings, $serving, $edit) 
 
   $items['access_key_id'] = array(
     '#type' => 'textfield',
-    '#title' => t('Access Key ID'),
+    '#title' => t('Access key ID'),
     '#required' => TRUE,
     '#validated' => TRUE,
     '#default_value' => $settings['access_key_id']
   );
   
   $items['secret_access_key'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Secret Access Key'),
+    '#type' => 'password',
+    '#title' => t('Secret access key'),
     '#required' => TRUE,
     '#validated' => TRUE,
     '#default_value' => $settings['secret_access_key']
@@ -181,17 +213,32 @@ function storage_s3_storage_container_settings_form($settings, $serving, $edit) 
       '#title' => t('Bucket name'),
       '#required' => TRUE,
       '#validated' => TRUE,
-      '#default_value' => $settings['bucket']
+      '#default_value' => $settings['bucket'],
+      '#maxlength' => 63,
+    );
+
+    $items['location'] = array(
+      '#type' => 'select',
+      '#title' => t('Location'),
+      '#options' => _storage_s3_locations(),
     );
   }
   
-/*
-  $items['prefix'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Prefix'),
-    '#default_value' => $settings['prefix']
-  );
-*/
+  if($serving == STORAGE_API_ACCESS_CONTROL) {
+  
+    $description = t('(seconds)<br />This container will produce cryptographically signed URLs that will cease to function once their lifetime is over.');
+  
+    $items['url_lifetime'] = array(
+      '#type' => 'textfield',
+      '#title' => t('URL lifetime'),
+      '#required' => TRUE,
+      '#validated' => TRUE,
+      '#default_value' => $settings['url_lifetime'],
+      '#description' => $description,
+      '#size' => 8,
+      '#maxlength' => 8,
+    );
+  }
 
   return $items;
 }
@@ -216,24 +263,29 @@ function storage_s3_storage_container_validate($container, $edit) {
   
   if(form_get_errors())
     return;
+    
+  
+  // test account credentials
 
   $result = _storage_s3_request($container, 'GET');   // HEAD doesn't work
     
   if($result['http_code'] != 200) {
-    $msg = t('Failed to authenticate with Amazon S3.');
-    
-    if($result['simplexml']->Message)
-      $msg .= t(' Message returned: <i>') . $result['simplexml']->Message . '</i>';
-    
-    form_set_error('settings', $msg);
+    form_set_error('settings');
     return;
   }
 
+  
+  // check if bucket is already owned by this account
+
   $result = _storage_s3_request($container, 'HEAD', $container['settings']['bucket']);
 
-  if($result['http_code'] == 403) {
-    form_set_error('settings][bucket', t('The bucket is not available.'));
-    return;
+  if($result['http_code'] == 200) {
+    $result = _storage_s3_request($container, 'GET', $container['settings']['bucket']);
+    
+    if(count($result['simplexml']->Contents) > 0) {
+      form_set_error('settings][bucket', t('Bucket %name is already owned by this account, but is not empty.', 
+        array('%name' => $container['settings']['bucket'])));
+    }
   }
 }
 
@@ -244,7 +296,10 @@ function storage_s3_storage_container_validate($container, $edit) {
 function storage_s3_storage_container_create($container) {
 
   $result = _storage_s3_request($container, 'PUT', $container['settings']['bucket']);
-  
+
+  if($result['http_code'] != 200)
+    form_set_error('settings');
+
   return $container;
 }
 
@@ -254,10 +309,15 @@ function storage_s3_storage_container_create($container) {
  */
 function storage_s3_storage_container_info($container) {
 
+  $locations = _storage_s3_locations();
+
   $info = array(
     t('Bucket') => $container['settings']['bucket'],
-//    t('Prefix') => $container['settings']['prefix']
+    t('Location') => $locations[$container['settings']['location']],
   );
+
+  if($container['serving'] == STORAGE_API_ACCESS_CONTROL)
+    $info[t('URL lifetime')] = format_interval($container['settings']['url_lifetime']);
 
   return $info;
 }

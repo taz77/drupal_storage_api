@@ -170,13 +170,24 @@ function storage_api_create_container_form($form_state) {
           $serving = t('Securely');
           break;
       }
-      
-      $form[] = array(
-        '#value' => '<p>Name: ' . $form_state['storage']['name'] . 
-          '<br />Service: ' . $service_name . 
-          '<br />Serving: ' . $serving . '</p>'
+
+      $rows = array(
+        array(t('Name'), $form_state['storage']['name']),
+        array(t('Service'), $service_name),
+        array(t('Serving'), $serving),
       );
-    
+      
+      foreach($rows as &$row) {
+        $row[0] = array(
+          'data' => $row[0] . ':',
+          'style' => 'font-weight: bold',
+        );
+      }
+      
+      $form['info'] = array(
+        '#value' => '<p>' . theme('table', NULL, $rows, array('style' => 'width: auto;')) . '</p>'
+      );
+
       $form['settings'] = array(
         '#type' => 'fieldset',
         '#title' => $service_name . t(' settings'),
@@ -237,6 +248,11 @@ function storage_api_create_container_form_validate($form, &$form_state) {
       _storage_api_service_invoke($form_state['storage']['service_id'], 'container_validate', 
         $form_state['storage'], FALSE);
 
+      if(!form_get_errors()) {
+        $form_state['storage'] = _storage_api_service_invoke($form_state['storage']['service_id'], 'container_create', 
+          $form_state['storage']);
+      }
+      
       break;
   }
 }
@@ -252,10 +268,9 @@ function storage_api_create_container_form_submit($form, &$form_state) {
 
   if($form_state['clicked_button']['#value'] != t('Create'))
     return;
+    
+  $container = $form_state['storage'];
 
-  $container = _storage_api_service_invoke($form_state['storage']['service_id'], 'container_create', 
-    $form_state['storage']);
-  
   drupal_write_record('storage_container', $container);
 
   $message = 'Storage container <i>' . $form_state['storage']['name'] . '</i> has been created.';

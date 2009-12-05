@@ -13,7 +13,8 @@ function storage_db_storage_service_info() {
     'name' => t('Database'),
     'dynamic' => TRUE,
     'local' => FALSE,
-    'direct' => TRUE
+    'direct' => TRUE,
+    'can_copy' => FALSE,
   );
   
   return $info;
@@ -36,7 +37,8 @@ function storage_db_storage_container_settings_form($settings, $serving, $edit) 
       '#title' => t('Database'),
       '#options' => $options,
       '#required' => TRUE,
-      '#validated' => TRUE
+      '#validated' => TRUE,
+      '#default_value' => $settings['db'],
     );
   }
   else {
@@ -48,7 +50,8 @@ function storage_db_storage_container_settings_form($settings, $serving, $edit) 
     '#title' => t('Table'),
     '#description' => t('Without prefix or {}, e.g. \'storage_contents\'.'),
     '#required' => TRUE,
-    '#validated' => TRUE
+    '#validated' => TRUE,
+    '#default_value' => $settings['table'],
   );
   
   return $items;
@@ -94,7 +97,9 @@ function storage_db_storage_container_create($container) {
  */
 function storage_db_storage_container_info($container) {
 
-  $info[t('Database')] = $container['settings']['db'];
+  if($container['settings']['db'])
+    $info[t('Database')] = $container['settings']['db'];
+    
   $info[t('Table')] = $container['settings']['table'];
 
   return $info;

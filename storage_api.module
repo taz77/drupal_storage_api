@@ -464,6 +464,8 @@ function _storage_api_get_service_names() {
   
   foreach($services as &$service)
     $service = $service['name'];
+    
+  asort($services);
   
   return $services;
 }
@@ -791,7 +793,8 @@ function storage_api_serve($file) {
     return;
   }
   
-  _storage_api_cache_serve_url($file['file_id'], $url);
+  if($container['serving'] != STORAGE_API_ACCESS_CONTROL)
+    _storage_api_cache_serve_url($file['file_id'], $url);
   
   // this will definitely not return
   drupal_goto($url);    // 302 redirect (don't cache)
