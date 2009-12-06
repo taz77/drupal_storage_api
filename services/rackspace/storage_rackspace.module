@@ -25,7 +25,7 @@ function _storage_rackspace_log_exception($e, $dsm = TRUE) {
 
   watchdog('storage_rackspace', 'php-cloudfiles exception: @msg', array('@msg' => $e->getMessage()), WATCHDOG_ERROR);
   
-  if($dsm && user_access('administer site configuration'))
+  if($dsm && user_access('administer storage'))
     drupal_set_message(t('php-cloudfiles exception: @msg', array('@msg' => $e->getMessage())), 'error');
 }
 
@@ -41,7 +41,7 @@ function _storage_rackspace_init($container) {
   if(!class_exists('CF_Authentication')) {
     watchdog('storage_rackspace', 'php-cloudfiles not found', array(), WATCHDOG_ERROR);
     
-    if(user_access('administer site configuration')) {
+    if(user_access('administer storage')) {
       drupal_set_message(t('php-cloudfiles not found. Check the <a href="!path">status report</a>.', 
         array('!path' => url('admin/reports/status'))), 'error');
     }
@@ -58,7 +58,7 @@ function _storage_rackspace_init($container) {
   catch(AuthenticationException $e) {
     _storage_rackspace_log_exception($e, FALSE);
     
-    if(user_access('administer site configuration'))
+    if(user_access('administer storage'))
       drupal_set_message(t('Invalid username or access key.'));
       
     return FALSE;

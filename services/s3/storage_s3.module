@@ -143,7 +143,7 @@ function _storage_s3_request($container, $method, $bucket = NULL, $object_name =
 
       watchdog('storage_s3', 'Amazon S3 error: @msg', array('@msg' => $msg), WATCHDOG_ERROR);
 
-      if(user_access('administer site configuration'))
+      if(user_access('administer storage'))
         drupal_set_message(t('Amazon S3 error: @msg', array('@msg' => $msg)), 'error');
     }
   }

@@ -10,6 +10,15 @@ define('STORAGE_API_ACCESS_CONTROL', 2);
 
 
 /**
+ * Implement hook_perm() .
+ */
+function storage_api_perm() {
+
+  return array('administer storage');
+}
+
+
+/**
  * Implement hook_menu() .
  */
 function storage_api_menu() {
@@ -25,7 +34,7 @@ function storage_api_menu() {
 
   $items['admin/build/storage'] = array(
     'title' => 'Storage',
-    'access arguments' => array('administer site configuration'),
+    'access arguments' => array('administer storage'),
     'description' => 'Configure storage.',
     'page callback' => 'system_admin_menu_block_page',
     'file' => 'system.admin.inc',
@@ -36,14 +45,14 @@ function storage_api_menu() {
   $items['admin/build/storage/services'] = array(
     'title' => 'Services',
     'description' => 'Configure storage services.',
-    'access arguments' => array('administer site configuration'),
+    'access arguments' => array('administer storage'),
     'page callback' => 'storage_api_services',
     'weight' => 0,
     'file' => 'services.admin.inc'
   );
   
   $items['admin/build/storage/services/%storage_api_service'] = array(
-    'access arguments' => array('administer site configuration'),
+    'access arguments' => array('administer storage'),
     'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('storage_api_service_form', 4),
@@ -51,7 +60,7 @@ function storage_api_menu() {
   );
   
   $items['admin/build/storage/services/%storage_api_service/suspend'] = array(
-    'access arguments' => array('administer site configuration'),
+    'access arguments' => array('administer storage'),
     'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('storage_api_service_suspend_form', 4),
@@ -59,7 +68,7 @@ function storage_api_menu() {
   );
   
   $items['admin/build/storage/services/%storage_api_service/unsuspend'] = array(
-    'access arguments' => array('administer site configuration'),
+    'access arguments' => array('administer storage'),
     'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('storage_api_service_unsuspend_form', 4),
@@ -70,7 +79,7 @@ function storage_api_menu() {
   $items['admin/build/storage/containers'] = array(
     'title' => 'Containers',
     'description' => 'Configure storage containers.',
-    'access arguments' => array('administer site configuration'),
+    'access arguments' => array('administer storage'),
     'page callback' => 'storage_api_containers',
     'weight' => 1,
     'file' => 'containers.admin.inc'
@@ -78,7 +87,7 @@ function storage_api_menu() {
 
   $items['admin/build/storage/containers/list'] = array(
     'title' => 'Overview',
-    'access arguments' => array('administer site configuration'),
+    'access arguments' => array('administer storage'),
     'type' => MENU_DEFAULT_LOCAL_TASK,
     'weight' => 0,
     'file' => 'containers.admin.inc'
@@ -86,7 +95,7 @@ function storage_api_menu() {
   
   $items['admin/build/storage/containers/create'] = array(
     'title' => 'Create',
-    'access arguments' => array('administer site configuration'),
+    'access arguments' => array('administer storage'),
     'type' => MENU_LOCAL_TASK,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('storage_api_create_container_form'),
@@ -95,7 +104,7 @@ function storage_api_menu() {
   );
   
   $items['admin/build/storage/containers/%storage_api_container'] = array(
-    'access arguments' => array('administer site configuration'),
+    'access arguments' => array('administer storage'),
     'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('storage_api_container_form', 4),
@@ -104,14 +113,14 @@ function storage_api_menu() {
   
   $items['admin/build/storage/containers/%storage_api_container/view'] = array(
     'title' => 'View',
-    'access arguments' => array('administer site configuration'),
+    'access arguments' => array('administer storage'),
     'type' => MENU_DEFAULT_LOCAL_TASK,
     'weight' => 0,
     'file' => 'containers.admin.inc'
   );
   
   $items['admin/build/storage/containers/%storage_api_container/suspend'] = array(
-    'access arguments' => array('administer site configuration'),
+    'access arguments' => array('administer storage'),
     'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('storage_api_container_suspend_form', 4),
@@ -119,7 +128,7 @@ function storage_api_menu() {
   );
   
   $items['admin/build/storage/containers/%storage_api_container/unsuspend'] = array(
-    'access arguments' => array('administer site configuration'),
+    'access arguments' => array('administer storage'),
     'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('storage_api_container_unsuspend_form', 4),
@@ -127,7 +136,7 @@ function storage_api_menu() {
   );
   
   $items['admin/build/storage/containers/%storage_api_container/drain'] = array(
-    'access arguments' => array('administer site configuration'),
+    'access arguments' => array('administer storage'),
     'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('storage_api_container_drain_form', 4),
@@ -135,7 +144,7 @@ function storage_api_menu() {
   );
 
   $items['admin/build/storage/containers/%storage_api_container/destroy'] = array(
-    'access arguments' => array('administer site configuration'),
+    'access arguments' => array('administer storage'),
     'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('storage_api_container_destroy_form', 4),
@@ -144,7 +153,7 @@ function storage_api_menu() {
   
   $items['admin/build/storage/containers/%storage_api_container/edit'] = array(
     'title' => 'Edit',
-    'access arguments' => array('administer site configuration'),
+    'access arguments' => array('administer storage'),
     'type' => MENU_LOCAL_TASK,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('storage_api_container_edit_form', 4),
@@ -156,7 +165,7 @@ function storage_api_menu() {
   $items['admin/build/storage/classes'] = array(
     'title' => 'Classes',
     'description' => 'Configure storage classes.',
-    'access arguments' => array('administer site configuration'),
+    'access arguments' => array('administer storage'),
     'page callback' => 'storage_api_classes_list',
     'weight' => 2,
     'file' => 'classes.admin.inc'
@@ -164,7 +173,7 @@ function storage_api_menu() {
 
   $items['admin/build/storage/classes/list'] = array(
     'title' => 'Overview',
-    'access arguments' => array('administer site configuration'),
+    'access arguments' => array('administer storage'),
     'type' => MENU_DEFAULT_LOCAL_TASK,
     'weight' => 0,
     'file' => 'classes.admin.inc'
@@ -172,7 +181,7 @@ function storage_api_menu() {
 
   $items['admin/build/storage/classes/create'] = array(
     'title' => 'Create',
-    'access arguments' => array('administer site configuration'),
+    'access arguments' => array('administer storage'),
     'type' => MENU_LOCAL_TASK,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('storage_api_create_class_form'),
@@ -181,7 +190,7 @@ function storage_api_menu() {
   );
 
   $items['admin/build/storage/classes/%storage_api_class'] = array(
-    'access arguments' => array('administer site configuration'),
+    'access arguments' => array('administer storage'),
     'type' => MENU_CALLBACK,
     'page callback' => 'storage_api_class',
     'page arguments' => array(4),
@@ -190,7 +199,7 @@ function storage_api_menu() {
   
   $items['admin/build/storage/classes/%storage_api_class/view'] = array(
     'title' => 'View',
-    'access arguments' => array('administer site configuration'),
+    'access arguments' => array('administer storage'),
     'type' => MENU_DEFAULT_LOCAL_TASK,
     'weight' => 0,
     'file' => 'classes.admin.inc'
@@ -198,7 +207,7 @@ function storage_api_menu() {
   
   $items['admin/build/storage/classes/%storage_api_class/edit'] = array(
     'title' => 'Edit',
-    'access arguments' => array('administer site configuration'),
+    'access arguments' => array('administer storage'),
     'type' => MENU_LOCAL_TASK,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('storage_api_class_edit_form', 4),
@@ -207,7 +216,7 @@ function storage_api_menu() {
   );
   
   $items['admin/build/storage/classes/%storage_api_class/destroy'] = array(
-    'access arguments' => array('administer site configuration'),
+    'access arguments' => array('administer storage'),
     'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('storage_api_class_destroy_form', 4),
@@ -216,7 +225,7 @@ function storage_api_menu() {
   
   $items['admin/build/storage/classes/%storage_api_class/add'] = array(
     'title' => 'Add container',
-    'access arguments' => array('administer site configuration'),
+    'access arguments' => array('administer storage'),
     'type' => MENU_LOCAL_TASK,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('storage_api_class_add_container_form', 4),
@@ -226,7 +235,7 @@ function storage_api_menu() {
   
   $items['admin/build/storage/classes/%storage_api_class/remove/%storage_api_container'] = array(
     'title' => 'Remove container',
-    'access arguments' => array('administer site configuration'),
+    'access arguments' => array('administer storage'),
     'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('storage_api_class_remove_container_form', 4, 6),
@@ -1412,7 +1421,7 @@ function storage_api_file_add($selector_id, $options = array()) {
       $message = 'Failed to create initial instance of file ' . ($file['filename'] ? ($file['filename'] . ' ') : '');
       $message .= 'in storage container <i>' . $container['name'] . '</i>.';
 
-      if(user_access('administer site configuration'))
+      if(user_access('administer storage'))
         drupal_set_message($message);
 
       $message .= ' <br />' . _storage_api_file_log_info($file);
