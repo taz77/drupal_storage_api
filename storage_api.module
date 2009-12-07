@@ -8,6 +8,8 @@ define('STORAGE_API_STORAGE_ONLY', 0);
 define('STORAGE_API_SERVING', 1);
 define('STORAGE_API_ACCESS_CONTROL', 2);
 
+require_once('instance_operations.inc');
+
 
 /**
  * Implement hook_perm() .
@@ -684,46 +686,6 @@ function _storage_api_flush_serve_url($file_id) {
 }
 
 
-function _storage_api_create_instance(&$container, $file) {
-
-  // we need write access to the directory for it to be deleted
-
-  if(!$file['keep_me']) {
-  
-    if(!is_writable(dirname($file['filepath'])))
-      $file['keep_me'] = TRUE;
-  }
-  
-  $service_info = _storage_api_service_invoke($container['service_id'], 'service_info');
-
-  if(!(!$service_info['dynamic'] && $container['serving'] && $file['force_download'])) {
-    $container['type'] = 'object';
-
-    // if the file's object is already in the system, then the instance might already exist
-
-    if(!$file['new_object']) {
-      $instance = _storage_api_object_instance_exists($file['object_id'], $container['container_id']);
-      
-      if($instance)
-        $container['reference'] = $instance['reference'];
-    }
-    
-    if(!$instance) {
-      $failure = !_storage_api_create_object_instance($container, $file);
-    }
-  }
-  else {
-    $container['type'] = 'file';
-    $failure = !_storage_api_create_file_instance($container, $file);
-  }
-  
-  if(!$file['keep_me'])
-    @unlink($file['filepath']);
-    
-  return !$failure;
-}
-
-
 function _storage_api_file_generate(&$file) {
 
   $container = _storage_api_get_initial_container($file['selector_id']);
@@ -1151,37 +1113,6 @@ function _storage_api_get_object_id($filepath, &$new_object = NULL) {
 }
 
 
-function _storage_api_create_object_instance(&$container, $file) {
-
-  $success = _storage_api_service_invoke($container['service_id'], 'object_instance_create', 
-    $container, $file);
-  
-  if(!$success)
-    return FALSE;
-    
-  if($success !== TRUE)
-    $container['reference'] = $success;
-  
-  $instance = array(
-    'object_id' => $file['object_id'],
-    'container_id' => $container['container_id'],
-    'reference' => $container['reference'],
-  );
-
-  drupal_write_record('storage_object_instance', $instance);
-  
-  _storage_api_flush_serve_url($file['file_id']);
-  
-  $message = 'Object instance created. <br />';
-  $message .= _storage_api_container_log_info($container);
-  $message .= _storage_api_object_log_info($file);
-  
-  watchdog('storage_api', $message, NULL);
-
-  return TRUE;
-}
-
-
 /**
  * Determines if a file's reference already exists in a container.
  *
@@ -1239,37 +1170,6 @@ function storage_api_unique_filename($container, $filename) {
   }
 
   return $filename;
-}
-
-
-function _storage_api_create_file_instance(&$container, $file) {
-
-  $success = _storage_api_service_invoke($container['service_id'], 'file_instance_create', 
-    $container, $file);
-  
-  if(!$success)
-    return FALSE;
-    
-  if($success !== TRUE)
-    $container['reference'] = $success;
-  
-  $instance = array(
-    'file_id' => $file['file_id'],
-    'container_id' => $container['container_id'],
-    'reference' => $container['reference'],
-  );
-
-  drupal_write_record('storage_file_instance', $instance);
-  
-  _storage_api_flush_serve_url($file['file_id']);
-  
-  $message = 'File instance created' . ($file['filename'] ? (': ' . $file['filename'] . ' ') : '') . '. <br />';
-  $message .= _storage_api_container_log_info($container);
-  $message .= _storage_api_file_log_info($file);
-
-  watchdog('storage_api', $message, NULL);
-
-  return TRUE;
 }
 
 
