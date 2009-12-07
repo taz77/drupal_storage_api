@@ -3,6 +3,29 @@
 
 
 /**
+ * Implement hook_requirements() .
+ */
+function storage_api_requirements($phase) {
+
+  if(function_exists('curl_version'))
+    $version = curl_version();
+  
+  $description = t('Storage API requires that <a href="http://php.net/manual/en/book.curl.php">cURL</a> be available to PHP.');
+
+  $requirements = array(
+    array(
+      'title' => 'Storage API - cURL',
+      'value' => ($version ? $version['version'] : 'not found'),
+      'description' => $version ? NULL : $description,
+      'severity' => $version ? REQUIREMENT_OK : REQUIREMENT_ERROR,
+    ),
+  );
+  
+  return $requirements;
+}
+
+
+/**
  * Implement hook_schema() .
  */
 function storage_api_schema() {
