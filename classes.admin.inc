@@ -237,6 +237,9 @@ function storage_api_class($class) {
   $header = array(t('Container'), t('Service'), t('Serving'), t('Files'), t('Size'));
   $output .= theme('table', $header, $rows, array('style' => 'width: auto;'));
 
+  if(count($rows) > 1)
+    $output .= '<p>' . t('Files are served from the container nearest the top that is capable.') . '</p>';
+
   return $output;
 }
 
@@ -305,6 +308,13 @@ function storage_api_class_edit_form($form_state, $class) {
     );
   }
 
+  if(count($form['#container_ids']) > 1) {
+  
+    $form['info'] = array(
+      '#value' => '<p>' . t('Files are served from the container nearest the top that is capable.') . '</p>',
+    );
+  }
+  
   $form['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Save')
