@@ -124,7 +124,6 @@ function storage_rackspace_storage_container_settings_form($settings, $serving, 
     '#title' => t('API key'),
     '#required' => TRUE,
     '#validated' => TRUE,
-    '#default_value' => $settings['api_key']
   );
 
   if(!$edit) {

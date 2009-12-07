@@ -210,7 +210,6 @@ function storage_s3_storage_container_settings_form($settings, $serving, $edit) 
     '#title' => t('Secret access key'),
     '#required' => TRUE,
     '#validated' => TRUE,
-    '#default_value' => $settings['secret_access_key']
   );
 
   if(!$edit) {
