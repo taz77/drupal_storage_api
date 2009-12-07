@@ -105,6 +105,12 @@ function _storage_rackspace_container($container) {
  */
 function storage_rackspace_storage_container_settings_form($settings, $serving, $edit) {
 
+  $items['signup'] = array(
+    '#value' => t('Get your credentials !link.', array('!link' => l(t('here'), 
+      'http://www.rackspacecloud.com/cloud_hosting_products/files', 
+        array('attributes' => array('target' => '_blank')))))
+  );
+
   $items['username'] = array(
     '#type' => 'textfield',
     '#title' => t('Username'),

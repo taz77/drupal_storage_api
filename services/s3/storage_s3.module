@@ -38,7 +38,8 @@ function _storage_s3_request($container, $method, $bucket = NULL, $object_name =
   $curl_options = array(
     CURLOPT_RETURNTRANSFER => TRUE,
     CURLOPT_AUTOREFERER => TRUE,
-    CURLOPT_FOLLOWLOCATION => TRUE
+    CURLOPT_FOLLOWLOCATION => TRUE,
+    CURLOPT_USERAGENT => 'Storage API (http://drupal.org/project/storage_api)',
   );
 
   switch($method) {
@@ -190,6 +191,12 @@ function _storage_s3_locations() {
  */
 function storage_s3_storage_container_settings_form($settings, $serving, $edit) {
 
+  $items['signup'] = array(
+    '#value' => t('Get your credentials !link.', array('!link' => l(t('here'), 
+      'http://aws-portal.amazon.com/gp/aws/developer/account/index.html?action=access-key', 
+        array('attributes' => array('target' => '_blank')))))
+  );
+
   $items['access_key_id'] = array(
     '#type' => 'textfield',
     '#title' => t('Access key ID'),
@@ -215,6 +222,7 @@ function storage_s3_storage_container_settings_form($settings, $serving, $edit) 
       '#validated' => TRUE,
       '#default_value' => $settings['bucket'],
       '#maxlength' => 63,
+      '#description' => t('The bucket namespace is shared by all users of Amazon S3.'),
     );
 
     $items['location'] = array(
@@ -233,7 +241,7 @@ function storage_s3_storage_container_settings_form($settings, $serving, $edit) 
       '#title' => t('URL lifetime'),
       '#required' => TRUE,
       '#validated' => TRUE,
-      '#default_value' => $settings['url_lifetime'],
+      '#default_value' => $settings['url_lifetime'] ? $settings['url_lifetime'] : 60 * 60,
       '#description' => $description,
       '#size' => 8,
       '#maxlength' => 8,
@@ -273,8 +281,14 @@ function storage_s3_storage_container_validate($container, $edit) {
     form_set_error('settings');
     return;
   }
+}
 
-  
+
+/**
+ * Implement hook_storage_container_create() .
+ */
+function storage_s3_storage_container_create($container) {
+
   // check if bucket is already owned by this account
 
   $result = _storage_s3_request($container, 'HEAD', $container['settings']['bucket']);
@@ -286,20 +300,15 @@ function storage_s3_storage_container_validate($container, $edit) {
       form_set_error('settings][bucket', t('Bucket %name is already owned by this account, but is not empty.', 
         array('%name' => $container['settings']['bucket'])));
     }
+    
+    return $container;
   }
-}
-
-
-/**
- * Implement hook_storage_container_create() .
- */
-function storage_s3_storage_container_create($container) {
 
   $result = _storage_s3_request($container, 'PUT', $container['settings']['bucket']);
 
   if($result['http_code'] != 200)
     form_set_error('settings');
-
+    
   return $container;
 }
 
