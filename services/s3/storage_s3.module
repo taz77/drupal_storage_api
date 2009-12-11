@@ -29,7 +29,7 @@ function _storage_s3_signature($components, $secret_access_key) {
 
 function _storage_s3_request($container, $method, $bucket = NULL, $object_name = NULL, $file = NULL) {
   $result = array();
-  $date = date(DATE_RFC1123, time());   // we don't use $_SERVER['REQUEST_TIME'] in case it is too old
+  $date = date(DATE_RFC1123, time());   // we don't use REQUEST_TIME in case it is too old
 
   $components = array($method, '', '', $date);
   
@@ -159,7 +159,7 @@ function _storage_s3_url($container, $s3_object) {
 
   if($container['serving'] == STORAGE_API_ACCESS_CONTROL) {
     $query['AWSAccessKeyId'] = $container['settings']['access_key_id'];
-    $query['Expires'] = $_SERVER['REQUEST_TIME'] + $container['settings']['url_lifetime'];
+    $query['Expires'] = REQUEST_TIME + $container['settings']['url_lifetime'];
     
     $components = array(
       'GET',

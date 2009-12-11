@@ -507,7 +507,7 @@ function _storage_api_log_serving($file, $container_id = NULL) {
     'uid' => $user->uid,
     'sid' => session_id(),
     'ip_addr' => ip2long(ip_address()),
-    'timestamp' => $_SERVER['REQUEST_TIME'],
+    'timestamp' => REQUEST_TIME,
     'referrer' => substr($_SERVER['HTTP_REFERER'], 0, 255)
   );
   
@@ -523,7 +523,7 @@ function _storage_api_log_serving($file, $container_id = NULL) {
       last_touched = %d
     WHERE file_id = %d
   ",
-    $_SERVER['REQUEST_TIME'],
+    REQUEST_TIME,
     $file['file_id']
   );
 }
@@ -533,7 +533,7 @@ function _storage_api_file_touch($file) {
 
   $update = array(
     'file_id' => $file['file_id'],
-    'last_touched' => $_SERVER['REQUEST_TIME'],
+    'last_touched' => REQUEST_TIME,
   );
 
   drupal_write_record('storage_file', $update, 'file_id');
@@ -1287,7 +1287,7 @@ function storage_api_file_add($selector_id, $options = array()) {
   $options['selector_id'] = $selector_id;
   
   if(!$options['obtained'])
-    $options['obtained'] = $_SERVER['REQUEST_TIME'];
+    $options['obtained'] = REQUEST_TIME;
 
   if($options['filepath']) {
     $container = _storage_api_get_initial_container($selector_id);
@@ -1439,7 +1439,7 @@ function _storage_api_delete_object_if_unrequired($object_id) {
 
 function _storage_api_acquire_from_source_url(&$file) {
 
-  if($_SERVER['REQUEST_TIME'] < $file['data']['next_acquire_time'])
+  if(REQUEST_TIME < $file['data']['next_acquire_time'])
     return;
     
   $filepath = _storage_api_acquire_from_url($file['source_url']);
@@ -1464,7 +1464,7 @@ function _storage_api_acquire_from_source_url(&$file) {
       $update = array(
         'file_id' => $file['file_id'],
         'object_id' => $file['object_id'],
-        'obtained' => $_SERVER['REQUEST_TIME'],
+        'obtained' => REQUEST_TIME,
         'data' => $file['data'],
       );
       
@@ -1517,7 +1517,7 @@ function _storage_api_acquire_from_source_url(&$file) {
     $file['data']['next_acquire_delay'] *= 2;
   }
   else {
-    $file['data']['next_acquire_time'] = $_SERVER['REQUEST_TIME'] + 60;
+    $file['data']['next_acquire_time'] = REQUEST_TIME + 60;
     $file['data']['next_acquire_delay'] = 120;
   }
   
@@ -1647,7 +1647,7 @@ function storage_api_get_local_filepath(&$file, &$keep_me) {
     $update = array(
       'file_id' => $file['file_id'],
       'object_id' => $file['object_id'],
-      'obtained' => $_SERVER['REQUEST_TIME'],
+      'obtained' => REQUEST_TIME,
     );
     
     drupal_write_record('storage_file', $update, 'file_id');

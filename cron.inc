@@ -421,7 +421,7 @@ function _storage_api_flush_storage_servings() {
     DELETE FROM {storage_serving}
     WHERE timestamp < %d
   ",
-    $_SERVER['REQUEST_TIME'] - variable_get('statistics_flush_accesslog_timer', 259200)
+    REQUEST_TIME - variable_get('statistics_flush_accesslog_timer', 259200)
   );
 }
 
