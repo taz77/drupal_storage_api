@@ -1946,15 +1946,3 @@ function storage_api_enable() {
   _storage_api_update_services();
 }
 
-
-/**
- * Implement hook_cron() .
- */
-function storage_api_cron() {
-
-  $path = drupal_get_path('module', 'storage_api');
-  require_once './' . $path . '/cron.inc';
-  
-  _storage_api_cron();
-}
-

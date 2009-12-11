@@ -426,7 +426,10 @@ function _storage_api_flush_storage_servings() {
 }
 
 
-function _storage_api_cron() {
+/**
+ * Implement hook_cron() .
+ */
+function storage_api_cron() {
 
   _storage_api_check_files();
   _storage_api_check_migrations();
