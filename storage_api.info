@@ -2,4 +2,7 @@
 name = Storage API
 description = "Storage module."
 package = Storage
-dependencies = mimedetect
+dependencies[] = mimedetect
+core = 6.x
+php = 5.0
+

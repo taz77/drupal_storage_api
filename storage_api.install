@@ -2,163 +2,269 @@
 // $Id$
 
 
-function storage_api_install() {
-  global $db_type;
+/**
+ * Implement hook_requirements() .
+ */
+function storage_api_requirements($phase) {
 
-  switch($db_type) {
+  if(function_exists('curl_version'))
+    $version = curl_version();
   
-    case 'mysql':
-    case 'mysqli':
-    
-      db_query("
-        CREATE TABLE {storage_services} (
-          service_id VARCHAR(255) NOT NULL,
-          suspended TINYINT NOT NULL,
-          
-          PRIMARY KEY (service_id)
-        )
-      ");
+  $description = t('Storage API requires that <a href="http://php.net/manual/en/book.curl.php">cURL</a> be available to PHP.');
 
-      db_query("
-        CREATE TABLE {storage_containers} (
-          container_id INT UNSIGNED NOT NULL auto_increment,
-          name VARCHAR(255) NOT NULL,
-          service_id VARCHAR(255) NOT NULL,
-          settings VARCHAR(255) NOT NULL,
-          serving TINYINT NOT NULL,
-          suspended TINYINT NOT NULL,
-          
-          PRIMARY KEY (container_id)
-        )
-      ");
-
-      db_query("
-        CREATE TABLE {storage_classes} (
-          class_id INT UNSIGNED NOT NULL auto_increment,
-          name VARCHAR(255) NOT NULL,
-          options VARCHAR(255) NOT NULL,
-          
-          PRIMARY KEY (class_id)
-        )
-      ");
-
-      db_query("
-        CREATE TABLE {storage_class_containers} (
-          class_id INT UNSIGNED NOT NULL,
-          container_id INT UNSIGNED NOT NULL,
-          weight INT NOT NULL,
-          serving TINYINT NOT NULL,
-          
-          PRIMARY KEY (class_id, container_id)
-        )
-      ");
-
-      db_query("
-        CREATE TABLE {storage_selectors} (
-          selector_id INT UNSIGNED NOT NULL auto_increment,
-          class_id INT UNSIGNED NOT NULL,
-          migrating TINYINT NOT NULL,
-          
-          PRIMARY KEY (selector_id)
-        )
-      ");
-
-      db_query("
-        CREATE TABLE {storage_objects} (
-          object_id INT UNSIGNED NOT NULL auto_increment,
-          size BIGINT UNSIGNED NOT NULL,
-          md5 BINARY(16) NOT NULL,
-          whirlpool BINARY(64) NOT NULL,
-          mimetype VARCHAR(255) NOT NULL,
-          
-          PRIMARY KEY (object_id),
-          UNIQUE KEY (size, md5, whirlpool)
-        )
-      ");
-
-      db_query("
-        CREATE TABLE {storage_files} (
-          file_id INT UNSIGNED NOT NULL auto_increment,
-          selector_id INT UNSIGNED DEFAULT NULL,
-          object_id INT UNSIGNED DEFAULT NULL,
-
-          source_url VARCHAR(255) NOT NULL,
-          obtained INT UNSIGNED NOT NULL,
-
-          filename VARCHAR(255) NOT NULL,
-          force_download TINYINT NOT NULL,
-          module VARCHAR(255) NOT NULL,
-          type VARCHAR(255) NOT NULL,
-          nid INT UNSIGNED DEFAULT NULL,
-
-          check_me TINYINT NOT NULL,
-          data VARCHAR(255) NOT NULL,
-
-          servings INT UNSIGNED NOT NULL,
-
-          PRIMARY KEY (file_id),
-          KEY (selector_id),
-          KEY (check_me),
-          KEY (servings)
-        )
-      ");
-
-      db_query("
-        CREATE TABLE {storage_object_instances} (
-          object_id INT UNSIGNED NOT NULL,
-          container_id INT UNSIGNED NOT NULL,
-          reference VARCHAR(255) NOT NULL,
-          
-          PRIMARY KEY (object_id, container_id)
-        )
-      ");
-
-      db_query("
-        CREATE TABLE {storage_file_instances} (
-          file_id INT UNSIGNED NOT NULL,
-          container_id INT UNSIGNED NOT NULL,
-          reference VARCHAR(255) NOT NULL,
-          
-          PRIMARY KEY (file_id, container_id)
-        )
-      ");
-
-      db_query("
-        CREATE TABLE {storage_servings} (
-          timestamp INT UNSIGNED NOT NULL,
-          file_id INT UNSIGNED NOT NULL,
-          container_id INT UNSIGNED NOT NULL,
-          size INT UNSIGNED NOT NULL,
-          uid INT UNSIGNED NOT NULL,
-          sid CHAR(32) NOT NULL,
-          ip_addr INT UNSIGNED NOT NULL,
-          referrer VARCHAR(255) NOT NULL,
-          
-          KEY (timestamp),
-          KEY (file_id),
-          KEY (container_id),
-          KEY (uid)
-        )
-      ");
-      
-      break;
-
-    case 'pgsql':
-      break;
-  }
+  $requirements = array(
+    array(
+      'title' => 'Storage API - cURL',
+      'value' => ($version ? $version['version'] : 'not found'),
+      'description' => $version ? NULL : $description,
+      'severity' => $version ? REQUIREMENT_OK : REQUIREMENT_ERROR,
+    ),
+  );
+  
+  return $requirements;
 }
 
 
+/**
+ * Implement hook_schema() .
+ */
+function storage_api_schema() {
+
+  $schema['storage_service'] = array(
+    'fields' => array(
+      'service_id' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
+      'suspended' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE)
+    ),
+    'primary key' => array('service_id')
+  );
+
+  $schema['storage_container'] = array(
+    'fields' => array(
+      'container_id' => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
+      'name' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
+      'service_id' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
+      'settings' => array('type' => 'varchar', 'length' => 16383, 'not null' => TRUE, 'serialize' => TRUE),
+      'serving' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE),
+      'suspended' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE)
+    ),
+    'primary key' => array('container_id')
+  );
+
+  $schema['storage_class'] = array(
+    'fields' => array(
+      'class_id' => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
+      'name' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
+      'options' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'serialize' => TRUE)
+    ),
+    'primary key' => array('class_id')
+  );
+
+  $schema['storage_class_container'] = array(
+    'fields' => array(
+      'class_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
+      'container_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
+      'weight' => array('type' => 'int', 'not null' => TRUE),
+      'serving' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE)
+    ),
+    'primary key' => array('class_id', 'container_id')
+  );
+
+  $schema['storage_selector'] = array(
+    'fields' => array(
+      'selector_id' => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
+      'class_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
+      'migrating' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE)
+    ),
+    'primary key' => array('selector_id', 'class_id')
+  );
+
+  $schema['storage_object'] = array(
+    'fields' => array(
+      'object_id' => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
+      'size' => array('type' => 'int', 'unsigned' => TRUE, 'size' => 'big', 'not null' => TRUE),
+/*      'md5' => array('type' => 'binary', 'length' => 16, 'not null' => TRUE),
+      'whirlpool' => array('type' => 'binary', 'length' => 64, 'not null' => TRUE),
+*/      'mimetype' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE)
+    ),
+    'primary key' => array('object_id'),
+/*    'unique keys' => array(
+      'unique_key' => array('size', 'md5', 'whirlpool')
+    )
+*/  );
+  
+  $schema['storage_file'] = array(
+    'fields' => array(
+      'file_id' => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
+      'selector_id' => array('type' => 'int', 'unsigned' => TRUE),
+      'object_id' => array('type' => 'int', 'unsigned' => TRUE),
+      'source_url' => array('type' => 'varchar', 'length' => 4095, 'not null' => TRUE),
+      'obtained' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
+      'filename' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
+      'force_download' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE),
+      'module' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
+      'type' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
+      'nid' => array('type' => 'int', 'unsigned' => TRUE),
+      'check_me' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE),
+      'data' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'serialize' => TRUE),
+      'serve_url' => array('type' => 'varchar', 'length' => 4095),
+      'servings' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
+      'last_touched' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE)
+    ),
+    'primary key' => array('file_id'),
+    'indexes' => array(
+      'check_me' => array('check_me'),
+      'selector_id' => array('selector_id'),
+      'servings' => array('servings')
+    )
+  );
+
+  $schema['storage_object_instance'] = array(
+    'fields' => array(
+      'object_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
+      'container_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
+      'reference' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE)
+    ),
+    'primary key' => array('object_id', 'container_id')
+  );
+  
+  $schema['storage_file_instance'] = array(
+    'fields' => array(
+      'file_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
+      'container_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
+      'reference' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE)
+    ),
+    'primary key' => array('file_id', 'container_id')
+  );
+  
+  $schema['storage_serving'] = array(
+    'fields' => array(
+      'timestamp' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
+      'file_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
+      'container_id' => array('type' => 'int', 'unsigned' => TRUE),
+      'size' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
+      'uid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
+      'sid' => array('type' => 'char', 'length' => '32', 'not null' => TRUE),
+      'ip_addr' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
+      'referrer' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE)
+    ),
+    'indexes' => array(
+      'container_id' => array('container_id'),
+      'file_id' => array('file_id'),
+      'timestamp' => array('timestamp'),
+      'uid' => array('uid')
+    )
+  );
+  
+  return $schema;
+}
+
+
+/**
+ * Implement hook_install() .
+ */
+function storage_api_install() {
+
+  drupal_install_schema('storage_api');
+
+  db_query("
+    ALTER TABLE {storage_object}
+    ADD md5 BINARY(16) NOT NULL AFTER size,
+    ADD whirlpool BINARY(64) NOT NULL AFTER md5,
+    ADD UNIQUE(size, md5, whirlpool)
+  ");
+}
+
+
+function storage_api_update_6100() {
+  $ret = array();
+
+  $ret[] = update_sql("
+    ALTER TABLE {storage_serving}
+    MODIFY container_id INT UNSIGNED DEFAULT NULL
+  ");
+  
+  return $ret;
+}
+
+
+function storage_api_update_6101() {
+  $ret = array();
+
+  $ret[] = update_sql("
+    ALTER TABLE {storage_selector}
+    DROP PRIMARY KEY,
+    ADD PRIMARY KEY (selector_id, class_id) 
+  ");
+  
+  return $ret;
+}
+
+ 
+function storage_api_update_6102() {
+  $ret = array();
+
+  $ret[] = update_sql("
+    ALTER TABLE {storage_file}
+    MODIFY source_url VARCHAR(4095) NOT NULL
+  ");
+  
+  return $ret;
+}
+
+ 
+function storage_api_update_6103() {
+  $ret = array();
+
+  $ret[] = update_sql("
+    ALTER TABLE {storage_file}
+    ADD last_served INT UNSIGNED NOT NULL
+  ");
+  
+  return $ret;
+}
+
+
+function storage_api_update_6104() {
+  $ret = array();
+
+  $ret[] = update_sql("
+    ALTER TABLE {storage_container}
+    MODIFY settings VARCHAR(16383) NOT NULL 
+  ");
+  
+  return $ret;
+}
+
+
+function storage_api_update_6105() {
+  $ret = array();
+
+  $ret[] = update_sql("
+    ALTER TABLE {storage_file}
+    ADD serve_url VARCHAR(4095) NULL
+  ");
+  
+  return $ret;
+}
+
+
+function storage_api_update_6106() {
+  $ret = array();
+
+  $ret[] = update_sql("
+    ALTER TABLE {storage_file}
+    CHANGE last_served last_touched INT UNSIGNED NOT NULL
+  ");
+  
+  return $ret;
+}
+
+ 
+/**
+ * Implement hook_uninstall() .
+ */
 function storage_api_uninstall() {
-  db_query('DROP TABLE {storage_services}');
-  db_query('DROP TABLE {storage_containers}');
-  db_query('DROP TABLE {storage_classes}');
-  db_query('DROP TABLE {storage_class_containers}');
-  db_query('DROP TABLE {storage_selectors}');
-  db_query('DROP TABLE {storage_objects}');
-  db_query('DROP TABLE {storage_files}');
-  db_query('DROP TABLE {storage_object_instances}');
-  db_query('DROP TABLE {storage_file_instances}');
-  db_query('DROP TABLE {storage_servings}');
+
+  drupal_uninstall_schema('storage_api');
 }
 

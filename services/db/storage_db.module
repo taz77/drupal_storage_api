@@ -4,20 +4,27 @@
 // Copyright 2008-2009 Jonathan Brown
 
 
+/**
+ * Implement hook_storage_service_info() .
+ */
 function storage_db_storage_service_info() {
   
   $info = array(
     'name' => t('Database'),
     'dynamic' => TRUE,
     'local' => FALSE,
-    'direct' => TRUE
+    'direct' => TRUE,
+    'can_copy' => FALSE,
   );
   
   return $info;
 }
 
 
-function storage_db_storage_container_settings_form() {
+/**
+ * Implement hook_storage_container_settings_form() .
+ */
+function storage_db_storage_container_settings_form($settings, $serving, $edit) {
   global $db_url;
   
   if(is_array($db_url)) {
@@ -30,14 +37,12 @@ function storage_db_storage_container_settings_form() {
       '#title' => t('Database'),
       '#options' => $options,
       '#required' => TRUE,
-      '#validated' => TRUE
+      '#validated' => TRUE,
+      '#default_value' => $settings['db'],
     );
   }
   else {
-    $items['db'] = array(
-      '#type' => 'value',
-      '#value' => 'default'
-    );
+    $items['#db'] = 'default';
   }
 
   $items['table'] = array(
@@ -45,22 +50,28 @@ function storage_db_storage_container_settings_form() {
     '#title' => t('Table'),
     '#description' => t('Without prefix or {}, e.g. \'storage_contents\'.'),
     '#required' => TRUE,
-    '#validated' => TRUE
+    '#validated' => TRUE,
+    '#default_value' => $settings['table'],
   );
   
   return $items;
 }
 
 
-function storage_db_storage_container_validate($container) {
+/**
+ * Implement hook_storage_container_validate() .
+ */
+function storage_db_storage_container_validate($container, $edit) {
 
   if(!$container['settings']['table']) {
     form_set_error('settings][path', t('Database table field is required.'));
-    return;
   }
 }
 
 
+/**
+ * Implement hook_storage_container_create() .
+ */
 function storage_db_storage_container_create($container) {
 
   db_set_active($container['settings']['db']);
@@ -77,19 +88,27 @@ function storage_db_storage_container_create($container) {
   
   db_set_active();
   
-  return $success;
+  return $container;
 }
 
 
+/**
+ * Implement hook_storage_container_info() .
+ */
 function storage_db_storage_container_info($container) {
 
-  $info[t('Database')] = $container['settings']['db'];
+  if($container['settings']['db'])
+    $info[t('Database')] = $container['settings']['db'];
+    
   $info[t('Table')] = $container['settings']['table'];
 
   return $info;
 }
 
 
+/**
+ * Implement hook_storage_container_destroy() .
+ */
 function storage_db_storage_container_destroy($container) {
   
   db_set_active($container['settings']['db']);
@@ -106,6 +125,9 @@ function storage_db_storage_container_destroy($container) {
 }
 
 
+/**
+ * Implement hook_storage_object_instance_create() .
+ */
 function storage_db_storage_object_instance_create($container, $file) {
   
   db_set_active($container['settings']['db']);
@@ -126,7 +148,10 @@ function storage_db_storage_object_instance_create($container, $file) {
 }
 
 
-function storage_db_storage_object_instance_destroy($container, $object_id) {
+/**
+ * Implement hook_storage_object_instance_destroy() .
+ */
+function storage_db_storage_object_instance_destroy($container, $file) {
   
   db_set_active($container['settings']['db']);
   
@@ -135,7 +160,7 @@ function storage_db_storage_object_instance_destroy($container, $object_id) {
     WHERE object_id = %d
   ",
     $container['settings']['table'],
-    $object_id
+    $file['object_id']
   );
 
   db_set_active();
@@ -144,6 +169,9 @@ function storage_db_storage_object_instance_destroy($container, $object_id) {
 }
 
 
+/**
+ * Implement hook_storage_object_instance_get_filepath() .
+ */
 function storage_db_storage_object_instance_get_filepath($container, $file) {
   
   $filepath = tempnam(file_directory_temp(), '');
@@ -172,7 +200,10 @@ function storage_db_storage_object_instance_get_filepath($container, $file) {
 }
 
 
-function storage_db_storage_object_instance_serve($container, $file, $reference) {
+/**
+ * Implement hook_storage_object_instance_serve() .
+ */
+function storage_db_storage_object_instance_serve($container, $file) {
   storage_api_set_http_headers($file);
   
   db_set_active($container['settings']['db']);

@@ -4,113 +4,399 @@
 // Copyright 2008-2009 Jonathan Brown
 
 
-define('_STORAGE_API_STORAGE_ONLY', 0);
-define('_STORAGE_API_SERVING', 1);
-define('_STORAGE_API_ACCESS_CONTROL', 2);
+define('STORAGE_API_STORAGE_ONLY', 0);
+define('STORAGE_API_SERVING', 1);
+define('STORAGE_API_ACCESS_CONTROL', 2);
 
-require_once drupal_get_path('module', 'storage_api') . '/views.inc';
+require_once('instance_operations.inc');
 
 
-function storage_api_menu($may_cache) {
+/**
+ * Implement hook_perm() .
+ */
+function storage_api_perm() {
 
-  if($may_cache) {
+  return array('administer storage');
+}
+
+
+/**
+ * Implement hook_menu() .
+ */
+function storage_api_menu() {
+
+  $items['system/storage_api/serve/%storage_api_file'] = array(
+    'type' => MENU_CALLBACK,
+    'page callback' => 'storage_api_serve',
+    'page arguments' => array(3),
+    'access callback' => 'storage_api_serve_access',
+    'access arguments' => array(3)
+  );
   
-    $items[] = array(
-      'path' => 'admin/build/storage',
-      'title' => t('Storage'),
-      'access' => user_access('administer site configuration')
-    );
 
-    $items[] = array(
-      'path' => 'admin/build/storage/services',
-      'title' => t('Services'),
-      'access' => user_access('administer site configuration'),
-      'callback' => '_storage_api_services',
-      'weight' => 0
-    );
-    
-    $items[] = array(
-      'path' => 'admin/build/storage/containers',
-      'title' => t('Containers'),
-      'access' => user_access('administer site configuration'),
-      'callback' => '_storage_api_containers',
-      'weight' => 1
-    );
+  $items['admin/build/storage'] = array(
+    'title' => 'Storage',
+    'access arguments' => array('administer storage'),
+    'description' => 'Configure storage.',
+    'page callback' => 'system_admin_menu_block_page',
+    'file' => 'system.admin.inc',
+    'file path' => drupal_get_path('module', 'system')
+  );
 
-    $items[] = array(
-      'path' => 'admin/build/storage/classes',
-      'title' => t('Classes'),
-      'access' => user_access('administer site configuration'),
-      'callback' => '_storage_api_classes_list',
-      'weight' => 2
-    );
-  }
-  else {
+
+  $items['admin/build/storage/services'] = array(
+    'title' => 'Services',
+    'description' => 'Configure storage services.',
+    'access arguments' => array('administer storage'),
+    'page callback' => 'storage_api_services',
+    'weight' => 0,
+    'file' => 'services.admin.inc'
+  );
   
-    if(arg(0) == 'admin' && arg(1) == 'build' && arg(2) == 'storage') {
-    
-      _storage_api_update_services();
-    
-      $path = drupal_get_path('module', 'storage_api');
-      require_once './' . $path . '/admin.inc';
-      
-      $items = _storage_api_admin_menu_items();
-    }
-
-    $items[] = array(
-      'path' => 'system/storage_api/serve/' . arg(3),
-      'type' => MENU_CALLBACK,
-      'callback' => '_storage_api_serve_callback',
-      'callback arguments' => array(arg(3)),
-      'access' => TRUE
-    );
-  }
+  $items['admin/build/storage/services/%storage_api_service'] = array(
+    'access arguments' => array('administer storage'),
+    'type' => MENU_CALLBACK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('storage_api_service_form', 4),
+    'file' => 'services.admin.inc',
+  );
   
+  $items['admin/build/storage/services/%storage_api_service/suspend'] = array(
+    'access arguments' => array('administer storage'),
+    'type' => MENU_CALLBACK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('storage_api_service_suspend_form', 4),
+    'file' => 'services.admin.inc'
+  );
+  
+  $items['admin/build/storage/services/%storage_api_service/unsuspend'] = array(
+    'access arguments' => array('administer storage'),
+    'type' => MENU_CALLBACK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('storage_api_service_unsuspend_form', 4),
+    'file' => 'services.admin.inc'
+  );
+  
+  
+  $items['admin/build/storage/containers'] = array(
+    'title' => 'Containers',
+    'description' => 'Configure storage containers.',
+    'access arguments' => array('administer storage'),
+    'page callback' => 'storage_api_containers',
+    'weight' => 1,
+    'file' => 'containers.admin.inc'
+  );
+
+  $items['admin/build/storage/containers/list'] = array(
+    'title' => 'Overview',
+    'access arguments' => array('administer storage'),
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => 0,
+    'file' => 'containers.admin.inc'
+  );
+  
+  $items['admin/build/storage/containers/create'] = array(
+    'title' => 'Create',
+    'access arguments' => array('administer storage'),
+    'type' => MENU_LOCAL_TASK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('storage_api_create_container_form'),
+    'weight' => 1,
+    'file' => 'containers.admin.inc'
+  );
+  
+  $items['admin/build/storage/containers/%storage_api_container'] = array(
+    'access arguments' => array('administer storage'),
+    'type' => MENU_CALLBACK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('storage_api_container_form', 4),
+    'file' => 'containers.admin.inc'
+  );
+  
+  $items['admin/build/storage/containers/%storage_api_container/view'] = array(
+    'title' => 'View',
+    'access arguments' => array('administer storage'),
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => 0,
+    'file' => 'containers.admin.inc'
+  );
+  
+  $items['admin/build/storage/containers/%storage_api_container/suspend'] = array(
+    'access arguments' => array('administer storage'),
+    'type' => MENU_CALLBACK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('storage_api_container_suspend_form', 4),
+    'file' => 'containers.admin.inc',
+  );
+  
+  $items['admin/build/storage/containers/%storage_api_container/unsuspend'] = array(
+    'access arguments' => array('administer storage'),
+    'type' => MENU_CALLBACK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('storage_api_container_unsuspend_form', 4),
+    'file' => 'containers.admin.inc'
+  );
+  
+  $items['admin/build/storage/containers/%storage_api_container/drain'] = array(
+    'access arguments' => array('administer storage'),
+    'type' => MENU_CALLBACK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('storage_api_container_drain_form', 4),
+    'file' => 'containers.admin.inc'
+  );
+
+  $items['admin/build/storage/containers/%storage_api_container/destroy'] = array(
+    'access arguments' => array('administer storage'),
+    'type' => MENU_CALLBACK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('storage_api_container_destroy_form', 4),
+    'file' => 'containers.admin.inc'
+  );
+  
+  $items['admin/build/storage/containers/%storage_api_container/edit'] = array(
+    'title' => 'Edit',
+    'access arguments' => array('administer storage'),
+    'type' => MENU_LOCAL_TASK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('storage_api_container_edit_form', 4),
+    'weight' => 1,
+    'file' => 'containers.admin.inc'
+  );
+
+  
+  $items['admin/build/storage/classes'] = array(
+    'title' => 'Classes',
+    'description' => 'Configure storage classes.',
+    'access arguments' => array('administer storage'),
+    'page callback' => 'storage_api_classes_list',
+    'weight' => 2,
+    'file' => 'classes.admin.inc'
+  );
+
+  $items['admin/build/storage/classes/list'] = array(
+    'title' => 'Overview',
+    'access arguments' => array('administer storage'),
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => 0,
+    'file' => 'classes.admin.inc'
+  );
+
+  $items['admin/build/storage/classes/create'] = array(
+    'title' => 'Create',
+    'access arguments' => array('administer storage'),
+    'type' => MENU_LOCAL_TASK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('storage_api_create_class_form'),
+    'weight' => 1,
+    'file' => 'classes.admin.inc'
+  );
+
+  $items['admin/build/storage/classes/%storage_api_class'] = array(
+    'access arguments' => array('administer storage'),
+    'type' => MENU_CALLBACK,
+    'page callback' => 'storage_api_class',
+    'page arguments' => array(4),
+    'file' => 'classes.admin.inc'
+  );
+  
+  $items['admin/build/storage/classes/%storage_api_class/view'] = array(
+    'title' => 'View',
+    'access arguments' => array('administer storage'),
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => 0,
+    'file' => 'classes.admin.inc'
+  );
+  
+  $items['admin/build/storage/classes/%storage_api_class/edit'] = array(
+    'title' => 'Edit',
+    'access arguments' => array('administer storage'),
+    'type' => MENU_LOCAL_TASK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('storage_api_class_edit_form', 4),
+    'weight' => 1,
+    'file' => 'classes.admin.inc'
+  );
+  
+  $items['admin/build/storage/classes/%storage_api_class/destroy'] = array(
+    'access arguments' => array('administer storage'),
+    'type' => MENU_CALLBACK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('storage_api_class_destroy_form', 4),
+    'file' => 'classes.admin.inc'
+  );
+  
+  $items['admin/build/storage/classes/%storage_api_class/add'] = array(
+    'title' => 'Add container',
+    'access arguments' => array('administer storage'),
+    'type' => MENU_LOCAL_TASK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('storage_api_class_add_container_form', 4),
+    'weight' => 2,
+    'file' => 'classes.admin.inc'
+  );
+  
+  $items['admin/build/storage/classes/%storage_api_class/remove/%storage_api_container'] = array(
+    'title' => 'Remove container',
+    'access arguments' => array('administer storage'),
+    'type' => MENU_CALLBACK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('storage_api_class_remove_container_form', 4, 6),
+    'file' => 'classes.admin.inc'
+  );
+
   return $items;
 }
 
 
-function storage_api_db_insert_id() {
-  global $db_type, $active_db;
+$_storage_api_file_cache = array();
 
-  switch ($db_type) {
-    case 'mysql':
-      return mysql_insert_id($active_db);
-    case 'mysqli':
-      return mysqli_insert_id($active_db);
-  }
+function storage_api_file_flush($file_id = NULL) {
+  global $_storage_api_file_cache;
+  
+  if($file_id)
+    unset($_storage_api_file_cache[$file_id]);
+  else
+    unset($_storage_api_file_cache);
 }
 
 
-function storage_api_db_insert($table, $fields = NULL, $data = NULL) {
+/**
+ * Loads a file.
+ *
+ * @param $file_id
+ *   The file_id of the file to be loaded.
+ * @param $reload
+ *   Boolean If TRUE, reload the file from the database, instead of returning a cached copy.
+ * @return
+ *   The file.
+ */
+function storage_api_file_load($file_id, $reload = FALSE) {
+  global $_storage_api_file_cache;
 
-  if(is_array($fields)) {
-    foreach($fields as $field => $format) {
-      if(isset($data[$field])) {
-        $sql_params[] = $field . ' = ' . $format;
-        $sql_values[] = $data[$field];
-      }
-    }
+  if(!$file_id)
+    return FALSE;
+  
+  if(!$reload) {
+  
+    if($_storage_api_file_cache[$file_id])
+      return $_storage_api_file_cache[$file_id];
   }
+  
+  // either the file is being deleted and no longer has a selector,
+  // or we grab the selector with migrating = 0
 
-  if(count($sql_params)) {
-    $sql_params = 'SET ' . implode(',', $sql_params);
+  $file = db_fetch_array(db_query("
+    SELECT *
+    FROM {storage_file}
+    LEFT JOIN {storage_object}
+      ON {storage_file}.object_id = {storage_object}.object_id
+    LEFT JOIN {storage_selector}
+      ON {storage_file}.selector_id = {storage_selector}.selector_id
+    LEFT JOIN {storage_class}
+      ON {storage_selector}.class_id = {storage_class}.class_id
+    WHERE {storage_file}.file_id = %d
+      AND ({storage_file}.selector_id IS NULL
+        OR {storage_selector}.migrating = 0)
+  ",
+    $file_id
+  ));
+  
+  if(!$file)
+    return FALSE;
+  
+  $file['data'] = unserialize($file['data']);
+  $file['options'] = unserialize($file['options']);
+  
+  $_storage_api_file_cache[$file_id] = $file;
+  
+  return $file;
+}
 
-    db_query("
-      INSERT INTO {{$table}}
-      $sql_params
-    ",
-      $sql_values
-    );
-  }
-  else {
-    db_query("
-      INSERT INTO {{$table}}
-      () VALUES ()
-    ");
-  }
 
-  return storage_api_db_insert_id();
+/**
+ * Loads a storage service.
+ *
+ * @param $srvice_id
+ *   The service_id of the service to be loaded.
+ * @return
+ *   The service.
+ */
+function storage_api_service_load($service_id) {
+
+  if(!$service_id)
+    return FALSE;
+
+  $service = db_fetch_array(db_query("
+    SELECT *
+    FROM {storage_service}
+    WHERE service_id = '%s'
+  ",
+    $service_id
+  ));
+  
+  if(!$service)
+    return FALSE;
+  
+  $info = _storage_api_service_invoke($service_id, 'service_info');
+
+  return $service + $info;
+}
+
+
+/**
+ * Loads a storage container.
+ *
+ * @param $container_id
+ *   The container_id of the container to be loaded.
+ * @return
+ *   The container.
+ */
+function storage_api_container_load($container_id) {
+
+  if(!$container_id)
+    return FALSE;
+    
+  $container = db_fetch_array(db_query("
+    SELECT *
+    FROM {storage_container}
+    WHERE container_id = %d
+  ",
+    $container_id
+  ));
+  
+  if(!$container)
+    return FALSE;
+  
+  $container['settings'] = unserialize($container['settings']);
+
+  return $container;
+}
+
+
+/**
+ * Loads a storage class.
+ *
+ * @param $class_id
+ *   The class_id of the class to be loaded.
+ * @return
+ *   The class.
+ */
+function storage_api_class_load($class_id) {
+
+  $class = db_fetch_array(db_query("
+    SELECT *
+    FROM {storage_class}
+    WHERE class_id = %d
+  ",
+    $class_id
+  ));
+  
+  if(!$class)
+    return FALSE;
+  
+  $class['options'] = unserialize($class['options']);
+  
+  return $class;
 }
 
 
@@ -126,7 +412,7 @@ function _storage_api_update_services() {
 
   $result = db_query("
     SELECT service_id
-    FROM {storage_services}
+    FROM {storage_service}
   ");
   
   $db_service_ids = array();
@@ -136,7 +422,7 @@ function _storage_api_update_services() {
     if(!in_array($service['service_id'], $code_service_ids)) {
 
       db_query("
-        DELETE FROM {storage_services}
+        DELETE FROM {storage_service}
         WHERE service_id = '%s'
       ",
         $service['service_id']
@@ -152,12 +438,8 @@ function _storage_api_update_services() {
   
     if(!in_array($service_id, $db_service_ids)) {
     
-      db_query("
-        INSERT INTO {storage_services}
-        SET service_id = '%s'
-      ",
-        $service_id
-      );
+      $service = array('service_id' => $service_id);
+      drupal_write_record('storage_service', $service);
     }
   }
 }  
@@ -174,65 +456,99 @@ function _storage_api_service_invoke() {
 
 
 function _storage_api_service_invoke_all() {
-  $args = func_get_args();
+  $results = array();
   
+  $args = func_get_args();
   array_unshift($args, NULL);
   $args[1] = 'storage_' . $args[1];
   
   foreach(module_implements($args[1], TRUE) as $module) {
     $args[0] = $module;
-    $return[substr($module, 8)] = call_user_func_array('module_invoke', $args);
+    $results[substr($module, 8)] = call_user_func_array('module_invoke', $args);
   }
   
-  return $return;
+  return $results;
 }
 
 
-function _storage_api_log_serving($file, $container_id) {
+function _storage_api_get_service_names() {
+
+  $services = _storage_api_service_invoke_all('service_info');
+  
+  foreach($services as &$service)
+    $service = $service['name'];
+    
+  asort($services);
+  
+  return $services;
+}
+
+
+function _storage_api_get_service_name($service_id, $link = FALSE) {
+
+  $info = _storage_api_service_invoke($service_id, 'service_info');
+  
+  if($link)
+    return l($info['name'], 'admin/build/storage/services/' . $service_id);
+  else
+    return $info['name'];
+}
+
+
+function _storage_api_log_serving($file, $container_id = NULL) {
   global $user;
-  static $servings;
   
-  
-  // don't log the same serving twice in a single drupal instance
-  
-  if($servings[$file['file_id']][$container_id])
-    return;
-
-  $servings[$file['file_id']][$container_id] = TRUE;
-
-
-  db_query("
-    INSERT INTO {storage_servings}
-    SET file_id = %d,
-      container_id = %d,
-      size = %d,
-      uid = %d,
-      sid = '%s',
-      ip_addr = %d,
-      timestamp = %d,
-      referrer = '%s'
-  ",
-    $file['file_id'],
-    $container_id,
-    $file['size'],
-    $user->uid,
-    session_id(),
-    ip2long($_SERVER['REMOTE_ADDR']),
-    $_SERVER['REQUEST_TIME'],
-    substr($_SERVER['HTTP_REFERER'], 0, 255)
+  $serving = array(
+    'file_id' => $file['file_id'],
+    'size' => $file['size'],
+    'uid' => $user->uid,
+    'sid' => session_id(),
+    'ip_addr' => ip2long(ip_address()),
+    'timestamp' => $_SERVER['REQUEST_TIME'],
+    'referrer' => substr($_SERVER['HTTP_REFERER'], 0, 255)
   );
   
+  if($container_id) {
+    $serving['container_id'] = $container_id;
+  }
+
+  drupal_write_record('storage_serving', $serving);
+  
   db_query("
-    UPDATE {storage_files}
-    SET servings = servings + 1
+    UPDATE {storage_file}
+    SET servings = servings + 1,
+      last_touched = %d
     WHERE file_id = %d
   ",
+    $_SERVER['REQUEST_TIME'],
     $file['file_id']
   );
 }
 
 
-function _storage_api_access_control($file) {
+function _storage_api_file_touch($file) {
+
+  $update = array(
+    'file_id' => $file['file_id'],
+    'last_touched' => $_SERVER['REQUEST_TIME'],
+  );
+
+  drupal_write_record('storage_file', $update, 'file_id');
+}
+
+
+/**
+ * Determine whether the user has access to a file.
+ *
+ * @param $file
+ *   The file that access is being checked for.
+ * @return
+ *   Boolean TRUE if the current user has access to the file.
+ */
+function storage_api_serve_access($file) {
+
+  if(!$file['options']['access_control'])
+    return TRUE;
 
   $results = module_invoke_all('storage_access_alter', $file['module'], $file['type'], $file['file_id']);
   
@@ -259,135 +575,202 @@ function _storage_api_access_control($file) {
 }
 
 
-function _storage_api_serve($file_id, $get_url = FALSE) {
+function _storage_api_service_unavailable() {
+  drupal_set_header('HTTP/1.1 503 Service Unavailable');
+  watchdog('service unavailable', check_plain($_GET['q']), NULL, WATCHDOG_WARNING);
 
-  $file = storage_api_file_load($file_id);
-  
-  if(!$file) {
-
-    if($get_url) {
-      return;
-    }
-    else {
-      header('HTTP/1.1 404 Not Found');
-      exit();
-    }
-  }
-  
-  if($file['options']['access_control']) {
-    if(!_storage_api_access_control($file)) {
-    
-      if($get_url) {
-        return;
-      }
-      else {
-        header('HTTP/1.1 403 Forbidden');
-        exit();
-      }
-    }
-  }
-  
-  $container = db_fetch_array(db_query("
-  
-    (
-    
-      SELECT {storage_containers}.*, {storage_object_instances}.reference, 
-        {storage_class_containers}.weight, 'object' AS type
-      FROM {storage_object_instances}
-      INNER JOIN {storage_class_containers}
-        ON {storage_object_instances}.container_id = {storage_class_containers}.container_id
-      INNER JOIN {storage_containers}
-        ON {storage_object_instances}.container_id = {storage_containers}.container_id
-      INNER JOIN {storage_services}
-        ON {storage_containers}.service_id = {storage_services}.service_id
-      WHERE {storage_object_instances}.object_id = %d
-        AND {storage_class_containers}.class_id = %d
-        AND {storage_class_containers}.serving >= 1
-        AND {storage_containers}.suspended = 0
-        AND {storage_services}.suspended = 0
-        
-    ) UNION ALL (
-    
-      SELECT {storage_containers}.*, {storage_file_instances}.reference, 
-        {storage_class_containers}.weight, 'file' AS type
-      FROM {storage_file_instances}
-      INNER JOIN {storage_class_containers}
-        ON {storage_file_instances}.container_id = {storage_class_containers}.container_id
-      INNER JOIN {storage_containers}
-        ON {storage_file_instances}.container_id = {storage_containers}.container_id
-      INNER JOIN {storage_services}
-        ON {storage_containers}.service_id = {storage_services}.service_id
-      WHERE {storage_file_instances}.file_id = %d
-        AND {storage_class_containers}.class_id = %d
-        AND {storage_class_containers}.serving >= 1
-        AND {storage_containers}.suspended = 0
-        AND {storage_services}.suspended = 0
-
-    )
-    ORDER BY weight, container_id
-    LIMIT 1
-  ",
-    $file['object_id'],
-    $file['class_id'],
-    $file['file_id'],
-    $file['class_id']
-  ));
-  
-
-  if($container) {
-    $container['settings'] = unserialize($container['settings']);
-  }
-  else {
-    if($file['options']['serve_source_url'] && $file['source_url']) {
-      $url = $file['source_url'];
-    }
-    else {
-    
-      if($get_url) {
-        return;
-      }
-      else {
-        header('HTTP/1.1 503 Service Unavailable');
-        exit();
-      }
-    }
-  }
-  
-  if($get_url) {
-
-    $info = _storage_api_service_invoke($container['service_id'], 'service_info');
-    
-    if($info['direct'])
-      return;
+  // Keep old path for reference.
+  if (!isset($_REQUEST['destination'])) {
+    $_REQUEST['destination'] = $_GET['q'];
   }
 
-  _storage_api_log_serving($file, $container['container_id']);
-  
-  switch($container['type']) {
-  
-    case 'object':    // this may not return
-      $url = _storage_api_service_invoke($container['service_id'], 'object_instance_serve', 
-        $container, $file);
-      break;
-    
-    case 'file':
-      $url = _storage_api_service_invoke($container['service_id'], 'file_instance_serve',
-        $container, $file);
-      break;
+  $path = drupal_get_normal_path(variable_get('site_503', ''));
+  if ($path && $path != $_GET['q']) {
+    // Set the active item in case there are tabs to display or other
+    // dependencies on the path.
+    menu_set_active_item($path);
+    $return = menu_execute_active_handler($path);
   }
-  
-  if($get_url) {
-    return $url;
+
+  if (empty($return) || $return == MENU_NOT_FOUND || $return == MENU_ACCESS_DENIED) {
+    drupal_set_title(t('Service unavailable'));
+    $return = t('The requested page is not currently available.');
   }
-  
-  // this will definitely not return
-  drupal_goto($url);    // 302 redirect (don't cache)
+  print theme('page', $return);
 }
 
 
-function _storage_api_serve_callback($file_id) {
+function _storage_api_serving_container($file) {
+
+  $container = db_fetch_array(db_query("
+    (
+    
+      SELECT {storage_container}.*, {storage_object_instance}.reference, 
+        {storage_class_container}.weight, {storage_selector}.migrating, 'object' AS type
+      FROM {storage_object_instance}
+      INNER JOIN {storage_class_container}
+        ON {storage_object_instance}.container_id = {storage_class_container}.container_id
+      INNER JOIN {storage_selector}
+        ON {storage_class_container}.class_id = {storage_selector}.class_id
+      INNER JOIN {storage_container}
+        ON {storage_object_instance}.container_id = {storage_container}.container_id
+      INNER JOIN {storage_service}
+        ON {storage_container}.service_id = {storage_service}.service_id
+      WHERE {storage_object_instance}.object_id = %d
+        AND {storage_class_container}.serving >= 1
+        AND {storage_selector}.selector_id = %d
+        AND {storage_container}.suspended = 0
+        AND {storage_service}.suspended = 0
+        
+    ) UNION ALL (
+    
+      SELECT {storage_container}.*, {storage_file_instance}.reference, 
+        {storage_class_container}.weight, {storage_selector}.migrating, 'file' AS type
+      FROM {storage_file_instance}
+      INNER JOIN {storage_class_container}
+        ON {storage_file_instance}.container_id = {storage_class_container}.container_id
+      INNER JOIN {storage_selector}
+        ON {storage_class_container}.class_id = {storage_selector}.class_id
+      INNER JOIN {storage_container}
+        ON {storage_file_instance}.container_id = {storage_container}.container_id
+      INNER JOIN {storage_service}
+        ON {storage_container}.service_id = {storage_service}.service_id
+      WHERE {storage_file_instance}.file_id = %d
+        AND {storage_class_container}.serving >= 1
+        AND {storage_selector}.selector_id = %d
+        AND {storage_container}.suspended = 0
+        AND {storage_service}.suspended = 0
+        
+    )
+    ORDER BY migrating, weight, container_id
+    LIMIT 1
+  ",
+    $file['object_id'],
+    $file['selector_id'],
+    $file['file_id'],
+    $file['selector_id']
+  ));
   
-  _storage_api_serve($file_id);
+  if(!$container)
+    return FALSE;
+
+  $container['settings'] = unserialize($container['settings']);
+  return $container;
+}
+
+
+function _storage_api_cache_serve_url($file_id, $url) {
+
+  db_query("
+    UPDATE {storage_file}
+    SET serve_url = '%s'
+    WHERE file_id = %d
+  ",
+    $url,
+    $file_id
+  );
+
+  storage_api_file_flush($file_id);
+}
+
+
+function _storage_api_flush_serve_url($file_id) {
+
+  db_query("
+    UPDATE {storage_file}
+    SET serve_url = NULL
+    WHERE file_id = %d
+  ",
+    $file_id
+  );
+
+  storage_api_file_flush($file_id);
+}
+
+
+function _storage_api_file_generate(&$file) {
+
+  $container = _storage_api_get_initial_container($file['selector_id']);
+  
+  if(!$container)
+    return FALSE;
+
+  $filepath = storage_api_get_local_filepath($file, $keep_me);
+  
+  if(!$filepath)
+    return FALSE;
+    
+  $file['filepath'] = $filepath;
+  $file['keep_me'] = $keep_me;
+  
+  if(!_storage_api_create_instance($container, $file)) {
+
+    $message = 'Failed to create instance of file ' . ($file['filename'] ? ($file['filename'] . ' ') : '');
+    $message .= 'in storage container <i>' . $container['name'] . '</i>.';
+    $message .= ' <br />' . _storage_api_file_log_info($file);
+    watchdog('storage_api', $message, NULL, WATCHDOG_WARNING, $link);
+
+    return FALSE;
+  }
+  
+  $message = 'Generated file' . ($file['filename'] ? (' ' . $file['filename']) : '');
+  $message .= '<br />' . _storage_api_file_log_info($file);
+  watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, $link);
+
+  return $container;
+}
+
+
+/**
+ * Serve the specified file, either directly or by an HTTP 302 redirect.
+ *
+ * @param $file
+ *   The file that is to be served.
+ */
+function storage_api_serve($file) {
+  
+  if($file['serve_url']) {
+    _storage_api_log_serving($file);
+    drupal_goto($file['serve_url']);    // 302 redirect (don't cache)
+  }
+
+  $container = _storage_api_serving_container($file);
+  
+  if(!$container)
+    $container = _storage_api_file_generate($file);
+
+  if($container) {
+    _storage_api_log_serving($file, $container['container_id']);
+    
+    switch($container['type']) {
+    
+      case 'object':    // this may not return
+        $url = _storage_api_service_invoke($container['service_id'], 'object_instance_serve', 
+          $container, $file);
+        break;
+      
+      case 'file':      // this will definitely return
+        $url = _storage_api_service_invoke($container['service_id'], 'file_instance_serve',
+          $container, $file);
+        break;
+    }
+  }
+  else if($file['options']['serve_source_url'] && $file['source_url']) {
+
+    _storage_api_log_serving($file);
+    $url = $file['source_url'];
+  }
+  
+  if(!$url) {
+    _storage_api_service_unavailable();
+    return;
+  }
+  
+  if($container['serving'] != STORAGE_API_ACCESS_CONTROL)
+    _storage_api_cache_serve_url($file['file_id'], $url);
+  
+  // this will definitely not return
+  drupal_goto($url);    // 302 redirect (don't cache)
 }
 
 
@@ -397,27 +780,115 @@ function _storage_api_serve_path($file) {
 }
 
 
+/**
+ * Generates a URL that will serve the supplied file.
+ *
+ * If the files's class is set to serve by redirection, then the URL will be on your site. Otherwise, Storage API will determine which container to serve from and generate a direct URL.
+ *
+ * @param $file
+ *   The file to be served. Returned from storage_api_file_load() .
+ * @param $absolute
+ *   Whether the generated URL should be absolute.
+ * @return
+ *   The generated URL.
+ */
 function storage_api_serve_url($file, $absolute = FALSE) {
-
-  if(!$file['options']['redirect']) {
-
-    $url = _storage_api_serve($file['file_id'], TRUE);
-    
-    if($url)
-      return $url;
+  
+  if($file['serve_url'] === '' || $file['options']['redirect']) {
+    $serve_from_site = TRUE;
+  }
+  else if(!storage_api_serve_access($file)) {
+    $serve_from_site = TRUE;
   }
   
-  return url(_storage_api_serve_path($file), NULL, NULL, $absolute);
+  if($serve_from_site)
+    return url(_storage_api_serve_path($file), array('absolute' => $absolute));
+  
+  if($file['serve_url']) {
+    _storage_api_file_touch($file);
+    return url($file['serve_url'], array('absolute' => $absolute));
+  }
+
+
+  $container = _storage_api_serving_container($file);
+
+  if($container) {
+    $info = _storage_api_service_invoke($container['service_id'], 'service_info');
+    
+    if(!$info['direct']) {    // direct services don't return a URL
+    
+      switch($container['type']) {
+      
+        case 'object':
+          $url = _storage_api_service_invoke($container['service_id'], 'object_instance_serve', 
+            $container, $file);
+          break;
+        
+        case 'file':
+          $url = _storage_api_service_invoke($container['service_id'], 'file_instance_serve',
+            $container, $file);
+          break;
+      }
+    }
+  }
+  else if($file['options']['serve_source_url'] && $file['source_url']) {
+
+    $url = $file['source_url'];
+  }
+  
+  // if we don't have a url, we can cache that we serve from source
+  // if we don't have a container, we are serving the source_url and can cache that
+  // if the container isn't secure, then we can cache because the url will not expire
+  
+  if(!$url || !$container || $container['serving'] != STORAGE_API_ACCESS_CONTROL)
+    _storage_api_cache_serve_url($file['file_id'], (string)$url);
+
+  if(!$url)
+    $url = _storage_api_serve_path($file);
+  else
+    _storage_api_file_touch($file);
+
+  return url($url, array('absolute' => $absolute));
 }
 
 
+/**
+ * Creates a new class selector.
+ *
+ * @return
+ *   The selector_id of the new class selector.
+ */
 function storage_api_new_selector_id() {
 
-  return storage_api_db_insert('storage_selectors');
+  $class_id = db_result(db_query("
+    SELECT class_id
+    FROM {storage_class}
+    ORDER BY name, class_id
+    LIMIT 1
+  "));
+
+  $selector = array('class_id' => $class_id);
+  drupal_write_record('storage_selector', $selector);
+  
+  return $selector['selector_id'];
 }
 
 
-function storage_api_selector_item($selector_id, $title = '', $description = '') {
+/**
+ * Generates a FAPI select element for a class selector.
+ *
+ * After form submission, pass the form value for the element to storage_api_selector_submit() .
+ *
+ * @param $selector_id
+ *   The selector_id of the selector the element is for.
+ * @param $title
+ *   The title of the select element.
+ * @param $description
+ *   The description of the select element (optional).
+ * @return
+ *   The select element.
+ */
+function storage_api_selector_item($selector_id, $title, $description = NULL) {
   
   $selector = array(
     '#tree' => TRUE
@@ -425,9 +896,11 @@ function storage_api_selector_item($selector_id, $title = '', $description = '')
   
   $result = db_query("
     SELECT *
-    FROM {storage_classes}
+    FROM {storage_class}
     ORDER BY name, class_id
   ");
+  
+  $classes = array();
 
   while($class = db_fetch_array($result)) {
     $classes[$class['class_id']] = $class['name'];
@@ -448,8 +921,9 @@ function storage_api_selector_item($selector_id, $title = '', $description = '')
   $current_class_id = db_result(db_query("
   
     SELECT class_id
-    FROM {storage_selectors}
+    FROM {storage_selector}
     WHERE selector_id = %d
+      AND migrating = 0
   ",
     $selector_id
   ));
@@ -465,34 +939,94 @@ function storage_api_selector_item($selector_id, $title = '', $description = '')
 }
 
 
+/**
+ * Processes a class selector FAPI element.
+ *
+ * The element's class selector is updated to point at the class selected. Migration of files to the new class is initiated.
+ *
+ * @param $form_item
+ *   The form value of a submitted class selector FAPI element.
+ */
 function storage_api_selector_submit($form_item) {
 
-  if($form_item['current_class_id'] != $form_item['class_id']) {
+  if($form_item['current_class_id'] == $form_item['class_id'])
+    return;
+
+
+  db_query("
+    REPLACE INTO {storage_selector}
+    SET selector_id = %d,
+      class_id = %d,
+      migrating = 0
+  ",
+    $form_item['selector_id'],
+    $form_item['class_id']
+  );
+  
+  
+  // are there any files to migrate?
+
+  $num_files = db_result(db_query("
+    SELECT COUNT(*)
+    FROM {storage_file}
+    WHERE selector_id = %d
+  ",
+    $form_item['selector_id']
+  ));
+  
+  if($num_files) {
 
     db_query("
-      UPDATE {storage_selectors}
-      SET class_id = %d
-      WHERE selector_id = %d
+      REPLACE INTO {storage_selector}
+      SET selector_id = %d,
+        class_id = %d,
+        migrating = 1
     ",
-      $form_item['class_id'],
-      $form_item['selector_id']
+      $form_item['selector_id'],
+      $form_item['current_class_id']
     );
 
     db_query("
-      UPDATE {storage_files}
-      SET check_me = 1
+      UPDATE {storage_file}
+      SET check_me = 1,
+        serve_url = NULL
       WHERE selector_id = %d
     ",
       $form_item['selector_id']
+    );
+    
+    $new_class = storage_api_class_load($form_item['class_id']);
+    
+    $message = 'Migrating ' . $num_files . ' ' . format_plural($num_files, 'file', 'files');
+    $message .= ' to storage class <i>' . $new_class['name'] . '</i>.';
+    
+    drupal_set_message($message);
+    watchdog('storage_api', $message, NULL);
+  }
+  else {
+  
+    db_query("
+      DELETE FROM {storage_selector}
+      WHERE selector_id = %d
+        AND class_id = %d
+    ",
+      $form_item['selector_id'],
+      $form_item['current_class_id']
     );
   }
 }
 
 
+/**
+ * Deletes a class selector.
+ *
+ * @param $selector_id
+ *   The selector_id of the selector to be deleted.
+ */
 function storage_api_selector_delete($selector_id) {
   
   db_query("
-    DELETE FROM {storage_selectors}
+    DELETE FROM {storage_selector}
     WHERE selector_id = %d
   ",
     $selector_id
@@ -500,21 +1034,24 @@ function storage_api_selector_delete($selector_id) {
 }
 
 
-function _storage_api_get_lowest_container($selector_id) {
+function _storage_api_get_initial_container($selector_id) {
+
+  // find the container with the lowest priority in the class
 
   $container = db_fetch_array(db_query("
-    SELECT {storage_containers}.*
-    FROM {storage_selectors}
-    INNER JOIN {storage_class_containers}
-      ON {storage_selectors}.class_id = {storage_class_containers}.class_id
-    INNER JOIN {storage_containers}
-      ON {storage_class_containers}.container_id = {storage_containers}.container_id
-    INNER JOIN {storage_services}
-      ON {storage_containers}.service_id = {storage_services}.service_id
-    WHERE {storage_selectors}.selector_id = %d
-      AND {storage_containers}.suspended = 0
-      AND {storage_services}.suspended = 0
-    ORDER BY {storage_class_containers}.weight DESC
+    SELECT {storage_container}.*
+    FROM {storage_selector}
+    INNER JOIN {storage_class_container}
+      ON {storage_selector}.class_id = {storage_class_container}.class_id
+    INNER JOIN {storage_container}
+      ON {storage_class_container}.container_id = {storage_container}.container_id
+    INNER JOIN {storage_service}
+      ON {storage_container}.service_id = {storage_service}.service_id
+    WHERE {storage_selector}.selector_id = %d
+      AND {storage_selector}.migrating = 0
+      AND {storage_container}.suspended = 0
+      AND {storage_service}.suspended = 0
+    ORDER BY {storage_class_container}.weight DESC, {storage_container}.container_id DESC
     LIMIT 1
   ",
     $selector_id
@@ -529,7 +1066,7 @@ function _storage_api_get_lowest_container($selector_id) {
 }
 
 
-function _storage_api_get_object_id($filepath) {
+function _storage_api_get_object_id($filepath, &$new_object = NULL) {
 
   $fileinfo = @stat($filepath);
   
@@ -541,7 +1078,7 @@ function _storage_api_get_object_id($filepath) {
   
   $object_id = db_result(db_query("
     SELECT object_id
-    FROM {storage_objects}
+    FROM {storage_object}
     WHERE size = %d
       AND md5 = %s
       AND whirlpool = %s
@@ -552,13 +1089,17 @@ function _storage_api_get_object_id($filepath) {
   ));
   
   if(!$object_id) {
+  
+    // there is a common race condition where the object will have just been inserted
+    // detect this during the insert and update last insert id accordingly
     
     db_query("
-      INSERT INTO {storage_objects}
+      INSERT INTO {storage_object}
       SET size = %d,
         md5 = %s,
         whirlpool = %s,
         mimetype = '%s'
+      ON DUPLICATE KEY UPDATE object_id = LAST_INSERT_ID(object_id)
     ",
       $fileinfo['size'],
       $md5,
@@ -566,65 +1107,79 @@ function _storage_api_get_object_id($filepath) {
       mimedetect_mime(array('filepath' => $filepath))
     );
     
-    $object_id = storage_api_db_insert_id();
-    $new_object = TRUE;
+    $object_id = db_last_insert_id('storage_object', 'object_id');
+    $new_object = FALSE;  // we can't determine this atm because of the race condition fixup above
   }
   
   return $object_id;
 }
 
 
-function _storage_api_create_object_instance($container, $file) {
+/**
+ * Determines if a file's reference already exists in a container.
+ *
+ * @param $container
+ *   The container to check in.
+ * @param $reference
+ *   The reference to look for.
+ * @return
+ *   Whether the reference exists in the container.
+ */
+function storage_api_file_reference_exists($container, $reference) {
 
-  $success = _storage_api_service_invoke($container['service_id'], 'object_instance_create', 
-    $container, $file);
-  
-  if(!$success)
-    return FALSE;
-    
-  db_query("
-    INSERT INTO {storage_object_instances}
-    SET object_id = %d,
-      container_id = %d,
-      reference = '%s'
+  return (bool)db_result(db_query("
+    SELECT COUNT(*)
+    FROM {storage_file_instance}
+    WHERE container_id = %d
+      AND reference = '%s'
   ",
-    $file['object_id'],
     $container['container_id'],
-    $success !== TRUE ? $success : ''
-  );
-  
-  return TRUE;
+    $reference
+  ));
 }
 
 
-function _storage_api_create_file_instance($container, $file) {
+/**
+ * Generates a unique filename for a container, based on a desired filename.
+ *
+ * @param $container
+ *   The container the filename should be unique in.
+ * @param $filename
+ *   Desired filename.
+ * @return
+ *   Unique filename.
+ */
+function storage_api_unique_filename($container, $filename) {
 
-  $success = _storage_api_service_invoke($container['service_id'], 'file_instance_create', 
-    $container, $file);
-  
-  if(!$success)
-    return FALSE;
+  if(storage_api_file_reference_exists($container, $filename)) {
+
+    $pos = strrpos($filename, '.');
     
-  db_query("
-    INSERT INTO {storage_file_instances}
-    SET file_id = %d,
-      container_id = %d,
-      reference = '%s'
-  ",
-    $file['file_id'],
-    $container['container_id'],
-    $success !== TRUE ? $success : ''
-  );
-  
-  return TRUE;
+    if($pos !== FALSE) {
+      $name = substr($filename, 0, $pos);
+      $ext = substr($filename, $pos);
+    }
+    else {
+      $name = $filename;
+    }
+
+    $counter = 0;
+    
+    do {
+      $filename = $name . '_' . $counter++ . $ext;
+      
+    } while(storage_api_file_reference_exists($container, $filename));
+  }
+
+  return $filename;
 }
 
 
 function _storage_api_object_instance_exists($object_id, $container_id) {
 
-  return db_result(db_query("
-    SELECT COUNT(*)
-    FROM {storage_object_instances}
+  return db_fetch_array(db_query("
+    SELECT reference
+    FROM {storage_object_instance}
     WHERE object_id = %d
       AND container_id = %d
   ",
@@ -636,9 +1191,9 @@ function _storage_api_object_instance_exists($object_id, $container_id) {
 
 function _storage_api_file_instance_exists($file_id, $container_id) {
 
-  return db_result(db_query("
-    SELECT COUNT(*)
-    FROM {storage_file_instances}
+  return db_fetch_array(db_query("
+    SELECT reference
+    FROM {storage_file_instance}
     WHERE file_id = %d
       AND container_id = %d
   ",
@@ -648,13 +1203,21 @@ function _storage_api_file_instance_exists($file_id, $container_id) {
 }
 
 
+/**
+ * Transfers serving statistics from one file to another.
+ *
+ * @param $new_file_id
+ *   file_id of the file to receive the statistics.
+ * @param $old_file_id
+ *   file_id of the file the statistics are being transferred from.
+ */
 function storage_api_inherit_servings($new_file_id, $old_file_id) {
 
   if(!$old_file_id)
     return;
 
   db_query("
-    UPDATE {storage_servings}
+    UPDATE {storage_serving}
     SET file_id = %d
     WHERE file_id = %d
   ",
@@ -662,103 +1225,121 @@ function storage_api_inherit_servings($new_file_id, $old_file_id) {
     $old_file_id
   );
   
-  $old_servings = db_result(db_query("
-    SELECT servings
-    FROM {storage_files}
+  $old_stats = db_fetch_array(db_query("
+    SELECT servings, last_touched
+    FROM {storage_file}
     WHERE file_id = %d
   ",
     $old_file_id
   ));
 
   db_query("
-    UPDATE {storage_files}
-    SET servings = servings + %d
+    UPDATE {storage_file}
+    SET servings = servings + %d,
+      last_touched = GREATEST(last_touched, %d)
     WHERE file_id = %d
   ",
-    $old_servings,
+    $old_stats['servings'],
+    $old_stats['last_touched'],
     $new_file_id
   );
 }
 
 
-function storage_api_add_file_from_filepath($filepath, $selector_id, $options = array()) {
+/**
+ * Adds a file for Storage API to manage.
+ *
+ * The file will initially be stored in the lowest prioity container that is available in the file's class.
+ *
+ * @param $selector_id
+ *   selector_id of class selector to put the file in.
+ * @param $options
+ *   An associative array of additional options, with the following keys:
+ *     - 'filepath'
+ *       Filepath to get the file from.
+ *     - 'keep_me' (default FALSE)
+ *       Ensure the filepath is left intact.
+ *     - 'source_url'
+ *       URL to get the file from
+ *     - 'filename'
+ *       The file's filename.
+ *     - 'get_filename' (default FALSE)
+ *       Determine the filename from the filepath / source_url.
+ *     - 'force_download' (default FALSE)
+ *       When a web browser accesses this file, force it to be downloaded.
+ *     - 'module'
+ *       The Drupal module that 'owns' this file.
+ *     - 'type'
+ *       Module-specific file type identifier.
+ *     - 'nid'
+ *       The nid of the node this file should be associated with.
+ *     - 'obtained' (default current time)
+ *       Unix timestamp of when the file was obtained.
+ *     - 'data'
+ *       An array of data about the file.
+ * @return
+ *   file_id of the added file or FALSE for failure.
+ */
+function storage_api_file_add($selector_id, $options = array()) {
+  $options['selector_id'] = $selector_id;
   
-  // find the container with the lowest priority in the class
-  
-  $container = _storage_api_get_lowest_container($selector_id);
-  
-  if(!$container)
-    return FALSE;
+  if(!$options['obtained'])
+    $options['obtained'] = $_SERVER['REQUEST_TIME'];
 
-  $object_id = _storage_api_get_object_id($filepath);
-
-  $fields = array(
-    'filename' => "'%s'",
-    'force_download' => '%d',
-    'object_id' => '%d',
-    'selector_id' => '%d',
-    'check_me' => '%d',
-    'module' => "'%s'",
-    'type' => "'%s'",
-    'obtained' => '%d'
-  );
-  
-  $data = $options;
-  $data['object_id'] = $object_id;
-  $data['selector_id'] = $selector_id;
-  $data['check_me'] = TRUE;
-  
-  if(!$data['obtained'])
-    $data['obtained'] = $_SERVER['REQUEST_TIME'];
-  
-  $file_id = storage_api_db_insert('storage_files', $fields, $data);
-  
-  $file = storage_api_file_load($file_id);
-  $file['filepath'] = $filepath;
-  $file['keep_me'] = $options['keep_me'];
-  
-
-  // we need write access to the directory for it to be deleted
-
-  if(!$options['keep_me']) {
-  
-    if(!is_writable(dirname($filepath)))
-      $options['keep_me'] = TRUE;
-  }
-  
-  $service_info = _storage_api_service_invoke($container['service_id'], 'service_info');
-
-  if(!(!$service_info['dynamic'] && $container['serving'] && $options['force_download'])) {
-
-    if(!$new_object) {
-      $exists = _storage_api_object_instance_exists($object_id, $container['container_id']);
-    }
+  if($options['filepath']) {
+    $container = _storage_api_get_initial_container($selector_id);
     
-    if(!$exists) {
-      $failure = !_storage_api_create_object_instance($container, $file);
+    if(!$container)
+      return FALSE;
+
+    $options['object_id'] = _storage_api_get_object_id($options['filepath'], $new_object);
+  }
+
+  if($options['get_filename']) {
+
+    if($options['filepath']) {
+      $options['filename'] = basename($options['filepath']);
+    }
+    else if($options['source_url']) {
+      $options['filename'] = basename(parse_url($options['source_url'], PHP_URL_PATH));
     }
   }
-  else {
-    $failure = !_storage_api_create_file_instance($container, $file);
-  }
   
-  if($failure) {
-    storage_api_remove_file($file_id);
-    return FALSE;
-  }
-  
-  if(!$options['keep_me']) {
-    @unlink($filepath);
-  }
-  
-  $message = t('File added') . ($file['filename'] ? (': ' . $file['filename'] . ' ') : '') . '. <br />';
-  $message .= _storage_api_file_log_info($file);
+  $options['check_me'] = TRUE;
+  drupal_write_record('storage_file', $options);
+  $file = storage_api_file_load($options['file_id']);
+
   
   $link = $file['nid'] ? l(t('view'), 'node/' . $file['nid']) : NULL;
+  
+  if($options['filepath']) {
+  
+    $file['filepath'] = $options['filepath'];
+    $file['keep_me'] = $options['keep_me'];
+    $file['new_object'] = $new_object;
+    
+    if(!_storage_api_create_instance($container, $file)) {
 
-  watchdog('storage_api', $message, WATCHDOG_NOTICE, $link);
+      $message = 'Failed to create initial instance of file ' . ($file['filename'] ? ($file['filename'] . ' ') : '');
+      $message .= 'in storage container <i>' . $container['name'] . '</i>.';
 
-  return $file_id;
+      if(user_access('administer storage'))
+        drupal_set_message($message);
+
+      $message .= ' <br />' . _storage_api_file_log_info($file);
+      watchdog('storage_api', $message, NULL, WATCHDOG_WARNING, $link);
+      
+      storage_api_file_remove($file_id);
+      return FALSE;
+    }
+  }
+  
+  $message = 'File added' . ($file['filename'] ? (': ' . $file['filename'] . ' ') : '') . ' <br />';
+  $message .= _storage_api_file_log_info($file);
+  
+  watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, $link);
+
+  return $file['file_id'];
 }
 
 
@@ -767,49 +1348,33 @@ function _storage_api_file_log_info($file) {
   $info = $file['module'] ? ('module: ' . $file['module'] . ', ') : '';
   $info .= $file['type'] ? ('type: ' . $file['type'] . ', ') : '';
   $info .= 'class: ' . $file['name'] . ', <br />';
+  
   $info .= 'file_id: ' . $file['file_id'];
   $info .= $file['object_id'] ? (', object_id: ' . $file['object_id']) : '';
-  $info .= $file['size'] ? (', size: ' . storage_format_size($file['size'])) : '';
+  $info .= $file['size'] ? (', size: ' . storage_api_format_size($file['size'])) : '';
 
-  return $info;  
+  return $info;
 }
 
 
-function storage_api_add_file_from_url($url, $selector_id, $options = array()) {
+function _storage_api_container_log_info($container) {
 
-  $fields = array(
-    'filename' => "'%s'",
-    'force_download' => '%d',
-    'object_id' => '%d',
-    'selector_id' => '%d',
-    'check_me' => '%d',
-    'module' => "'%s'",
-    'type' => "'%s'",
-    'source_url' => "'%s'"
-  );
-  
-  if(!$options['filename'])
-    $options['filename'] = basename($url);
-    
-  $options['source_url'] = $url;
-  $options['selector_id'] = $selector_id;
-  $options['check_me'] = TRUE;
-  
-  $file_id = storage_api_db_insert('storage_files', $fields, $options);
-  $file = storage_api_file_load($file_id);
-  
-  $message = t('File added from url: ') . $url . ' . <br />';
-  $message .= _storage_api_file_log_info($file);
-  
-  watchdog('storage_api', $message);
+  $info = 'container: ' . $container['name'] . ', <br />';
 
-  return $file_id;
+  return $info;
+}
+
+
+function _storage_api_object_log_info($file) {
+
+  $info = 'object_id: ' . $file['object_id'] . ', ';
+  $info .= 'size: ' . storage_api_format_size($file['size']);
+
+  return $info;
 }
 
 
 function _storage_api_acquire_from_url($url) {
-
-  // need to handle ftp
 
   $filepath = tempnam(file_directory_temp(), '');
   $fp = fopen($filepath, "w");
@@ -823,7 +1388,7 @@ function _storage_api_acquire_from_url($url) {
     CURLOPT_FILE => $fp
   );
 
-  $ch = curl_init($url);
+  $ch = curl_init(str_replace(' ', '+', $url));   // this seems to keep everyone happy
   curl_setopt_array($ch, $options);
   $result = curl_exec($ch);
   fclose ($fp);
@@ -846,13 +1411,13 @@ function _storage_api_acquire_from_url($url) {
 }
 
 
-function _storage_api_delete_object($object_id) {
+function _storage_api_delete_object_if_unrequired($object_id) {
 
   // do any files use this object?
   
   if(db_result(db_query("
     SELECT COUNT(*)
-    FROM {storage_files}
+    FROM {storage_file}
     WHERE object_id = %d
   ",
     $object_id
@@ -861,7 +1426,7 @@ function _storage_api_delete_object($object_id) {
   }
   
   db_query("
-    DELETE FROM {storage_objects}
+    DELETE FROM {storage_object}
     WHERE object_id = %d
   ",
     $object_id
@@ -871,22 +1436,21 @@ function _storage_api_delete_object($object_id) {
 
 function _storage_api_acquire_from_source_url(&$file) {
 
-  if($_SERVER['REQUEST_TIME'] < $data['next_acquire_time'])
+  if($_SERVER['REQUEST_TIME'] < $file['data']['next_acquire_time'])
     return;
     
   $filepath = _storage_api_acquire_from_url($file['source_url']);
   
   if($filepath) {
-    $object_id = _storage_api_get_object_id($filepath);
+    $object_id = _storage_api_get_object_id($filepath, $new_object);
 
     if(!$file['object_id']) {
       $file['object_id'] = $object_id;
-      $file['obtained'] = $_SERVER['REQUEST_TIME'];
     }
     
     if($file['object_id'] != $object_id) {    // the file has changed
 
-      _storage_api_delete_object($object_id);
+      _storage_api_delete_object_if_unrequired($object_id);
       @unlink($filepath);
       $filepath = FALSE;
     }
@@ -894,25 +1458,25 @@ function _storage_api_acquire_from_source_url(&$file) {
       unset($file['data']['next_acquire_time']);
       unset($file['data']['next_acquire_delay']);
 
-      db_query("
-        UPDATE {storage_files}
-        SET object_id = %d,
-          obtained = %d,
-          data = '%s'
-        WHERE file_id = %d
-      ",
-        $file['object_id'],
-        $file['obtained'],
-        serialize($file['data']),
-        $file['file_id']
+      $update = array(
+        'file_id' => $file['file_id'],
+        'object_id' => $file['object_id'],
+        'obtained' => $_SERVER['REQUEST_TIME'],
+        'data' => $file['data'],
       );
+      
+      drupal_write_record('storage_file', $update, 'file_id');
+      
+      // we need to reload $file to get the filesize, etc
+      $file = storage_api_file_load($file['file_id'], TRUE);
+      $file['new_object'] = $new_object;    // _storage_api_ensure_instance_exists() will make use of this
 
-      $message = t('Acquired file from url: ') . $file['source_url'] . ' . <br />';
+      $message = 'Acquired file from url: ' . $file['source_url'] . ' . <br />';
       $message .= _storage_api_file_log_info($file);
       
       $link = $file['nid'] ? l(t('view'), 'node/' . $file['nid']) : NULL;
     
-      watchdog('storage_api', $message, WATCHDOG_NOTICE, $link);
+      watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, $link);
 
       return $filepath;
     }
@@ -920,27 +1484,23 @@ function _storage_api_acquire_from_source_url(&$file) {
   
   if($filepath === FALSE) {   // hard failure
 
-    unset($data['next_acquire_time']);
-    unset($data['next_acquire_delay']);
+    unset($file['data']['next_acquire_time']);
+    unset($file['data']['next_acquire_delay']);
 
-    db_query("
-      UPDATE {storage_files}
-      SET source_url = '',
-        data = '%s'
-      WHERE file_id = %d
-    ",
-      serialize($data),
-      $file['file_id']
+    $update = array(
+      'file_id' => $file['file_id'],
+      'source_url' => '',
+      'data' => $file['data'],
     );
     
-    $file['source_url'] = '';
+    drupal_write_record('storage_file', $update, 'file_id');
 
-    $message = t('Failed acquiring file from url: ') . $file['source_url'] . ' . <br />';
+    $message = 'Failed acquiring file from url: ' . $file['source_url'] . ' . <br />';
     $message .= _storage_api_file_log_info($file);
     
     $link = $file['nid'] ? l(t('view'), 'node/' . $file['nid']) : NULL;
     
-    watchdog('storage_api', $message, WATCHDOG_WARNING, $link);
+    watchdog('storage_api', $message, NULL, WATCHDOG_WARNING, $link);
 
     return FALSE;
   }
@@ -948,71 +1508,84 @@ function _storage_api_acquire_from_source_url(&$file) {
   
   // soft failure
   
-  if($data['next_acquire_time']) {
+  if($file['data']['next_acquire_time']) {
   
-    $data['next_acquire_time'] += $data['next_acquire_delay'];
-    $data['next_acquire_delay'] *= 2;
+    $file['data']['next_acquire_time'] += $file['data']['next_acquire_delay'];
+    $file['data']['next_acquire_delay'] *= 2;
   }
   else {
-    $data['next_acquire_time'] = $_SERVER['REQUEST_TIME'] + 60;
-    $data['next_acquire_delay'] = 120;
+    $file['data']['next_acquire_time'] = $_SERVER['REQUEST_TIME'] + 60;
+    $file['data']['next_acquire_delay'] = 120;
   }
   
-  db_query("
-    UPDATE {storage_files}
-    SET data = '%s'
-    WHERE file_id = %d
-  ",
-    serialize($data),
-    $file['file_id']
+  $update = array(
+    'file_id' => $file['file_id'],
+    'data' => $file['data'],
   );
+  
+  drupal_write_record('storage_file', $update, 'file_id');
 }
 
 
+/**
+ * Get a filepath that can be used to access a file locally.
+ *
+ * The file will be made available locally (this may involve downloading it or generating it). If $keep_me is set to TRUE, then the filepath must not be deleted / modified. If it is set to FALSE, then it must be deleted with unlink() after use.
+ *
+ * @param $file
+ *   File to accessed locally.
+ * @param $keep_me
+ *   Variable to receive the keep_me status of the returned filepath.
+ * @return
+ *   A filepath where the file can be accessed.
+ */
 function storage_api_get_local_filepath(&$file, &$keep_me) {
 
   $container = db_fetch_array(db_query("
-  
     (
     
-      SELECT {storage_containers}.*, {storage_object_instances}.reference, 
-        {storage_class_containers}.weight, 'object' AS type
-      FROM {storage_object_instances}
-      INNER JOIN {storage_class_containers}
-        ON {storage_object_instances}.container_id = {storage_class_containers}.container_id
-      INNER JOIN {storage_containers}
-        ON {storage_object_instances}.container_id = {storage_containers}.container_id
-      INNER JOIN {storage_services}
-        ON {storage_containers}.service_id = {storage_services}.service_id
-      WHERE {storage_object_instances}.object_id = %d
-        AND {storage_class_containers}.class_id = %d
-        AND {storage_containers}.suspended = 0
-        AND {storage_services}.suspended = 0
+      SELECT {storage_container}.*, {storage_object_instance}.reference, 
+        {storage_class_container}.weight, {storage_selector}.migrating, 'object' AS type
+      FROM {storage_object_instance}
+      INNER JOIN {storage_class_container}
+        ON {storage_object_instance}.container_id = {storage_class_container}.container_id
+      INNER JOIN {storage_selector}
+        ON {storage_class_container}.class_id = {storage_selector}.class_id
+      INNER JOIN {storage_container}
+        ON {storage_object_instance}.container_id = {storage_container}.container_id
+      INNER JOIN {storage_service}
+        ON {storage_container}.service_id = {storage_service}.service_id
+      WHERE {storage_object_instance}.object_id = %d
+        AND {storage_selector}.selector_id = %d
+        AND {storage_container}.suspended = 0
+        AND {storage_service}.suspended = 0
         
     ) UNION ALL (
     
-      SELECT {storage_containers}.*, {storage_file_instances}.reference, 
-        {storage_class_containers}.weight, 'file' AS type
-      FROM {storage_file_instances}
-      INNER JOIN {storage_class_containers}
-        ON {storage_file_instances}.container_id = {storage_class_containers}.container_id
-      INNER JOIN {storage_containers}
-        ON {storage_file_instances}.container_id = {storage_containers}.container_id
-      INNER JOIN {storage_services}
-        ON {storage_containers}.service_id = {storage_services}.service_id
-      WHERE {storage_file_instances}.file_id = %d
-        AND {storage_class_containers}.class_id = %d
-        AND {storage_containers}.suspended = 0
-        AND {storage_services}.suspended = 0
+      SELECT {storage_container}.*, {storage_file_instance}.reference, 
+        {storage_class_container}.weight, {storage_selector}.migrating, 'file' AS type
+      FROM {storage_file_instance}
+      INNER JOIN {storage_class_container}
+        ON {storage_file_instance}.container_id = {storage_class_container}.container_id
+      INNER JOIN {storage_selector}
+        ON {storage_class_container}.class_id = {storage_selector}.class_id
+      INNER JOIN {storage_container}
+        ON {storage_file_instance}.container_id = {storage_container}.container_id
+      INNER JOIN {storage_service}
+        ON {storage_container}.service_id = {storage_service}.service_id
+      WHERE {storage_file_instance}.file_id = %d
+        AND {storage_selector}.selector_id = %d
+        AND {storage_container}.suspended = 0
+        AND {storage_service}.suspended = 0
         
-    )    
-    ORDER BY weight DESC, container_id
+    )
+    ORDER BY migrating, weight DESC, container_id
     LIMIT 1
   ",
     $file['object_id'],
-    $file['class_id'],
+    $file['selector_id'],
     $file['file_id'],
-    $file['class_id']
+    $file['selector_id']
   ));
   
   if($container) {
@@ -1034,87 +1607,106 @@ function storage_api_get_local_filepath(&$file, &$keep_me) {
 
     $service_info = _storage_api_service_invoke($container['service_id'], 'service_info');
     $keep_me = $service_info['local'];
+    
+    return $filepath;
   }
-  else if($file['source_url']) {
+  
+  if($file['source_url']) {
 
     $filepath = _storage_api_acquire_from_source_url($file);
-    $keep_me = FALSE;
+
+    if($filepath) {
+      return $filepath;
+    }
   }
 
-  return $filepath;
+  if($file['module']) {
+
+    $filepath = module_invoke($file['module'], 'storage_file_generate', $file);
+    
+    $object_id = _storage_api_get_object_id($filepath, $new_object);
+    
+    if(!$object_id) {
+      @unlink($filepath);
+      return FALSE;
+    }
+
+    if(!$file['object_id'])
+      $file['object_id'] = $object_id;
+    
+    if($file['object_id'] != $object_id) {    // the file has changed
+
+      _storage_api_delete_object_if_unrequired($object_id);
+      @unlink($filepath);
+      return FALSE;
+    }
+
+    $update = array(
+      'file_id' => $file['file_id'],
+      'object_id' => $file['object_id'],
+      'obtained' => $_SERVER['REQUEST_TIME'],
+    );
+    
+    drupal_write_record('storage_file', $update, 'file_id');
+
+    // we need to reload $file to get the filesize, etc
+    $file = storage_api_file_load($file['file_id'], TRUE);
+    $file['new_object'] = $new_object;    // _storage_api_ensure_instance_exists() will make use of this
+    
+    return $filepath;
+  }
+
+  return FALSE;
 }
 
 
-function storage_api_file_load($file_id) {
+/**
+ * Schedule a file for complete removal from the system.
+ *
+ * All instances of the file will be removed during cron.
+ *
+ * @param $file_id
+ *   file_id of the file to be removed.
+ */
+function storage_api_file_remove($file_id) {
 
   if(!$file_id)
-    return NULL;
+    return FALSE;
 
-  $file = db_fetch_array(db_query("
-    SELECT *
-    FROM {storage_files}
-    LEFT JOIN {storage_objects}
-      ON {storage_files}.object_id = {storage_objects}.object_id
-    LEFT JOIN {storage_selectors}
-      ON {storage_files}.selector_id = {storage_selectors}.selector_id
-    LEFT JOIN {storage_classes}
-      ON {storage_selectors}.class_id = {storage_classes}.class_id
-    WHERE {storage_files}.file_id = %d
-  ",
-    $file_id
-  ));
-  
-  $file['data'] = unserialize($file['data']);
-  $file['options'] = unserialize($file['options']);
-  
-  return $file;
-}
-
-
-function storage_api_remove_file($file_id) {
-
-  if(!$file_id)
-    return;
-  
   $file = storage_api_file_load($file_id);
   
   if(!$file)
-    return;
+    return FALSE;
   
   db_query("
-    UPDATE {storage_files}
+    UPDATE {storage_file}
     SET selector_id = NULL,
-      check_me = 1
+      check_me = 1,
+      serve_url = ''
     WHERE file_id = %d
   ",
     $file_id
   );
   
-  $message = t('File removed') . ($file['filename'] ? (': ' . $file['filename']) : ' ') . '. <br />';
+  storage_api_file_flush($file_id);
+  
+  $message = 'File removed' . ($file['filename'] ? (': ' . $file['filename'] . ' ') : '') . ' <br />';
   $message .= _storage_api_file_log_info($file);
   
-  watchdog('storage_api', $message);
+  watchdog('storage_api', $message, NULL);
 }
 
 
-function storage_api_add_file_from_upload($source, $selector_id, $options = array()) {
-
-  $file = file_check_upload($source);
-
-  if(!$file)
-    return;
-  
-  $file = drupal_clone($file);    // stop nasty prob with upload module on PHP 5
-
-  unset($_SESSION['file_uploads'][$source]);
-
-  if(!$options['filename'])
-    $options['filename'] = $file->filename;
-
-  return storage_api_add_file_from_filepath($file->filepath, $selector_id, $options);
-}
-
-
+/**
+ * Generate HTTP headers for serving a specific file.
+ *
+ * The headers will let the file will be cached for 1 year, so URLs must not ever be reused.
+ *
+ * @param $file
+ *   File to be served.
+ * @return
+ *   An array of HTTP headers.
+ */
 function storage_api_http_headers($file) {
 
   $headers[] = 'Content-Type: ' . $file['mimetype'];
@@ -1130,6 +1722,12 @@ function storage_api_http_headers($file) {
 }
 
 
+/**
+ * Output directly the correct HTTP headers for a specific file.
+ *
+ * @param $file
+ *   File to be served.
+ */
 function storage_api_set_http_headers($file) {
 
   // unset the headers we don't want (they still get sent unfortunately)
@@ -1144,7 +1742,110 @@ function storage_api_set_http_headers($file) {
 }
 
 
-function _storage_bcmath() {
+/**
+ * Get a file extension that matches a MIME type.
+ *
+ * @param $mimetype
+ *   MIME type the file extension should match.
+ * @return
+ *   File extension (excluding the dot).
+ */
+function storage_api_mime_extension($mimetype) {
+
+  $path = drupal_get_path('module', 'storage_api');
+  require_once $path . '/mime_extension.inc';
+
+  return _storage_api_mime_extension($mimetype);
+}
+
+
+/**
+ * Add a container to a class and schedule instances to be created.
+ *
+ * @param $class
+ *   Class the container should be added to.
+ * @param $container
+ *   Container that should be added.
+ */
+function storage_api_class_add_container($class, $container) {
+
+  db_query("
+    INSERT IGNORE INTO {storage_class_container}
+    SET class_id = %d,
+      container_id = %d
+  ",
+    $class['class_id'],
+    $container['container_id']
+  );
+  
+  db_query("
+    UPDATE {storage_file}
+    SET check_me = 1,
+      serve_url = NULL
+    WHERE selector_id IN (
+    
+      SELECT selector_id
+      FROM {storage_selector}
+      WHERE class_id = %d
+      
+    )
+  ",
+    $class['class_id']
+  );
+
+  $message = 'Storage container <i>' . $container['name'] . 
+    '</i> has been added to class <i>' . $class['name'] .'</i>.';
+
+  $path = 'admin/build/storage/classes/' . $class['class_id'];  
+  
+  drupal_set_message($message);
+  watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));
+}
+
+
+/**
+ * Remove a container from all classes and schedule instances to be destroyed.
+ *
+ * @param $container
+ *   Container to be drained.
+ */
+function storage_api_drain_container($container) {
+
+  db_query("
+    UPDATE {storage_file}
+    SET check_me = 1,
+      serve_url = NULL
+    WHERE selector_id IN (
+    
+      SELECT {storage_selector}.selector_id
+      FROM {storage_class_container}
+      INNER JOIN {storage_selector}
+        ON {storage_class_container}.class_id = {storage_selector}.class_id
+      WHERE {storage_class_container}.container_id = %d
+      
+    )
+  ",
+    $container['container_id']
+  );
+
+  db_query("
+    DELETE FROM {storage_class_container}
+    WHERE container_id = %d
+  ",
+    $container['container_id']
+  );
+
+  $message = 'Storage container <i>' . $container['name'] . 
+    '</i> has been removed from all classes and will be drained during cron.';
+
+  $path = 'admin/build/storage/containers/' . $container['container_id'];
+  
+  drupal_set_message($message);
+  watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));
+}
+
+
+function _storage_api_bcmath() {
 
   // crappy bcmath replacements
 
@@ -1172,15 +1873,22 @@ function _storage_bcmath() {
 }
 
 
-// http://en.wikipedia.org/wiki/Kilobyte
+/**
+ * Format a byte count to make it easy to read.
+ *
+ * See http://en.wikipedia.org/wiki/Kilobyte .
+ *
+ * @param $count
+ *   Byte count to be formatted.
+ * @return
+ *   Formatted size.
+ */
+function storage_api_format_size($count) {
+  _storage_api_bcmath();
 
-function storage_format_size($count) {
-
-  if($count < 1000) {
-    return format_plural($count, '1 byte', '@count bytes');
+  if(bccomp($count, 1000) < 0) {
+    return format_plural((int)$count, '1 byte', '@count bytes');
   }
-  
-  _storage_bcmath();
   
   $count = bcdiv($count, 1000, 2);
   $u = 0;
@@ -1197,18 +1905,37 @@ function storage_format_size($count) {
 }
 
 
-function storage_api_form_alter($form_id, &$form) {
+/**
+ * Implement hook_theme() .
+ */
+function storage_api_theme() {
+
+  return array(
+    'storage_api_class_edit_form' => array(
+      'arguments' => array('content' => NULL),
+    ),
+  );
+}
+
+
+/**
+ * Implement hook_form_alter() .
+ */
+function storage_api_form_alter(&$form, $form_state, $form_id) {
 
   switch($form_id) {
   
     case 'system_modules':
 
-      $form['#submit']['_storage_api_update_services'] = array();
+      $form['#submit'][] = '_storage_api_update_services';
       break;
   }
 }
 
 
+/**
+ * Implement hook_enable() .
+ */
 function storage_api_enable() {
 
   // in case the service modules are enabled simultaneously as the form_alter above wont have taken affect
@@ -1217,6 +1944,9 @@ function storage_api_enable() {
 }
 
 
+/**
+ * Implement hook_cron() .
+ */
 function storage_api_cron() {
 
   $path = drupal_get_path('module', 'storage_api');
