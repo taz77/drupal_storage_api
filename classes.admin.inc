@@ -277,7 +277,7 @@ function storage_api_class_edit_form($form_state, $class) {
     $form['#container_ids'][] = $container['container_id'];
 
     $form['names'][$container['container_id']] = array(
-      '#value' => l($container['name'], 'admin/build/storage/containers/' . $container['container_id'])
+      '#markup' => l($container['name'], 'admin/build/storage/containers/' . $container['container_id'])
     );
     
     $form['weights'][$container['container_id']] = array(
@@ -288,7 +288,7 @@ function storage_api_class_edit_form($form_state, $class) {
     );
 
     $form['services'][$container['container_id']] = array(
-      '#value' => l(_storage_api_get_service_name($container['service_id']), 
+      '#markup' => l(_storage_api_get_service_name($container['service_id']), 
         'admin/build/storage/services/' . $container['service_id'])
     );
     
@@ -302,7 +302,7 @@ function storage_api_class_edit_form($form_state, $class) {
     );
 
     $form['deletes'][$container['container_id']] = array(
-      '#value' => 
+      '#markup' => 
         l($trash, 'admin/build/storage/classes/' . $class['class_id'] . '/remove/' . $container['container_id'], 
           array('html' => TRUE))
     );
@@ -311,7 +311,7 @@ function storage_api_class_edit_form($form_state, $class) {
   if(count($form['#container_ids']) > 1) {
   
     $form['info'] = array(
-      '#value' => '<p>' . t('Files are served from the container nearest the top that is capable.') . '</p>',
+      '#markup' => '<p>' . t('Files are served from the container nearest the top that is capable.') . '</p>',
     );
   }
   
@@ -506,7 +506,7 @@ function storage_api_class_add_container_form($form_state, $class) {
   if(count($containers) == 0) {
   
     $form[] = array(
-      '#value' => '<p>There are no containers left to add to the class.</p>'
+      '#markup' => '<p>There are no containers left to add to the class.</p>'
     );
     
     return $form;

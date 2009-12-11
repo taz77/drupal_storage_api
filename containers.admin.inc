@@ -111,7 +111,7 @@ function storage_api_create_container_form($form_state) {
       if(count($services) == 0) {
       
         $form[] = array(
-          '#value' => '<p>There are no storage services available. Please enable a service module on the ' . 
+          '#markup' => '<p>There are no storage services available. Please enable a service module on the ' . 
             l('modules page', 'admin/build/modules') . '.</p>'
         );
         
@@ -185,7 +185,7 @@ function storage_api_create_container_form($form_state) {
       }
       
       $form['info'] = array(
-        '#value' => '<p>' . theme('table', NULL, $rows, array('style' => 'width: auto;')) . '</p>'
+        '#markup' => '<p>' . theme('table', NULL, $rows, array('style' => 'width: auto;')) . '</p>'
       );
 
       $form['settings'] = array(
@@ -358,7 +358,7 @@ function storage_api_container_form($form_state, $container) {
   }
   
   $form['status'] = array(
-    '#value' => '<p>' . theme('table', NULL, $rows, array('style' => 'width: auto;')) . '</p>'
+    '#markup' => '<p>' . theme('table', NULL, $rows, array('style' => 'width: auto;')) . '</p>'
   );
   
   if(!$container['suspended']) {

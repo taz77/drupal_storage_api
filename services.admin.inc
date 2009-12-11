@@ -129,7 +129,7 @@ function storage_api_service_form($form_state, $service) {
   }
   
   $form['status'] = array(
-    '#value' => '<p>' . theme('table', NULL, $rows, array('style' => 'width: auto;')) . '</p>'
+    '#markup' => '<p>' . theme('table', NULL, $rows, array('style' => 'width: auto;')) . '</p>'
   );
 
   if(!$service['suspended']) {

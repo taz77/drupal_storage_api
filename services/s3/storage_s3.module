@@ -192,7 +192,7 @@ function _storage_s3_locations() {
 function storage_s3_storage_container_settings_form($settings, $serving, $edit) {
 
   $items['credentials_info'] = array(
-    '#value' => t('Get your credentials !link.', array('!link' => l(t('here'), 
+    '#markup' => t('Get your credentials !link.', array('!link' => l(t('here'), 
       'http://aws-portal.amazon.com/gp/aws/developer/account/index.html?action=access-key', 
         array('attributes' => array('target' => '_blank')))))
   );
