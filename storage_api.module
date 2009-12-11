@@ -12,11 +12,14 @@ require_once('instance_operations.inc');
 
 
 /**
- * Implement hook_perm() .
+ * Implement hook_permission() .
  */
-function storage_api_perm() {
+function storage_api_permission() {
 
-  return array('administer storage');
+  return array('administer storage' => array(
+    'title' => t('Administer storage'),
+//    'description' => t(''),
+  ));
 }
 
 
