@@ -4,3 +4,4 @@ description = "Amazon S3 storage service."
 package = Storage
 dependencies[] = storage_api
 core = 7.x
+files[] = storage_s3.module

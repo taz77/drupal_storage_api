@@ -4,3 +4,4 @@ description = "Database storage service serving via Drupal."
 package = Storage
 dependencies[] = storage_api
 core = 7.x
+files[] = storage_db.module
