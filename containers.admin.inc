@@ -71,7 +71,11 @@ function storage_api_containers() {
     $rows[] = array(array('data' => t('No containers exist.'), 'colspan' => 6, 'class' => 'message'));
   }
 
-  return theme('table', $header, $rows, array('style' => 'width: auto;'));
+  return theme('table', array(
+    'header' => $header, 
+    'rows' => $rows,
+    'attributes' => array('style' => 'width: auto;'),
+  ));
 }
 
 
@@ -188,8 +192,13 @@ function storage_api_create_container_form($form_state) {
         );
       }
       
+      $table = theme('table', array(
+        'rows' => $rows,
+        'attributes' => array('style' => 'width: auto;'),
+      ));
+
       $form['info'] = array(
-        '#markup' => '<p>' . theme('table', NULL, $rows, array('style' => 'width: auto;')) . '</p>'
+        '#markup' => '<p>' . $table . '</p>'
       );
 
       $form['settings'] = array(
@@ -356,8 +365,13 @@ function storage_api_container_form($form_state, $container) {
     );
   }
   
+  $table = theme('table', array(
+    'rows' => $rows,
+    'attributes' => array('style' => 'width: auto;'),
+  ));
+
   $form['status'] = array(
-    '#markup' => '<p>' . theme('table', NULL, $rows, array('style' => 'width: auto;')) . '</p>'
+    '#markup' => '<p>' . $table . '</p>',
   );
   
   if(!$container['suspended']) {

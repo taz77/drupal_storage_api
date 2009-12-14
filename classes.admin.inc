@@ -65,7 +65,11 @@ function storage_api_classes_list() {
     $rows[] = array(array('data' => t('No classes configured.'), 'colspan' => 3, 'class' => 'message'));
   }
 
-  return theme('table', $header, $rows, array('style' => 'width: auto;'));
+  return theme('table', array(
+    'header' => $header, 
+    'rows' => $rows,
+    'attributes' => array('style' => 'width: auto;'),
+  ));
 }
 
 
@@ -166,8 +170,12 @@ function storage_api_class($class) {
     );
   }
   
-  $output = theme('table', NULL, $rows, array('style' => 'width: auto;'));
-  
+  $output = theme('table', array(
+    'header' => NULL, 
+    'rows' => $rows,
+    'attributes' => array('style' => 'width: auto;'),
+  ));
+
   unset($rows);
   
   $objects_subquery = db_select('storage_selector');
@@ -226,7 +234,12 @@ function storage_api_class($class) {
   }
 
   $header = array(t('Container'), t('Service'), t('Serving'), t('Files'), t('Size'));
-  $output .= theme('table', $header, $rows, array('style' => 'width: auto;'));
+  
+  $output .= theme('table', array(
+    'header' => $header, 
+    'rows' => $rows,
+    'attributes' => array('style' => 'width: auto;'),
+  ));
 
   if(count($rows) > 1)
     $output .= '<p>' . t('Files are served from the container nearest the top that is capable.') . '</p>';
@@ -350,8 +363,12 @@ function theme_storage_api_class_edit_form($form) {
     }
   }
 
-  $output .= theme('table', $header, $rows, array('id' => 'my-module-table', 'style' => 'width: auto;'));
-  
+  $output .= theme('table', array(
+    'header' => $header, 
+    'rows' => $rows,
+    'attributes' => array('id' => 'my-module-table', 'style' => 'width: auto;'),
+  ));
+
   $output .= drupal_render($form);
   
   drupal_add_tabledrag('my-module-table', 'order', 'sibling', 'my-elements-weight');
