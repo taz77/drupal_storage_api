@@ -196,7 +196,7 @@ function storage_api_class($class) {
   $files_subquery->join('storage_object', NULL, 'storage_file.object_id = storage_object.object_id');
   $files_subquery->join('storage_file_instance', NULL, 'storage_file.file_id = storage_file_instance.file_id');
   
-  $files_subquery->fields('storage_object_instance', array('container_id'));
+  $files_subquery->fields('storage_file_instance', array('container_id'));
   $files_subquery->addExpression('COUNT(storage_file.file_id)', 'count');
   $files_subquery->addExpression('SUM(storage_object.size)', 'size');
     
@@ -208,6 +208,15 @@ function storage_api_class($class) {
   $query->join('storage_container', NULL, 'storage_class_container.container_id = storage_container.container_id');
   $query->leftJoin($objects_subquery, 'objects', 'storage_container.container_id = objects.container_id');
   $query->leftJoin($files_subquery, 'files', 'storage_container.container_id = files.container_id');
+
+  $query->fields('storage_container')
+    ->fields('storage_class_container', array('serving'));
+    
+  $query->addField('objects', 'count', 'objects_count');
+  $query->addField('objects', 'size', 'objects_size');
+
+  $query->addField('files', 'count', 'files_count');
+  $query->addField('files', 'size', 'files_size');
 
   $result = $query->condition('storage_class_container.class_id', $class['class_id'])
     ->orderBy('storage_class_container.weight')
