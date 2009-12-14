@@ -294,7 +294,10 @@ function storage_api_file_load($file_id, $reload = FALSE) {
   $query->leftJoin('storage_selector', NULL, 'storage_file.selector_id = storage_selector.selector_id');
   $query->leftJoin('storage_class', NULL, 'storage_selector.class_id = storage_class.class_id');
   
-  $file = $query->fields()
+  $file = $query->fields('storage_file')
+    ->fields('storage_object')
+    ->fields('storage_selector')
+    ->fields('storage_class')
     ->condition('storage_file.file_id', $file_id)
     ->condition(db_or()->isNull('storage_file.selector_id')->condition('storage_selector.migrating', 0))
     ->execute()
@@ -326,7 +329,7 @@ function storage_api_service_load($service_id) {
     return FALSE;
 
   $service = db_select('storage_service')
-    ->fields()
+    ->fields('storage_service')
     ->condition('service_id', $service_id)
     ->execute()
     ->fetchAssoc();
@@ -354,7 +357,7 @@ function storage_api_container_load($container_id) {
     return FALSE;
     
   $container = db_select('storage_container')
-    ->fields()
+    ->fields('storage_container')
     ->condition('container_id', $container_id)
     ->execute()
     ->fetchAssoc();
@@ -382,7 +385,7 @@ function storage_api_class_load($class_id) {
     return FALSE;
     
   $class = db_select('storage_class')
-    ->fields()
+    ->fields('storage_class')
     ->condition('class_id', $class_id)
     ->execute()
     ->fetchAssoc();
@@ -872,7 +875,7 @@ function storage_api_selector_item($selector_id, $title, $description = NULL) {
   );
   
   $result = db_select('storage_class', NULL, array('fetch' => PDO::FETCH_ASSOC))
-    ->fields()
+    ->fields('storage_class')
     ->orderBy('name')
     ->orderBy('class_id')
     ->execute();

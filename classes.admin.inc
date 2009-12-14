@@ -487,7 +487,7 @@ function storage_api_class_add_container_form($form_state, $class) {
     ->condition('class_id', $class['class_id']);
 
   $result = db_select('storage_container', NULL, array('fetch' => PDO::FETCH_ASSOC))
-    ->fields()
+    ->fields('storage_container')
     ->condition('container_id', $selector_subquery, 'NOT IN')
     ->orderBy('name')
     ->orderBy('container_id')
