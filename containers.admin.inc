@@ -6,25 +6,32 @@
 
 function _storage_api_containers_query() {
 
-  $objects_subquery = db_select('storage_object_instance')
-    ->join('storage_object', NULL, 'storage_object_instance.object_id = storage_object.object_id')
-    ->fields('storage_object_instance', array('container_id'))
-    ->expression('COUNT(storage_object.object_id)', 'count')
-    ->expression('SUM(storage_object.size)', 'size')
-    ->groupBy('storage_object_instance.container_id');
+  $objects_subquery = db_select('storage_object_instance');
+  $objects_subquery->join('storage_object', NULL, 'storage_object_instance.object_id = storage_object.object_id');
+  
+  $objects_subquery->fields('storage_object_instance', array('container_id'));
+  $objects_subquery->addExpression('COUNT(storage_object.object_id)', 'count');
+  $objects_subquery->addExpression('SUM(storage_object.size)', 'size');
+  
+  $objects_subquery->groupBy('storage_object_instance.container_id');
 
-  $files_subquery = db_select('storage_file_instance')
-    ->join('storage_file', NULL, 'storage_file_instance.file_id = storage_file.file_id')
-    ->join('storage_object', NULL, 'storage_file.object_id = storage_object.object_id')
-    ->fields('storage_file_instance', array('container_id'))
-    ->expression('COUNT(storage_file.file_id)', 'count')
-    ->expression('SUM(storage_object.size)', 'size')
-    ->groupBy('storage_file_instance.container_id');
 
-  $query = db_select('storage_container', NULL, array('fetch' => PDO::FETCH_ASSOC))
-    ->leftJoin($objects_subquery, 'objects', 'storage_container.container_id = objects.container_id')
-    ->leftJoin($files_subquery, 'files', 'storage_container.container_id = files.container_id')
-    ->fields('storage_container');
+  $files_subquery = db_select('storage_file_instance');
+  $files_subquery->join('storage_file', NULL, 'storage_file_instance.file_id = storage_file.file_id');
+  $files_subquery->join('storage_object', NULL, 'storage_file.object_id = storage_object.object_id');
+  
+  $files_subquery->fields('storage_file_instance', array('container_id'));
+  $files_subquery->addExpression('COUNT(storage_file.file_id)', 'count');
+  $files_subquery->addExpression('SUM(storage_object.size)', 'size');
+  
+  $files_subquery->groupBy('storage_file_instance.container_id');
+
+
+  $query = db_select('storage_container', NULL, array('fetch' => PDO::FETCH_ASSOC));
+  $query->leftJoin($objects_subquery, 'objects', 'storage_container.container_id = objects.container_id');
+  $query->leftJoin($files_subquery, 'files', 'storage_container.container_id = files.container_id');
+  
+  $query->fields('storage_container');
     
   $query->addField('objects', 'count', 'objects_count');
   $query->addField('objects', 'size', 'objects_size');

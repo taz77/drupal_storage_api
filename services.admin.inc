@@ -9,27 +9,34 @@ _storage_api_update_services();
 
 function _storage_api_services_query() {
 
-  $objects_subquery = db_select('storage_container')
-    ->join('storage_object_instance', NULL, 'storage_container.container_id = storage_object_instance.container_id')
-    ->join('storage_object', NULL, 'storage_object_instance.object_id = storage_object.object_id')
-    ->fields('storage_container', array('service_id'))
-    ->expression('COUNT(storage_object.object_id)', 'count')
-    ->expression('SUM(storage_object.size)', 'size')
-    ->groupBy('storage_container.service_id');
+  $objects_subquery = db_select('storage_container');
+  $objects_subquery->join('storage_object_instance', NULL, 'storage_container.container_id = storage_object_instance.container_id');
+  $objects_subquery->join('storage_object', NULL, 'storage_object_instance.object_id = storage_object.object_id');
+  
+  $objects_subquery->fields('storage_container', array('service_id'));
+  $objects_subquery->addExpression('COUNT(storage_object.object_id)', 'count');
+  $objects_subquery->addExpression('SUM(storage_object.size)', 'size');
+  
+  $objects_subquery->groupBy('storage_container.service_id');
 
-  $files_subquery = db_select('storage_container')
-    ->join('storage_file_instance', NULL, 'storage_container.container_id = storage_file_instance.container_id')
-    ->join('storage_file', NULL, 'storage_file_instance.file_id = storage_file.file_id')
-    ->join('storage_object', NULL, 'storage_file.object_id = storage_object.object_id')
-    ->fields('storage_container', array('service_id'))
-    ->expression('COUNT(storage_file.file_id)', 'count')
-    ->expression('SUM(storage_object.size)', 'size')
-    ->groupBy('storage_container.service_id');
 
-  $query = db_select('storage_service', NULL, array('fetch' => PDO::FETCH_ASSOC))
-    ->leftJoin($objects_subquery, 'objects', 'storage_service.service_id = objects.service_id')
-    ->leftJoin($files_subquery, 'files', 'storage_service.service_id = files.service_id')
-    ->fields('storage_service');
+  $files_subquery = db_select('storage_container');
+  $files_subquery->join('storage_file_instance', NULL, 'storage_container.container_id = storage_file_instance.container_id');
+  $files_subquery->join('storage_file', NULL, 'storage_file_instance.file_id = storage_file.file_id');
+  $files_subquery->join('storage_object', NULL, 'storage_file.object_id = storage_object.object_id');
+  
+  $files_subquery->fields('storage_container', array('service_id'));
+  $files_subquery->addExpression('COUNT(storage_file.file_id)', 'count');
+  $files_subquery->addExpression('SUM(storage_object.size)', 'size');
+  
+  $files_subquery->groupBy('storage_container.service_id');
+
+
+  $query = db_select('storage_service', NULL, array('fetch' => PDO::FETCH_ASSOC));
+  $query->leftJoin($objects_subquery, 'objects', 'storage_service.service_id = objects.service_id');
+  $query->leftJoin($files_subquery, 'files', 'storage_service.service_id = files.service_id');
+  
+  $query->fields('storage_service');
 
   $query->addField('objects', 'count', 'objects_count');
   $query->addField('objects', 'size', 'objects_size');
@@ -74,10 +81,11 @@ function storage_api_services() {
 
 function _storage_api_service_flush_serve_url($service_id) {
 
-  $selector_subquery = db_select('storage_container')
-    ->join('storage_class_container', NULL, 'storage_container.container_id = storage_class_container.container_id')
-    ->join('storage_selector', NULL, 'storage_class_container.class_id = storage_selector.class_id')
-    ->fields('storage_selector', array('selector_id'))
+  $selector_subquery = db_select('storage_container');
+  $selector_subquery->join('storage_class_container', NULL, 'storage_container.container_id = storage_class_container.container_id');
+  $selector_subquery->join('storage_selector', NULL, 'storage_class_container.class_id = storage_selector.class_id');
+  
+  $selector_subquery->fields('storage_selector', array('selector_id'))
     ->condition('storage_container.service_id', $service_id);
     
   db_update('storage_file')

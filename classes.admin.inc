@@ -23,11 +23,12 @@ function _storage_api_class_name($class_id) {
 
 function _storage_api_classes_query() {
 
-  $query = db_select('storage_class', NULL, array('fetch' => PDO::FETCH_ASSOC))
-    ->join('storage_selector', NULL, 'storage_class.class_id = storage_selector.class_id')
-    ->join('storage_file', NULL, 'storage_selector.selector_id = storage_file.selector_id')
-    ->join('storage_object', NULL, 'storage_file.object_id = storage_object.object_id')
-    ->fields('storage_class')
+  $query = db_select('storage_class', NULL, array('fetch' => PDO::FETCH_ASSOC));
+  $query->join('storage_selector', NULL, 'storage_class.class_id = storage_selector.class_id');
+  $query->join('storage_file', NULL, 'storage_selector.selector_id = storage_file.selector_id');
+  $query->join('storage_object', NULL, 'storage_file.object_id = storage_object.object_id');
+  
+  $query->fields('storage_class')
     ->groupBy('storage_class.class_id');
     
   $query->addExpression('COUNT(storage_file.file_id)', 'files');
@@ -169,34 +170,42 @@ function storage_api_class($class) {
   
   unset($rows);
   
-  $objects_subquery = db_select('storage_selector')
-    ->join('storage_file', NULL, 'storage_selector.selector_id = storage_file.selector_id')
-    ->join('storage_object', NULL, 'storage_file.object_id = storage_object.object_id')
-    ->join('storage_object_instance', NULL, 'storage_object.object_id = storage_object_instance.object_id')
-    ->fields('storage_object_instance', 'container_id')
-    ->expression('COUNT(storage_file.file_id)', 'count')
-    ->expression('SUM(storage_object.size)', 'size')
-    ->condition('storage_selector.class_id', $class['class_id'])
+  $objects_subquery = db_select('storage_selector');
+  $objects_subquery->join('storage_file', NULL, 'storage_selector.selector_id = storage_file.selector_id');
+  $objects_subquery->join('storage_object', NULL, 'storage_file.object_id = storage_object.object_id');
+  $objects_subquery->join('storage_object_instance', NULL, 'storage_object.object_id = storage_object_instance.object_id');
+    
+  $objects_subquery->fields('storage_object_instance', 'container_id');
+  $objects_subquery->addExpression('COUNT(storage_file.file_id)', 'count');
+  $objects_subquery->addExpression('SUM(storage_object.size)', 'size');
+  
+  $objects_subquery->condition('storage_selector.class_id', $class['class_id'])
     ->groupBy('storage_object_instance.container_id');
     
-  $files_subquery = db_select('storage_selector')
-    ->join('storage_file', NULL, 'storage_selector.selector_id = storage_file.selector_id')
-    ->join('storage_object', NULL, 'storage_file.object_id = storage_object.object_id')
-    ->join('storage_file_instance', NULL, 'storage_file.file_id = storage_file_instance.file_id')
-    ->fields('storage_object_instance', 'container_id')
-    ->expression('COUNT(storage_file.file_id)', 'count')
-    ->expression('SUM(storage_object.size)', 'size')
-    ->condition('storage_selector.class_id', $class['class_id'])
+    
+  $files_subquery = db_select('storage_selector');
+  $files_subquery->join('storage_file', NULL, 'storage_selector.selector_id = storage_file.selector_id');
+  $files_subquery->join('storage_object', NULL, 'storage_file.object_id = storage_object.object_id');
+  $files_subquery->join('storage_file_instance', NULL, 'storage_file.file_id = storage_file_instance.file_id');
+  
+  $files_subquery->fields('storage_object_instance', 'container_id');
+  $files_subquery->addExpression('COUNT(storage_file.file_id)', 'count');
+  $files_subquery->addExpression('SUM(storage_object.size)', 'size');
+    
+  $files_subquery->condition('storage_selector.class_id', $class['class_id'])
     ->groupBy('storage_file_instance.container_id');
     
-  $result = db_select('storage_class_container', NULL, array('fetch' => PDO::FETCH_ASSOC))
-    ->join('storage_container', NULL, 'storage_class_container.container_id = storage_container.container_id')
-    ->leftJoin($objects_subquery, 'objects', 'storage_container.container_id = objects.container_id')
-    ->leftJoin($files_subquery, 'files', 'storage_container.container_id = files.container_id')
-    ->condition('storage_class_container.class_id', $class['class_id'])
+    
+  $query = db_select('storage_class_container', NULL, array('fetch' => PDO::FETCH_ASSOC));
+  $query->join('storage_container', NULL, 'storage_class_container.container_id = storage_container.container_id');
+  $query->leftJoin($objects_subquery, 'objects', 'storage_container.container_id = objects.container_id');
+  $query->leftJoin($files_subquery, 'files', 'storage_container.container_id = files.container_id');
+
+  $result = $query->condition('storage_class_container.class_id', $class['class_id'])
     ->orderBy('storage_class_container.weight')
     ->orderBy('storage_container.container_id')
     ->execute();
+
 
   foreach($result as $container) {
     unset($row);
@@ -238,9 +247,10 @@ function storage_api_class_edit_form($form_state, $class) {
 
   $form = _storage_api_class_form_elements($class);
   
-  $result = db_select('storage_class_container', NULL, array('fetch' => PDO::FETCH_ASSOC))
-    ->join('storage_container', NULL, 'storage_class_container.container_id = storage_container.container_id')
-    ->fields('storage_container', array('container_id', 'name', 'service_id'))
+  $query = db_select('storage_class_container', NULL, array('fetch' => PDO::FETCH_ASSOC));
+  $query->join('storage_container', NULL, 'storage_class_container.container_id = storage_container.container_id');
+
+  $result = $query->fields('storage_container', array('container_id', 'name', 'service_id'))
     ->fields('storage_class_container', array('weight', 'serving'))
     ->condition('storage_class_container.class_id', $class['class_id'])
     ->orderBy('storage_class_container.weight')

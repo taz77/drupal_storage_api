@@ -9,10 +9,11 @@ function _storage_api_copy_candidate_containers($file, $container) {
   // Find all the containers in $file's class that are using $container's service, 
   // except $container .
 
-  $result = db_select('storage_selector', NULL, array('fetch' => PDO::FETCH_ASSOC))
-    ->join('storage_class_container', NULL, 'storage_selector.class_id = storage_class_container.class_id')
-    ->join('storage_container', NULL, 'storage_class_container.container_id = storage_container.container_id')
-    ->fields('storage_container', array('container_id'))
+  $query = db_select('storage_selector', NULL, array('fetch' => PDO::FETCH_ASSOC));
+  $query->join('storage_class_container', NULL, 'storage_selector.class_id = storage_class_container.class_id');
+  $query->join('storage_container', NULL, 'storage_class_container.container_id = storage_container.container_id');
+  
+  $result = $query->fields('storage_container', array('container_id'))
     ->condition('storage_selector.selector_id', $file['selector_id'])
     ->condition('storage_class_container.container_id', $container['container_id'], '!=')
     ->condition('storage_container}.service_id', $container['service_id'])
@@ -175,10 +176,11 @@ function _storage_api_object_instance_destroy_if_unrequired($container, $file) {
   // because that instance might not have been migrated yet 
   // - so there is no {storage_selector}.migrating = 0 condition
 
-  $files = db_select('storage_file')
-    ->join('storage_selector', NULL, 'storage_file.selector_id = storage_selector.selector_id')
-    ->join('storage_class_container', NULL, 'storage_selector.class_id = storage_class_container.class_id')
-    ->condition('storage_file.file_id', $file['file_id'], '!=')
+  $query = db_select('storage_file');
+  $query->join('storage_selector', NULL, 'storage_file.selector_id = storage_selector.selector_id');
+  $query->join('storage_class_container', NULL, 'storage_selector.class_id = storage_class_container.class_id');
+
+  $files = $query->condition('storage_file.file_id', $file['file_id'], '!=')
     ->condition('storage_file.object_id', $file['object_id'])
     ->condition('storage_class_container.container_id', $container['container_id'])
     ->countQuery()
@@ -200,10 +202,11 @@ function _storage_api_destroy_unrequired_instances($file, $container_ids) {
 
   // destroy unrequired object instances
   
-  $query = db_select('storage_object_instance', NULL, array('fetch' => PDO::FETCH_ASSOC))
-    ->join('storage_container', NULL, 'storage_object_instance.container_id = storage_container.container_id')
-    ->join('storage_service', NULL, 'storage_container.service_id = storage_service.service_id')
-    ->fields('storage_container')
+  $query = db_select('storage_object_instance', NULL, array('fetch' => PDO::FETCH_ASSOC));
+  $query->join('storage_container', NULL, 'storage_object_instance.container_id = storage_container.container_id');
+  $query->join('storage_service', NULL, 'storage_container.service_id = storage_service.service_id');
+
+  $query->fields('storage_container')
     ->fields('storage_object_instance', array('reference'))
     ->condition('storage_object_instance.object_id', $file['object_id'])
     ->orderBy('storage_container.container_id');
@@ -226,10 +229,11 @@ function _storage_api_destroy_unrequired_instances($file, $container_ids) {
 
   // destroy unrequired file instances
 
-  $query = db_select('storage_file_instance', NULL, array('fetch' => PDO::FETCH_ASSOC))
-    ->join('storage_container', NULL, 'storage_file_instance.container_id = storage_container.container_id')
-    ->join('storage_service', NULL, 'storage_container.service_id = storage_service.service_id')
-    ->fields('storage_container')
+  $query = db_select('storage_file_instance', NULL, array('fetch' => PDO::FETCH_ASSOC));
+  $query->join('storage_container', NULL, 'storage_file_instance.container_id = storage_container.container_id');
+  $query->join('storage_service', NULL, 'storage_container.service_id = storage_service.service_id');
+
+  $query->fields('storage_container')
     ->fields('storage_file_instance', array('reference'))
     ->condition('storage_file_instance.file_id', $file['file_id'])
     ->orderBy('storage_container.container_id');
@@ -257,14 +261,14 @@ function _storage_api_check_file($file) {
 
   // get all containers this file is supposed to be in
 
-  $query = db_select('storage_file', NULL, array('fetch' => PDO::FETCH_ASSOC))
-    ->join('storage_selector', NULL, 'storage_file.selector_id = storage_selector.selector_id')
-    ->join('storage_class', NULL, 'storage_selector.class_id = storage_class.class_id')
-    ->join('storage_class_container', NULL, 'storage_class.class_id = storage_class_container.class_id')
-    ->join('storage_container', NULL, 'storage_class_container.container_id = storage_container.container_id')
-    ->join('storage_service', NULL, 'storage_container.service_id = storage_service.service_id')
-    ->fields('storage_container');
-    
+  $query = db_select('storage_file', NULL, array('fetch' => PDO::FETCH_ASSOC));
+  $query->join('storage_selector', NULL, 'storage_file.selector_id = storage_selector.selector_id');
+  $query->join('storage_class', NULL, 'storage_selector.class_id = storage_class.class_id');
+  $query->join('storage_class_container', NULL, 'storage_class.class_id = storage_class_container.class_id');
+  $query->join('storage_container', NULL, 'storage_class_container.container_id = storage_container.container_id');
+  $query->join('storage_service', NULL, 'storage_container.service_id = storage_service.service_id');
+  
+  $query->fields('storage_container');
   $query->addField('storage_service', 'suspended', 'service_suspended');
   
   $result = $query->condition('storage_file.file_id', $file['file_id'])
@@ -361,9 +365,10 @@ function _storage_api_check_migrations() {
         ->condition('migrating', '1')
         ->execute();
         
-      $class_name = db_select('storage_selector')
-        ->join('storage_class', NULL, 'storage_selector.class_id = storage_class.class_id')
-        ->fields('storage_class', array('name'))
+      $query = db_select('storage_selector');
+      $query->join('storage_class', NULL, 'storage_selector.class_id = storage_class.class_id');
+      
+      $class_name = $query->fields('storage_class', array('name'))
         ->condition('storage_selector.selector_id', $selector['selector_id'])
         ->execute()
         ->fetchField();

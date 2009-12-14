@@ -289,11 +289,12 @@ function storage_api_file_load($file_id, $reload = FALSE) {
   // either the file is being deleted and no longer has a selector,
   // or we grab the selector with migrating = 0
 
-  $file = db_select('storage_file')
-    ->leftJoin('storage_object', NULL, 'storage_file.object_id = storage_object.object_id')
-    ->leftJoin('storage_selector', NULL, 'storage_file.selector_id = storage_selector.selector_id')
-    ->leftJoin('storage_class', NULL, 'storage_selector.class_id = storage_class.class_id')
-    ->fields()
+  $query = db_select('storage_file');
+  $query->leftJoin('storage_object', NULL, 'storage_file.object_id = storage_object.object_id');
+  $query->leftJoin('storage_selector', NULL, 'storage_file.selector_id = storage_selector.selector_id');
+  $query->leftJoin('storage_class', NULL, 'storage_selector.class_id = storage_class.class_id');
+  
+  $file = $query->fields()
     ->condition('storage_file.file_id', $file_id)
     ->condition(db_or()->isNull('storage_file.selector_id')->condition('storage_selector.migrating', 0))
     ->execute()
@@ -589,12 +590,13 @@ function _storage_api_service_unavailable() {
 
 function _storage_api_serving_container($file) {
 
-  $objects_subquery = db_select('storage_object_instance')
-    ->join('storage_class_container', NULL, 'storage_object_instance.container_id = storage_class_container.container_id')
-    ->join('storage_selector', NULL, 'storage_class_container.class_id = storage_selector.class_id')
-    ->join('storage_container', NULL, 'storage_object_instance.container_id = storage_container.container_id')
-    ->join('storage_service', NULL, 'storage_object_instance.service_id = storage_service.service_id')
-    ->condition('storage_object_instance.object_id', $file['object_id'])
+  $objects_subquery = db_select('storage_object_instance');
+  $objects_subquery->join('storage_class_container', NULL, 'storage_object_instance.container_id = storage_class_container.container_id');
+  $objects_subquery->join('storage_selector', NULL, 'storage_class_container.class_id = storage_selector.class_id');
+  $objects_subquery->join('storage_container', NULL, 'storage_object_instance.container_id = storage_container.container_id');
+  $objects_subquery->join('storage_service', NULL, 'storage_object_instance.service_id = storage_service.service_id');
+  
+  $objects_subquery->condition('storage_object_instance.object_id', $file['object_id'])
     ->condition('storage_class_container.serving', 1, '>=')
     ->condition('storage_selector.selector_id', $file['selector_id'])
     ->condition('storage_container.suspended', 0)
@@ -605,12 +607,14 @@ function _storage_api_serving_container($file) {
     
   $objects_subquery->addExpression('\'object\'', 'type');
 
-  $files_subquery = db_select('storage_file_instance')
-    ->join('storage_class_container', NULL, 'storage_file_instance.container_id = storage_class_container.container_id')
-    ->join('storage_selector', NULL, 'storage_class_container.class_id = storage_selector.class_id')
-    ->join('storage_container', NULL, 'storage_file_instance.container_id = storage_container.container_id')
-    ->join('storage_service', NULL, 'storage_file_instance.service_id = storage_service.service_id')
-    ->condition('storage_file_instance.file_id', $file['file_id'])
+
+  $files_subquery = db_select('storage_file_instance');
+  $files_subquery->join('storage_class_container', NULL, 'storage_file_instance.container_id = storage_class_container.container_id');
+  $files_subquery->join('storage_selector', NULL, 'storage_class_container.class_id = storage_selector.class_id');
+  $files_subquery->join('storage_container', NULL, 'storage_file_instance.container_id = storage_container.container_id');
+  $files_subquery->join('storage_service', NULL, 'storage_file_instance.service_id = storage_service.service_id');
+  
+  $files_subquery->condition('storage_file_instance.file_id', $file['file_id'])
     ->condition('storage_class_container.serving', 1, '>=')
     ->condition('storage_selector.selector_id', $file['selector_id'])
     ->condition('storage_container.suspended', 0)
@@ -992,11 +996,12 @@ function _storage_api_get_initial_container($selector_id) {
 
   // find the container with the lowest priority in the class
   
-  $container = db_select('storage_selector')
-    ->join('storage_class_container', NULL, 'storage_selector.class_id = storage_class_container.class_id')
-    ->join('storage_container', NULL, 'storage_class_container.container_id = storage_container.container_id')
-    ->join('storage_service', NULL, 'storage_container.service_id = storage_service.service_id')
-    ->fields('storage_container')
+  $query = db_select('storage_selector');
+  $query->join('storage_class_container', NULL, 'storage_selector.class_id = storage_class_container.class_id');
+  $query->join('storage_container', NULL, 'storage_class_container.container_id = storage_container.container_id');
+  $query->join('storage_service', NULL, 'storage_container.service_id = storage_service.service_id');
+  
+  $container = $query->fields('storage_container')
     ->condition('storage_selector.selector_id', $selector_id)
     ->condition('storage_selector.migrating', 0)
     ->condition('storage_container.suspended', 0)
@@ -1457,12 +1462,13 @@ function _storage_api_acquire_from_source_url(&$file) {
  */
 function storage_api_get_local_filepath(&$file, &$keep_me) {
 
-  $objects_subquery = db_select('storage_object_instance')
-    ->join('storage_class_container', NULL, 'storage_object_instance.container_id = storage_class_container.container_id')
-    ->join('storage_selector', NULL, 'storage_class_container.class_id = storage_selector.class_id')
-    ->join('storage_container', NULL, 'storage_object_instance.container_id = storage_container.container_id')
-    ->join('storage_service', NULL, 'storage_object_instance.service_id = storage_service.service_id')
-    ->condition('storage_object_instance.object_id', $file['object_id'])
+  $objects_subquery = db_select('storage_object_instance');
+  $objects_subquery->join('storage_class_container', NULL, 'storage_object_instance.container_id = storage_class_container.container_id');
+  $objects_subquery->join('storage_selector', NULL, 'storage_class_container.class_id = storage_selector.class_id');
+  $objects_subquery->join('storage_container', NULL, 'storage_object_instance.container_id = storage_container.container_id');
+  $objects_subquery->join('storage_service', NULL, 'storage_object_instance.service_id = storage_service.service_id');
+  
+  $objects_subquery->condition('storage_object_instance.object_id', $file['object_id'])
     ->condition('storage_class_container.serving', 1, '>=')
     ->condition('storage_selector.selector_id', $file['selector_id'])
     ->condition('storage_container.suspended', 0)
@@ -1473,12 +1479,14 @@ function storage_api_get_local_filepath(&$file, &$keep_me) {
     
   $objects_subquery->addExpression('\'object\'', 'type');
 
-  $files_subquery = db_select('storage_file_instance')
-    ->join('storage_class_container', NULL, 'storage_file_instance.container_id = storage_class_container.container_id')
-    ->join('storage_selector', NULL, 'storage_class_container.class_id = storage_selector.class_id')
-    ->join('storage_container', NULL, 'storage_file_instance.container_id = storage_container.container_id')
-    ->join('storage_service', NULL, 'storage_file_instance.service_id = storage_service.service_id')
-    ->condition('storage_file_instance.file_id', $file['file_id'])
+
+  $files_subquery = db_select('storage_file_instance');
+  $files_subquery->join('storage_class_container', NULL, 'storage_file_instance.container_id = storage_class_container.container_id');
+  $files_subquery->join('storage_selector', NULL, 'storage_class_container.class_id = storage_selector.class_id');
+  $files_subquery->join('storage_container', NULL, 'storage_file_instance.container_id = storage_container.container_id');
+  $files_subquery->join('storage_service', NULL, 'storage_file_instance.service_id = storage_service.service_id');
+  
+  $files_subquery->condition('storage_file_instance.file_id', $file['file_id'])
     ->condition('storage_class_container.serving', 1, '>=')
     ->condition('storage_selector.selector_id', $file['selector_id'])
     ->condition('storage_container.suspended', 0)
@@ -1712,9 +1720,10 @@ function storage_api_class_add_container($class, $container) {
  */
 function storage_api_drain_container($container) {
 
-  $selector_subquery = db_select('storage_class_container')
-    ->join('storage_selector', NULL, 'storage_class_container.class_id = storage_selector.class_id')
-    ->fields('storage_selector', array('selector_id'))
+  $selector_subquery = db_select('storage_class_container');
+  $selector_subquery->join('storage_selector', NULL, 'storage_class_container.class_id = storage_selector.class_id');
+  
+  $selector_subquery->fields('storage_selector', array('selector_id'))
     ->condition('storage_class_container.container_id', $container['container_id']);
     
   db_update('storage_file')
