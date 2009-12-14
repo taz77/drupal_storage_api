@@ -112,7 +112,7 @@ function _storage_api_class_form_elements($class = NULL) {
  * @ingroup forms
  * @see storage_api_create_class_form_submit()
  */
-function storage_api_create_class_form($form_state) {
+function storage_api_create_class_form($form, &$form_state) {
 
   drupal_set_title(t('Storage classes'), PASS_THROUGH);
   
@@ -254,7 +254,7 @@ function storage_api_class($class) {
  * @ingroup forms
  * @see storage_api_class_edit_form_submit()
  */
-function storage_api_class_edit_form($form_state, $class) {
+function storage_api_class_edit_form($form, &$form_state, $class) {
 
   drupal_set_title(t('Storage class: ') . $class['name'], PASS_THROUGH);
 
@@ -444,7 +444,7 @@ function storage_api_class_edit_form_destroy($form, &$form_state) {
  * @ingroup forms
  * @see storage_api_class_destroy_form_submit()
  */
-function storage_api_class_destroy_form($form_state, $class) {
+function storage_api_class_destroy_form($form, &$form_state, $class) {
 
   return confirm_form($form, 'Are you sure you want to destroy storage class <i>' . 
     $class['name'] . '</i> ?', 'admin/build/storage/classes/' . $class['class_id'], t(''));
@@ -478,7 +478,7 @@ function storage_api_class_destroy_form_submit($form, &$form_state) {
  * @ingroup forms
  * @see storage_api_class_add_container_form_submit()
  */
-function storage_api_class_add_container_form($form_state, $class) {
+function storage_api_class_add_container_form($form, &$form_state, $class) {
 
   drupal_set_title(t('Storage class: ') . $class['name'], PASS_THROUGH);
 
