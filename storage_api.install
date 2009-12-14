@@ -174,12 +174,3 @@ function storage_api_install() {
   ");
 }
 
-
-/**
- * Implement hook_uninstall() .
- */
-function storage_api_uninstall() {
-
-  drupal_uninstall_schema('storage_api');
-}
-
