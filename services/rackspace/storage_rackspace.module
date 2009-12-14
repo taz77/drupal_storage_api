@@ -31,7 +31,7 @@ function _storage_rackspace_log_exception($e, $dsm = TRUE) {
 
 
 function _storage_rackspace_init($container) {
-  static $conn;
+  $conn = &drupal_static(__FUNCTION__);
   
   if($conn)
     return $conn;
@@ -77,7 +77,8 @@ function _storage_rackspace_init($container) {
 
 
 function _storage_rackspace_container($container) {
-  static $rscf_containers = array();
+  $rscf_containers = &drupal_static(__FUNCTION__);
+  $rscf_containers = array();
   
   if($rscf_containers[$container['container_id']])
     return $rscf_containers[$container['container_id']];
