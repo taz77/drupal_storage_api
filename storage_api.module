@@ -571,7 +571,7 @@ function _storage_api_service_unavailable() {
     $_REQUEST['destination'] = $_GET['q'];
   }
 
-  $path = drupal_get_normal_path(variable_get('site_503', ''));
+  $path = drupal_get_normal_path(variable_get('site_503'));
   if ($path && $path != $_GET['q']) {
     // Set the active item in case there are tabs to display or other
     // dependencies on the path.
