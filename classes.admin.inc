@@ -183,7 +183,7 @@ function storage_api_class($class) {
   $objects_subquery->join('storage_object', NULL, 'storage_file.object_id = storage_object.object_id');
   $objects_subquery->join('storage_object_instance', NULL, 'storage_object.object_id = storage_object_instance.object_id');
     
-  $objects_subquery->fields('storage_object_instance', 'container_id');
+  $objects_subquery->fields('storage_object_instance', array('container_id'));
   $objects_subquery->addExpression('COUNT(storage_file.file_id)', 'count');
   $objects_subquery->addExpression('SUM(storage_object.size)', 'size');
   
@@ -196,7 +196,7 @@ function storage_api_class($class) {
   $files_subquery->join('storage_object', NULL, 'storage_file.object_id = storage_object.object_id');
   $files_subquery->join('storage_file_instance', NULL, 'storage_file.file_id = storage_file_instance.file_id');
   
-  $files_subquery->fields('storage_object_instance', 'container_id');
+  $files_subquery->fields('storage_object_instance', array('container_id'));
   $files_subquery->addExpression('COUNT(storage_file.file_id)', 'count');
   $files_subquery->addExpression('SUM(storage_object.size)', 'size');
     
