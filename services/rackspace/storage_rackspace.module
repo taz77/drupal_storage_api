@@ -36,7 +36,8 @@ function _storage_rackspace_init($container) {
   if($conn)
     return $conn;
 
-  @include_once('php-cloudfiles/cloudfiles.php');
+  $path = drupal_get_path('module', 'storage_rackspace');
+  require_once DRUPAL_ROOT . '/' . $path . '/php-cloudfiles/cloudfiles.php';
 
   if(!class_exists('CF_Authentication')) {
     watchdog('storage_rackspace', 'php-cloudfiles not found', array(), WATCHDOG_ERROR);

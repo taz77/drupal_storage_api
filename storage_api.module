@@ -8,7 +8,8 @@ define('STORAGE_API_STORAGE_ONLY', 0);
 define('STORAGE_API_SERVING', 1);
 define('STORAGE_API_ACCESS_CONTROL', 2);
 
-require_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'storage_api') . '/instance_operations.inc';
+$path = drupal_get_path('module', 'storage_api');
+require_once DRUPAL_ROOT . '/' . $path . '/instance_operations.inc';
 
 
 /**
@@ -1660,7 +1661,7 @@ function storage_api_set_http_headers($file) {
 function storage_api_mime_extension($mimetype) {
 
   $path = drupal_get_path('module', 'storage_api');
-  require_once $path . '/mime_extension.inc';
+  require_once DRUPAL_ROOT . '/' . $path . '/mime_extension.inc';
 
   return _storage_api_mime_extension($mimetype);
 }
