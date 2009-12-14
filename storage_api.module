@@ -1816,7 +1816,7 @@ function storage_api_theme() {
 
   return array(
     'storage_api_class_edit_form' => array(
-      'arguments' => array('content' => NULL),
+      'render element' => 'form',
     ),
   );
 }
