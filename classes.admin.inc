@@ -24,9 +24,9 @@ function _storage_api_class_name($class_id) {
 function _storage_api_classes_query() {
 
   $query = db_select('storage_class', NULL, array('fetch' => PDO::FETCH_ASSOC));
-  $query->join('storage_selector', NULL, 'storage_class.class_id = storage_selector.class_id');
-  $query->join('storage_file', NULL, 'storage_selector.selector_id = storage_file.selector_id');
-  $query->join('storage_object', NULL, 'storage_file.object_id = storage_object.object_id');
+  $query->leftJoin('storage_selector', NULL, 'storage_class.class_id = storage_selector.class_id');
+  $query->leftJoin('storage_file', NULL, 'storage_selector.selector_id = storage_file.selector_id');
+  $query->leftJoin('storage_object', NULL, 'storage_file.object_id = storage_object.object_id');
   
   $query->fields('storage_class')
     ->groupBy('storage_class.class_id');
@@ -378,7 +378,7 @@ function theme_storage_api_class_edit_form($form) {
     'attributes' => array('id' => 'my-module-table', 'style' => 'width: auto;'),
   ));
 
-  $output .= drupal_render($form);
+  $output .= drupal_render_children($form);
   
   drupal_add_tabledrag('my-module-table', 'order', 'sibling', 'my-elements-weight');
 
@@ -501,6 +501,8 @@ function storage_api_class_add_container_form($form, &$form_state, $class) {
     ->orderBy('name')
     ->orderBy('container_id')
     ->execute();
+    
+  $containers = array();
  
   foreach($result as $container) {
     $containers[$container['container_id']] = $container['name'];
