@@ -13,31 +13,25 @@ function _storage_api_trash_icon() {
 
 function _storage_api_class_name($class_id) {
 
-  return db_result(db_query("
-    SELECT name
-    FROM {storage_class}
-    WHERE class_id = %d
-  ",
-    $class_id
-  ));
+  return db_select('storage_class')
+    ->fields('storage_class', array('name'))
+    ->condition('class_id', $class_id)
+    ->excute()
+    ->fetchField();
 }
 
 
 function _storage_api_classes_query() {
 
-  $query = "
-    SELECT {storage_class}.*,
-      COUNT({storage_file}.file_id) AS files,
-      SUM({storage_object}.size) AS size
-    FROM {storage_class}
-    LEFT JOIN {storage_selector}
-      ON {storage_class}.class_id = {storage_selector}.class_id
-    LEFT JOIN {storage_file}
-      ON {storage_selector}.selector_id = {storage_file}.selector_id
-    LEFT JOIN {storage_object}
-      ON {storage_file}.object_id = {storage_object}.object_id
-    GROUP BY {storage_class}.class_id
-  ";
+  $query = db_select('storage_class', NULL, array('fetch' => PDO::FETCH_ASSOC))
+    ->join('storage_selector', NULL, 'storage_class.class_id = storage_selector.class_id')
+    ->join('storage_file', NULL, 'storage_selector.selector_id = storage_file.selector_id')
+    ->join('storage_object', NULL, 'storage_file.object_id = storage_object.object_id')
+    ->fields('storage_class')
+    ->groupBy('storage_class.class_id');
+    
+  $query->addExpression('COUNT(storage_file.file_id)', 'files');
+  $query->addExpression('SUM(storage_object.size)', 'size');
   
   return $query;
 }
@@ -47,14 +41,16 @@ function storage_api_classes_list() {
 
   drupal_set_title(t('Storage classes'));
 
-  $query = _storage_api_classes_query();
-  $result = db_query($query . "ORDER BY name, class_id");
+  $result = _storage_api_classes_query()
+    ->orderBy('storage_class.name')
+    ->orderBy('storage_class.class_id')
+    ->execute();
 
   $header = array(
     t('Name'), t('Files'), t('Size')
   );
 
-  while($class = db_fetch_array($result)) {
+  foreach($result as $class) {
     unset($row);
     
     $row[] = l($class['name'], 'admin/build/storage/classes/' . $class['class_id']);
@@ -154,8 +150,10 @@ function storage_api_class($class) {
 
   drupal_set_title(t('Storage class: ') . $class['name']);
   
-  $query = _storage_api_classes_query();
-  $class_info = db_fetch_array(db_query($query . "HAVING class_id = %d", $class['class_id']));
+  $class_info = _storage_api_classes_query()
+    ->havingCondition('storage_class.class_id', $class['class_id'])
+    ->execute()
+    ->fetchAssoc();
 
   $rows[] = array(t('Files'), $class_info['files']);
   $rows[] = array(t('Size'), storage_api_format_size($class_info['size']));
@@ -170,53 +168,37 @@ function storage_api_class($class) {
   $output = theme('table', NULL, $rows, array('style' => 'width: auto;'));
   
   unset($rows);
-
-  $result = db_query("
-    SELECT {storage_container}.*, {storage_class_container}.serving AS serving, 
-      objects.count AS objects_count, objects.size AS objects_size,
-      files.count AS files_count, files.size AS files_size
-    FROM {storage_class_container}
-    INNER JOIN {storage_container}
-      ON {storage_class_container}.container_id = {storage_container}.container_id
-    LEFT JOIN (
+  
+  $objects_subquery = db_select('storage_selector')
+    ->join('storage_file', NULL, 'storage_selector.selector_id = storage_file.selector_id')
+    ->join('storage_object', NULL, 'storage_file.object_id = storage_object.object_id')
+    ->join('storage_object_instance', NULL, 'storage_object.object_id = storage_object_instance.object_id')
+    ->fields('storage_object_instance', 'container_id')
+    ->expression('COUNT(storage_file.file_id)', 'count')
+    ->expression('SUM(storage_object.size)', 'size')
+    ->condition('storage_selector.class_id', $class['class_id'])
+    ->groupBy('storage_object_instance.container_id');
     
-      SELECT {storage_object_instance}.container_id, 
-        COUNT({storage_file}.file_id) AS count, SUM({storage_object}.size) AS size
-      FROM {storage_selector}
-      INNER JOIN {storage_file}
-        ON {storage_selector}.selector_id = {storage_file}.selector_id
-      INNER JOIN {storage_object}
-        ON {storage_file}.object_id = {storage_object}.object_id
-      INNER JOIN {storage_object_instance}
-        ON {storage_object}.object_id = {storage_object_instance}.object_id
-      WHERE {storage_selector}.class_id = %d
-      GROUP BY {storage_object_instance}.container_id
-      
-    ) AS objects
-      ON {storage_container}.container_id = objects.container_id
-    LEFT JOIN (
+  $files_subquery = db_select('storage_selector')
+    ->join('storage_file', NULL, 'storage_selector.selector_id = storage_file.selector_id')
+    ->join('storage_object', NULL, 'storage_file.object_id = storage_object.object_id')
+    ->join('storage_file_instance', NULL, 'storage_file.file_id = storage_file_instance.file_id')
+    ->fields('storage_object_instance', 'container_id')
+    ->expression('COUNT(storage_file.file_id)', 'count')
+    ->expression('SUM(storage_object.size)', 'size')
+    ->condition('storage_selector.class_id', $class['class_id'])
+    ->groupBy('storage_file_instance.container_id');
     
-      SELECT {storage_file_instance}.container_id, 
-        COUNT({storage_file}.file_id) AS count, SUM({storage_object}.size) AS size
-      FROM {storage_selector}
-      INNER JOIN {storage_file}
-        ON {storage_selector}.selector_id = {storage_file}.selector_id
-      INNER JOIN {storage_object}
-        ON {storage_file}.object_id = {storage_object}.object_id
-      INNER JOIN {storage_file_instance}
-        ON {storage_file}.file_id = {storage_file_instance}.file_id
-      WHERE {storage_selector}.class_id = %d
-      GROUP BY {storage_file_instance}.container_id
-      
-    ) AS files
-      ON {storage_container}.container_id = files.container_id
-    WHERE {storage_class_container}.class_id = %d
-    ORDER BY {storage_class_container}.weight, {storage_container}.container_id
-  ",
-    $class['class_id'], $class['class_id'], $class['class_id']
-  );
+  $result = db_select('storage_class_container', NULL, array('fetch' => PDO::FETCH_ASSOC))
+    ->join('storage_container', NULL, 'storage_class_container.container_id = storage_container.container_id')
+    ->leftJoin($objects_subquery, 'objects', 'storage_container.container_id = objects.container_id')
+    ->leftJoin($files_subquery, 'files', 'storage_container.container_id = files.container_id')
+    ->condition('storage_class_container.class_id', $class['class_id'])
+    ->orderBy('storage_class_container.weight')
+    ->orderBy('storage_container.container_id')
+    ->execute();
 
-  while($container = db_fetch_array($result)) {
+  foreach($result as $container) {
     unset($row);
     
     $row[] = l($container['name'], 
@@ -256,23 +238,20 @@ function storage_api_class_edit_form($form_state, $class) {
 
   $form = _storage_api_class_form_elements($class);
   
-  $result = db_query("
-    SELECT {storage_container}.container_id, {storage_container}.name, {storage_container}.service_id, 
-      {storage_class_container}.weight, {storage_class_container}.serving
-    FROM {storage_class_container}
-    INNER JOIN {storage_container}
-      ON {storage_class_container}.container_id = {storage_container}.container_id
-    WHERE class_id = %d
-    ORDER BY {storage_class_container}.weight, {storage_container}.container_id
-  ",
-    $class['class_id']
-  );
+  $result = db_select('storage_class_container', NULL, array('fetch' => PDO::FETCH_ASSOC))
+    ->join('storage_container', NULL, 'storage_class_container.container_id = storage_container.container_id')
+    ->fields('storage_container', array('container_id', 'name', 'service_id'))
+    ->fields('storage_class_container', array('weight', 'serving'))
+    ->condition('storage_class_container.class_id', $class['class_id'])
+    ->orderBy('storage_class_container.weight')
+    ->orderBy('storage_container.container_id')
+    ->execute();
 
   $form['#tree'] = TRUE;
   
   $trash = _storage_api_trash_icon();
 
-  while($container = db_fetch_array($result)) {
+  foreach($result as $container) {
   
     $form['#container_ids'][] = $container['container_id'];
 
@@ -399,19 +378,14 @@ function storage_api_class_edit_form_submit($form, &$form_state) {
     drupal_write_record('storage_class_container', $update, array('class_id', 'container_id'));
   }
   
-  db_query("
-    UPDATE {storage_file}
-    SET serve_url = NULL
-    WHERE selector_id IN (
-    
-      SELECT selector_id
-      FROM {storage_selector}
-      WHERE class_id = %d
-      
-    )
-  ",
-    $class['class_id']
-  );
+  $selector_subquery = db_select('storage_selector')
+    ->fields('storage_selector', array('selector_id'))
+    ->condition('class_id', $class['class_id']);
+
+  db_update('storage_file')
+    ->expression('serve_url', 'NULL')
+    ->condition('selector_id', $selector_subquery, 'IN')
+    ->execute();
   
   cache_clear_all();
   
@@ -458,12 +432,9 @@ function storage_api_class_destroy_form($form_state, $class) {
 function storage_api_class_destroy_form_submit($form, &$form_state) {
   $class = $form['#parameters'][2];
   
-  db_query("
-    DELETE FROM {storage_class}
-    WHERE class_id = %d
-  ",
-    $class['class_id']
-  );
+  db_delete('storage_class')
+    ->condition('class_id', $class['class_id'])
+    ->execute();
 
   $message = 'Storage class <i>' . _storage_api_class_name($class['class_id']) . '</i> has been destroyed.';
 
@@ -484,22 +455,18 @@ function storage_api_class_add_container_form($form_state, $class) {
 
   drupal_set_title(t('Storage class: ') . $class['name']);
 
-  $result = db_query("
-    SELECT *
-    FROM {storage_container}
-    WHERE container_id NOT IN (
-    
-      SELECT container_id
-      FROM {storage_class_container}
-      WHERE class_id = %d
-      
-    )
-    ORDER BY name, container_id
-  ",
-    $class['class_id']
-  );
-  
-  while($container = db_fetch_array($result)) {
+  $selector_subquery = db_select('storage_class_container')
+    ->fields('storage_class_container', array('container_id'))
+    ->condition('class_id', $class['class_id']);
+
+  $result = db_select('storage_container', NULL, array('fetch' => PDO::FETCH_ASSOC))
+    ->fields()
+    ->condition('container_id', $selector_subquery, 'NOT IN')
+    ->orderBy('name')
+    ->orderBy('container_id')
+    ->execute();
+ 
+  foreach($result as $container) {
     $containers[$container['container_id']] = $container['name'];
   }
   
@@ -569,30 +536,21 @@ function storage_api_class_remove_container_form_submit($form, &$form_state) {
   $class = $form['#parameters'][2];
   $container = $form['#parameters'][3];
 
-  db_query("
-    DELETE FROM {storage_class_container}
-    WHERE class_id = %d
-      AND container_id = %d
-  ",
-    $class['class_id'],
-    $container['container_id']
-  );
+  db_delete('storage_class_container')
+    ->condition('class_id', $class['class_id'])
+    ->condition('container_id', $container['container_id'])
+    ->execute();
   
-  db_query("
-    UPDATE {storage_file}
-    SET check_me = 1,
-      serve_url = NULL
-    WHERE selector_id IN (
-    
-      SELECT selector_id
-      FROM {storage_selector}
-      WHERE class_id = %d
-      
-    )
-  ",
-    $class['class_id']
-  );
-  
+  $selector_subquery = db_select('storage_selector')
+    ->fields('storage_selector', array('selector_id'))
+    ->condition('class_id', $class['class_id']);
+
+  db_update('storage_file')
+    ->fields(array('check_me' => 1))
+    ->expression('serve_url', 'NULL')
+    ->condition('selector_id', $selector_subquery, 'IN')
+    ->execute();
+
   cache_clear_all();
 
   $container = storage_api_container_load($container['container_id']);

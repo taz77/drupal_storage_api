@@ -9,41 +9,34 @@ _storage_api_update_services();
 
 function _storage_api_services_query() {
 
-  $query = "
-    SELECT {storage_service}.*, 
-      objects.count AS objects_count, files.count AS files_count, 
-      objects.size AS objects_size, files.size AS files_size
-    FROM {storage_service}
-    LEFT JOIN (
-    
-      SELECT {storage_container}.service_id, 
-        COUNT({storage_object}.object_id) AS count, SUM({storage_object}.size) AS size
-      FROM {storage_container}
-      INNER JOIN {storage_object_instance}
-        ON {storage_container}.container_id = {storage_object_instance}.container_id
-      INNER JOIN {storage_object}
-        ON {storage_object_instance}.object_id = {storage_object}.object_id
-      GROUP BY {storage_container}.service_id
-      
-    ) AS objects
-      ON {storage_service}.service_id = objects.service_id
-    LEFT JOIN (
-    
-      SELECT {storage_container}.service_id, 
-        COUNT({storage_file}.file_id) AS count, SUM({storage_object}.size) AS size
-      FROM {storage_container}
-      INNER JOIN {storage_file_instance}
-        ON {storage_container}.container_id = {storage_file_instance}.container_id
-      INNER JOIN {storage_file}
-        ON {storage_file_instance}.file_id = {storage_file}.file_id
-      INNER JOIN {storage_object}
-        ON {storage_file}.object_id = {storage_object}.object_id
-      GROUP BY {storage_container}.service_id
-      
-    ) AS files
-      ON {storage_service}.service_id = files.service_id
-  ";
-  
+  $objects_subquery = db_select('storage_container')
+    ->join('storage_object_instance', NULL, 'storage_container.container_id = storage_object_instance.container_id')
+    ->join('storage_object', NULL, 'storage_object_instance.object_id = storage_object.object_id')
+    ->fields('storage_container', array('service_id'))
+    ->expression('COUNT(storage_object.object_id)', 'count')
+    ->expression('SUM(storage_object.size)', 'size')
+    ->groupBy('storage_container.service_id');
+
+  $files_subquery = db_select('storage_container')
+    ->join('storage_file_instance', NULL, 'storage_container.container_id = storage_file_instance.container_id')
+    ->join('storage_file', NULL, 'storage_file_instance.file_id = storage_file.file_id')
+    ->join('storage_object', NULL, 'storage_file.object_id = storage_object.object_id')
+    ->fields('storage_container', array('service_id'))
+    ->expression('COUNT(storage_file.file_id)', 'count')
+    ->expression('SUM(storage_object.size)', 'size')
+    ->groupBy('storage_container.service_id');
+
+  $query = db_select('storage_service', NULL, array('fetch' => PDO::FETCH_ASSOC))
+    ->leftJoin($objects_subquery, 'objects', 'storage_service.service_id = objects.service_id')
+    ->leftJoin($files_subquery, 'files', 'storage_service.service_id = files.service_id')
+    ->fields('storage_service');
+
+  $query->addField('objects', 'count', 'objects_count');
+  $query->addField('objects', 'size', 'objects_size');
+
+  $query->addField('files', 'count', 'files_count');
+  $query->addField('files', 'size', 'files_size');
+
   return $query;
 }
 
@@ -54,10 +47,11 @@ function storage_api_services() {
 
   $header = array(t('Service'), t('Suspended'), t('Instances'), t('Size'));
 
-  $query = _storage_api_services_query();
-  $result = db_query($query . "ORDER BY service_id");
+  $result = _storage_api_services_query()
+    ->orderBy('storage_service.service_id')
+    ->execute();
 
-  while($service = db_fetch_array($result)) {
+  foreach($result as $service) {
     unset($row);
   
     $name = _storage_api_get_service_name($service['service_id']);
@@ -80,23 +74,16 @@ function storage_api_services() {
 
 function _storage_api_service_flush_serve_url($service_id) {
 
-  db_query("
-    UPDATE {storage_file}
-    SET serve_url = NULL
-    WHERE selector_id IN (
+  $selector_subquery = db_select('storage_container')
+    ->join('storage_class_container', NULL, 'storage_container.container_id = storage_class_container.container_id')
+    ->join('storage_selector', NULL, 'storage_class_container.class_id = storage_selector.class_id')
+    ->fields('storage_selector', array('selector_id'))
+    ->condition('storage_container.service_id', $service_id);
     
-      SELECT {storage_selector}.selector_id
-      FROM {storage_container}
-      INNER JOIN {storage_class_container}
-        ON {storage_container}.container_id = {storage_class_container}.container_id
-      INNER JOIN {storage_selector}
-        ON {storage_class_container}.class_id = {storage_selector}.class_id
-      WHERE {storage_container}.service_id = %d
-      
-    )
-  ",
-    $service_id
-  );
+  db_update('storage_file')
+    ->expression('serve_url', 'NULL')
+    ->condition('selector_id', $selector_subquery, 'IN')
+    ->execute();
 
   cache_clear_all();
 }
@@ -115,9 +102,11 @@ function storage_api_service_form($form_state, $service) {
 
   $rows[] = array(t('Suspended'), $service['suspended'] ? t('Yes') : t('No'));
 
-  $query = _storage_api_services_query();
-  $info = db_fetch_array(db_query($query . "WHERE {storage_service}.service_id = '%s'", $service['service_id']));
-
+  $info = _storage_api_services_query()
+    ->condition('storage_service.service_id', $service['service_id'])
+    ->execute()
+    ->fetchAssoc();
+  
   $rows[] = array(t('Instances'), $info['objects_count'] + $info['files_count']);
   $rows[] = array(t('Size'), storage_api_format_size($info['objects_size'] + $info['files_size']));
   

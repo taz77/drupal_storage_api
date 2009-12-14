@@ -288,21 +288,15 @@ function storage_api_file_load($file_id, $reload = FALSE) {
   // either the file is being deleted and no longer has a selector,
   // or we grab the selector with migrating = 0
 
-  $file = db_fetch_array(db_query("
-    SELECT *
-    FROM {storage_file}
-    LEFT JOIN {storage_object}
-      ON {storage_file}.object_id = {storage_object}.object_id
-    LEFT JOIN {storage_selector}
-      ON {storage_file}.selector_id = {storage_selector}.selector_id
-    LEFT JOIN {storage_class}
-      ON {storage_selector}.class_id = {storage_class}.class_id
-    WHERE {storage_file}.file_id = %d
-      AND ({storage_file}.selector_id IS NULL
-        OR {storage_selector}.migrating = 0)
-  ",
-    $file_id
-  ));
+  $file = db_select('storage_file')
+    ->leftJoin('storage_object', NULL, 'storage_file.object_id = storage_object.object_id')
+    ->leftJoin('storage_selector', NULL, 'storage_file.selector_id = storage_selector.selector_id')
+    ->leftJoin('storage_class', NULL, 'storage_selector.class_id = storage_class.class_id')
+    ->fields()
+    ->condition('storage_file.file_id', $file_id)
+    ->condition(db_or()->isNull('storage_file.selector_id')->condition('storage_selector.migrating', 0))
+    ->execute()
+    ->fetchAssoc();
   
   if(!$file)
     return FALSE;
@@ -329,14 +323,12 @@ function storage_api_service_load($service_id) {
   if(!$service_id)
     return FALSE;
 
-  $service = db_fetch_array(db_query("
-    SELECT *
-    FROM {storage_service}
-    WHERE service_id = '%s'
-  ",
-    $service_id
-  ));
-  
+  $service = db_select('storage_service')
+    ->fields()
+    ->condition('service_id', $service_id)
+    ->execute()
+    ->fetchAssoc();
+    
   if(!$service)
     return FALSE;
   
@@ -359,13 +351,11 @@ function storage_api_container_load($container_id) {
   if(!$container_id)
     return FALSE;
     
-  $container = db_fetch_array(db_query("
-    SELECT *
-    FROM {storage_container}
-    WHERE container_id = %d
-  ",
-    $container_id
-  ));
+  $container = db_select('storage_container')
+    ->fields()
+    ->condition('container_id', $container_id)
+    ->execute()
+    ->fetchAssoc();
   
   if(!$container)
     return FALSE;
@@ -386,14 +376,15 @@ function storage_api_container_load($container_id) {
  */
 function storage_api_class_load($class_id) {
 
-  $class = db_fetch_array(db_query("
-    SELECT *
-    FROM {storage_class}
-    WHERE class_id = %d
-  ",
-    $class_id
-  ));
-  
+  if(!$class_id)
+    return FALSE;
+    
+  $class = db_select('storage_class')
+    ->fields()
+    ->condition('class_id', $class_id)
+    ->execute()
+    ->fetchAssoc();
+
   if(!$class)
     return FALSE;
   
@@ -413,23 +404,19 @@ function _storage_api_update_services() {
     $code_service_ids[] = substr($module, 8);
 
 
-  $result = db_query("
-    SELECT service_id
-    FROM {storage_service}
-  ");
-  
+  $result = db_select('storage_service', NULL, array('fetch' => PDO::FETCH_ASSOC))
+    ->fields('storage_service', array('service_id'))
+    ->execute();
+
   $db_service_ids = array();
 
-  while($service = db_fetch_array($result)) {
+  foreach($result as $service) {
 
     if(!in_array($service['service_id'], $code_service_ids)) {
 
-      db_query("
-        DELETE FROM {storage_service}
-        WHERE service_id = '%s'
-      ",
-        $service['service_id']
-      );
+      db_delete('storage_service')
+        ->condition('service_id', $service['service_id'])
+        ->execute();
     }
     else {
       $db_service_ids[] = $service['service_id'];
@@ -517,15 +504,11 @@ function _storage_api_log_serving($file, $container_id = NULL) {
 
   drupal_write_record('storage_serving', $serving);
   
-  db_query("
-    UPDATE {storage_file}
-    SET servings = servings + 1,
-      last_touched = %d
-    WHERE file_id = %d
-  ",
-    REQUEST_TIME,
-    $file['file_id']
-  );
+  db_update('storage_file')
+    ->fields(array('last_touched' => REQUEST_TIME))
+    ->expression('servings', 'servings + :one', array(':one' => 1))   // apparently literals can't be in fragments
+    ->condition('file_id', $file['file_id'])
+    ->execute();
 }
 
 
@@ -605,54 +588,45 @@ function _storage_api_service_unavailable() {
 
 function _storage_api_serving_container($file) {
 
-  $container = db_fetch_array(db_query("
-    (
+  $objects_subquery = db_select('storage_object_instance')
+    ->join('storage_class_container', NULL, 'storage_object_instance.container_id = storage_class_container.container_id')
+    ->join('storage_selector', NULL, 'storage_class_container.class_id = storage_selector.class_id')
+    ->join('storage_container', NULL, 'storage_object_instance.container_id = storage_container.container_id')
+    ->join('storage_service', NULL, 'storage_object_instance.service_id = storage_service.service_id')
+    ->condition('storage_object_instance.object_id', $file['object_id'])
+    ->condition('storage_class_container.serving', 1, '>=')
+    ->condition('storage_selector.selector_id', $file['selector_id'])
+    ->condition('storage_container.suspended', 0)
+    ->condition('storage_service.suspended', 0)
+    ->fields('storage_container')
+    ->fields('storage_class_container', array('weight'))
+    ->fields('storage_selector', array('migrating'));
     
-      SELECT {storage_container}.*, {storage_object_instance}.reference, 
-        {storage_class_container}.weight, {storage_selector}.migrating, 'object' AS type
-      FROM {storage_object_instance}
-      INNER JOIN {storage_class_container}
-        ON {storage_object_instance}.container_id = {storage_class_container}.container_id
-      INNER JOIN {storage_selector}
-        ON {storage_class_container}.class_id = {storage_selector}.class_id
-      INNER JOIN {storage_container}
-        ON {storage_object_instance}.container_id = {storage_container}.container_id
-      INNER JOIN {storage_service}
-        ON {storage_container}.service_id = {storage_service}.service_id
-      WHERE {storage_object_instance}.object_id = %d
-        AND {storage_class_container}.serving >= 1
-        AND {storage_selector}.selector_id = %d
-        AND {storage_container}.suspended = 0
-        AND {storage_service}.suspended = 0
-        
-    ) UNION ALL (
+  $objects_subquery->addExpression('\'object\'', 'type');
+
+  $files_subquery = db_select('storage_file_instance')
+    ->join('storage_class_container', NULL, 'storage_file_instance.container_id = storage_class_container.container_id')
+    ->join('storage_selector', NULL, 'storage_class_container.class_id = storage_selector.class_id')
+    ->join('storage_container', NULL, 'storage_file_instance.container_id = storage_container.container_id')
+    ->join('storage_service', NULL, 'storage_file_instance.service_id = storage_service.service_id')
+    ->condition('storage_file_instance.file_id', $file['file_id'])
+    ->condition('storage_class_container.serving', 1, '>=')
+    ->condition('storage_selector.selector_id', $file['selector_id'])
+    ->condition('storage_container.suspended', 0)
+    ->condition('storage_service.suspended', 0)
+    ->fields('storage_container')
+    ->fields('storage_class_container', array('weight'))
+    ->fields('storage_selector', array('migrating'));
+
+  $files_subquery->addExpression('\'file\'', 'type');
     
-      SELECT {storage_container}.*, {storage_file_instance}.reference, 
-        {storage_class_container}.weight, {storage_selector}.migrating, 'file' AS type
-      FROM {storage_file_instance}
-      INNER JOIN {storage_class_container}
-        ON {storage_file_instance}.container_id = {storage_class_container}.container_id
-      INNER JOIN {storage_selector}
-        ON {storage_class_container}.class_id = {storage_selector}.class_id
-      INNER JOIN {storage_container}
-        ON {storage_file_instance}.container_id = {storage_container}.container_id
-      INNER JOIN {storage_service}
-        ON {storage_container}.service_id = {storage_service}.service_id
-      WHERE {storage_file_instance}.file_id = %d
-        AND {storage_class_container}.serving >= 1
-        AND {storage_selector}.selector_id = %d
-        AND {storage_container}.suspended = 0
-        AND {storage_service}.suspended = 0
-        
-    )
-    ORDER BY migrating, weight, container_id
-    LIMIT 1
-  ",
-    $file['object_id'],
-    $file['selector_id'],
-    $file['file_id'],
-    $file['selector_id']
-  ));
+  $container = $objects_subquery->union($files_subquery, 'ALL')
+    ->orderBy('migrating')
+    ->orderBy('weight')
+    ->orderBy('container_id')
+    ->range(0, 1)
+    ->execute()
+    ->fetchAssoc();
   
   if(!$container)
     return FALSE;
@@ -664,14 +638,10 @@ function _storage_api_serving_container($file) {
 
 function _storage_api_cache_serve_url($file_id, $url) {
 
-  db_query("
-    UPDATE {storage_file}
-    SET serve_url = '%s'
-    WHERE file_id = %d
-  ",
-    $url,
-    $file_id
-  );
+  db_update('storage_file')
+    ->fields(array('serve_url' => $url))
+    ->condition('file_id', $file_id)
+    ->execute();
 
   storage_api_file_flush($file_id);
 }
@@ -679,13 +649,10 @@ function _storage_api_cache_serve_url($file_id, $url) {
 
 function _storage_api_flush_serve_url($file_id) {
 
-  db_query("
-    UPDATE {storage_file}
-    SET serve_url = NULL
-    WHERE file_id = %d
-  ",
-    $file_id
-  );
+  db_update('storage_file')
+    ->expression('serve_url', 'NULL')
+    ->condition('file_id', $file_id)
+    ->execute();
 
   storage_api_file_flush($file_id);
 }
@@ -862,13 +829,15 @@ function storage_api_serve_url($file, $absolute = FALSE) {
  *   The selector_id of the new class selector.
  */
 function storage_api_new_selector_id() {
+  $txn = db_transaction();
 
-  $class_id = db_result(db_query("
-    SELECT class_id
-    FROM {storage_class}
-    ORDER BY name, class_id
-    LIMIT 1
-  "));
+  $class_id = db_select('storage_class')
+    ->fields('storage_class', array('class_id'))
+    ->orderBy('name')
+    ->orderBy('class_id')
+    ->range(0, 1)
+    ->execute()
+    ->fetchField();
 
   $selector = array('class_id' => $class_id);
   drupal_write_record('storage_selector', $selector);
@@ -897,15 +866,15 @@ function storage_api_selector_item($selector_id, $title, $description = NULL) {
     '#tree' => TRUE
   );
   
-  $result = db_query("
-    SELECT *
-    FROM {storage_class}
-    ORDER BY name, class_id
-  ");
+  $result = db_select('storage_class', NULL, array('fetch' => PDO::FETCH_ASSOC))
+    ->fields()
+    ->orderBy('name')
+    ->orderBy('class_id')
+    ->execute();
   
   $classes = array();
 
-  while($class = db_fetch_array($result)) {
+  foreach($result as $class) {
     $classes[$class['class_id']] = $class['name'];
   }
   
@@ -921,15 +890,12 @@ function storage_api_selector_item($selector_id, $title, $description = NULL) {
     '#value' => $selector_id
   );
 
-  $current_class_id = db_result(db_query("
-  
-    SELECT class_id
-    FROM {storage_selector}
-    WHERE selector_id = %d
-      AND migrating = 0
-  ",
-    $selector_id
-  ));
+  $current_class_id = db_select('storage_selector')
+    ->fields('storage_selector', array('class_id'))
+    ->condition('selector_id', $selector_id)
+    ->condition('migrating', 0)
+    ->execute()
+    ->fetchField();
 
   $selector['class_id']['#default_value'] = $current_class_id;
   
@@ -956,47 +922,38 @@ function storage_api_selector_submit($form_item) {
     return;
 
 
-  db_query("
-    REPLACE INTO {storage_selector}
-    SET selector_id = %d,
-      class_id = %d,
-      migrating = 0
-  ",
-    $form_item['selector_id'],
-    $form_item['class_id']
-  );
-  
+  db_merge('storage_selector')
+    ->key(array(
+      'selector_id' => $form_item['selector_id'],
+      'class_id' => $form_item['class_id'],
+    ))
+    ->fields(array('migrating' => 0))
+    ->execute();
+
   
   // are there any files to migrate?
 
-  $num_files = db_result(db_query("
-    SELECT COUNT(*)
-    FROM {storage_file}
-    WHERE selector_id = %d
-  ",
-    $form_item['selector_id']
-  ));
+  $num_files = db_select('storage_file')
+    ->condition('selector_id', $form_item['selector_id'])
+    ->countQuery()
+    ->execute()
+    ->fetchField();
   
   if($num_files) {
 
-    db_query("
-      REPLACE INTO {storage_selector}
-      SET selector_id = %d,
-        class_id = %d,
-        migrating = 1
-    ",
-      $form_item['selector_id'],
-      $form_item['current_class_id']
-    );
+    db_merge('storage_selector')
+      ->key(array(
+        'selector_id' => $form_item['selector_id'],
+        'class_id' => $form_item['current_class_id'],
+      ))
+      ->fields(array('migrating' => 1))
+      ->execute();
 
-    db_query("
-      UPDATE {storage_file}
-      SET check_me = 1,
-        serve_url = NULL
-      WHERE selector_id = %d
-    ",
-      $form_item['selector_id']
-    );
+    db_update('storage_file')
+      ->fields(array('check_me' => 1))
+      ->expression('serve_url', 'NULL')
+      ->condition('selector_id', $form_item['selector_id'])
+      ->execute();
     
     $new_class = storage_api_class_load($form_item['class_id']);
     
@@ -1008,14 +965,10 @@ function storage_api_selector_submit($form_item) {
   }
   else {
   
-    db_query("
-      DELETE FROM {storage_selector}
-      WHERE selector_id = %d
-        AND class_id = %d
-    ",
-      $form_item['selector_id'],
-      $form_item['current_class_id']
-    );
+    db_delete('storage_selector')
+      ->condition('service_id', $form_item['service_id'])
+      ->condition('class_id', $form_item['current_class_id'])
+      ->execute();
   }
 }
 
@@ -1028,37 +981,30 @@ function storage_api_selector_submit($form_item) {
  */
 function storage_api_selector_delete($selector_id) {
   
-  db_query("
-    DELETE FROM {storage_selector}
-    WHERE selector_id = %d
-  ",
-    $selector_id
-  );
+  db_delete('storage_selector')
+    ->condition('selector_id', $selector_id)
+    ->execute();
 }
 
 
 function _storage_api_get_initial_container($selector_id) {
 
   // find the container with the lowest priority in the class
-
-  $container = db_fetch_array(db_query("
-    SELECT {storage_container}.*
-    FROM {storage_selector}
-    INNER JOIN {storage_class_container}
-      ON {storage_selector}.class_id = {storage_class_container}.class_id
-    INNER JOIN {storage_container}
-      ON {storage_class_container}.container_id = {storage_container}.container_id
-    INNER JOIN {storage_service}
-      ON {storage_container}.service_id = {storage_service}.service_id
-    WHERE {storage_selector}.selector_id = %d
-      AND {storage_selector}.migrating = 0
-      AND {storage_container}.suspended = 0
-      AND {storage_service}.suspended = 0
-    ORDER BY {storage_class_container}.weight DESC, {storage_container}.container_id DESC
-    LIMIT 1
-  ",
-    $selector_id
-  ));
+  
+  $container = db_select('storage_selector')
+    ->join('storage_class_container', NULL, 'storage_selector.class_id = storage_class_container.class_id')
+    ->join('storage_container', NULL, 'storage_class_container.container_id = storage_container.container_id')
+    ->join('storage_service', NULL, 'storage_container.service_id = storage_service.service_id')
+    ->fields('storage_container')
+    ->condition('storage_selector.selector_id', $selector_id)
+    ->condition('storage_selector.migrating', 0)
+    ->condition('storage_container.suspended', 0)
+    ->condition('storage_service.suspended', 0)
+    ->orderBy('storage_class_container.weight', 'DESC')
+    ->orderBy('storage_container.container_id', 'DESC')
+    ->range(0, 1)
+    ->execute()
+    ->fetchAssoc();
   
   if(!$container)
     return FALSE;
@@ -1070,6 +1016,7 @@ function _storage_api_get_initial_container($selector_id) {
 
 
 function _storage_api_get_object_id($filepath, &$new_object = NULL) {
+  $txn = db_transaction();
 
   $fileinfo = @stat($filepath);
   
@@ -1079,39 +1026,27 @@ function _storage_api_get_object_id($filepath, &$new_object = NULL) {
   $md5 = '0x' . hash_file('md5', $filepath);
   $whirlpool = '0x' . hash_file('whirlpool', $filepath);
   
-  $object_id = db_result(db_query("
-    SELECT object_id
-    FROM {storage_object}
-    WHERE size = %d
-      AND md5 = %s
-      AND whirlpool = %s
-  ",
-    $fileinfo['size'],
-    $md5,
-    $whirlpool
-  ));
-  
+  $object_id = db_select('storage_object')
+    ->fields('storage_object', array('object_id'))
+    ->condition('size', $fileinfo['size'])
+    ->condition('md5', $md5)
+    ->condition('whirlpool', $whirlpool)
+    ->execute()
+    ->fetchField();
+
   if(!$object_id) {
   
-    // there is a common race condition where the object will have just been inserted
-    // detect this during the insert and update last insert id accordingly
-    
-    db_query("
-      INSERT INTO {storage_object}
-      SET size = %d,
-        md5 = %s,
-        whirlpool = %s,
-        mimetype = '%s'
-      ON DUPLICATE KEY UPDATE object_id = LAST_INSERT_ID(object_id)
-    ",
-      $fileinfo['size'],
-      $md5,
-      $whirlpool,
-      mimedetect_mime(array('filepath' => $filepath))
+    $object = array(
+      'size' => $fileinfo['size'],
+      'md5' => $md5,
+      'whirlpool' => $whirlpool,
+      'mimetype' => mimedetect_mime(array('filepath' => $filepath)),
     );
-    
-    $object_id = db_last_insert_id('storage_object', 'object_id');
-    $new_object = FALSE;  // we can't determine this atm because of the race condition fixup above
+
+    db_write_record('storage_object', $object);
+
+    $object_id = $object['object_id'];
+    $new_object = TRUE;
   }
   
   return $object_id;
@@ -1130,15 +1065,12 @@ function _storage_api_get_object_id($filepath, &$new_object = NULL) {
  */
 function storage_api_file_reference_exists($container, $reference) {
 
-  return (bool)db_result(db_query("
-    SELECT COUNT(*)
-    FROM {storage_file_instance}
-    WHERE container_id = %d
-      AND reference = '%s'
-  ",
-    $container['container_id'],
-    $reference
-  ));
+  return (bool)db_select('storage_file_instance')
+    ->condition('container_id', $container['container_id'])
+    ->condition('reference', $reference)
+    ->countQuery()
+    ->execute()
+    ->fetchField();
 }
 
 
@@ -1180,29 +1112,23 @@ function storage_api_unique_filename($container, $filename) {
 
 function _storage_api_object_instance_exists($object_id, $container_id) {
 
-  return db_fetch_array(db_query("
-    SELECT reference
-    FROM {storage_object_instance}
-    WHERE object_id = %d
-      AND container_id = %d
-  ",
-    $object_id,
-    $container_id
-  ));
+  return db_select('storage_object_instance')
+    ->fields('storage_object_instance', array('reference'))
+    ->condition('object_id', $object_id)
+    ->condition('container_id', $container_id)
+    ->execute()
+    ->fetchAssoc();
 }
 
 
 function _storage_api_file_instance_exists($file_id, $container_id) {
 
-  return db_fetch_array(db_query("
-    SELECT reference
-    FROM {storage_file_instance}
-    WHERE file_id = %d
-      AND container_id = %d
-  ",
-    $file_id,
-    $container_id
-  ));
+  return db_select('storage_file_instance')
+    ->fields('storage_file_instance', array('reference'))
+    ->condition('file_id', $file_id)
+    ->condition('container_id', $container_id)
+    ->execute()
+    ->fetchAssoc();
 }
 
 
@@ -1219,33 +1145,22 @@ function storage_api_inherit_servings($new_file_id, $old_file_id) {
   if(!$old_file_id)
     return;
 
-  db_query("
-    UPDATE {storage_serving}
-    SET file_id = %d
-    WHERE file_id = %d
-  ",
-    $new_file_id,
-    $old_file_id
-  );
-  
-  $old_stats = db_fetch_array(db_query("
-    SELECT servings, last_touched
-    FROM {storage_file}
-    WHERE file_id = %d
-  ",
-    $old_file_id
-  ));
+  db_update('storage_serving')
+    ->fields(array('file_id' => $new_file_id))
+    ->condition('file_id', $old_file_id)
+    ->execute();
 
-  db_query("
-    UPDATE {storage_file}
-    SET servings = servings + %d,
-      last_touched = GREATEST(last_touched, %d)
-    WHERE file_id = %d
-  ",
-    $old_stats['servings'],
-    $old_stats['last_touched'],
-    $new_file_id
-  );
+  $old_stats = db_select('storage_file')
+    ->fields('storage_file', array('servings', 'last_touched'))
+    ->condition('file_id', $old_file_id)
+    ->execute()
+    ->fetchAssoc();
+
+  db_update('storage_file')
+    ->expression('servings', 'servings + :servings', array(':servings' => $old_stats['servings']))
+    ->expression('last_touched', 'GREATEST(last_touched, :last_touched)', array(':last_touched' => $old_stats['last_touched']))
+    ->condition('file_id', $new_file_id)
+    ->execute();
 }
 
 
@@ -1415,25 +1330,22 @@ function _storage_api_acquire_from_url($url) {
 
 
 function _storage_api_delete_object_if_unrequired($object_id) {
-
+  $txn = db_transaction();
+  
   // do any files use this object?
   
-  if(db_result(db_query("
-    SELECT COUNT(*)
-    FROM {storage_file}
-    WHERE object_id = %d
-  ",
-    $object_id
-  ))) {
+  if(db_select('storage_file')
+    ->condition('object_id', $object_id)
+    ->countQuery()
+    ->execute()
+    ->fetchField())
+  {
     return;
   }
   
-  db_query("
-    DELETE FROM {storage_object}
-    WHERE object_id = %d
-  ",
-    $object_id
-  );
+  db_delete('storage_object')
+    ->condition('object_id', $object_id)
+    ->execute();
 }
 
 
@@ -1544,52 +1456,45 @@ function _storage_api_acquire_from_source_url(&$file) {
  */
 function storage_api_get_local_filepath(&$file, &$keep_me) {
 
-  $container = db_fetch_array(db_query("
-    (
+  $objects_subquery = db_select('storage_object_instance')
+    ->join('storage_class_container', NULL, 'storage_object_instance.container_id = storage_class_container.container_id')
+    ->join('storage_selector', NULL, 'storage_class_container.class_id = storage_selector.class_id')
+    ->join('storage_container', NULL, 'storage_object_instance.container_id = storage_container.container_id')
+    ->join('storage_service', NULL, 'storage_object_instance.service_id = storage_service.service_id')
+    ->condition('storage_object_instance.object_id', $file['object_id'])
+    ->condition('storage_class_container.serving', 1, '>=')
+    ->condition('storage_selector.selector_id', $file['selector_id'])
+    ->condition('storage_container.suspended', 0)
+    ->condition('storage_service.suspended', 0)
+    ->fields('storage_container')
+    ->fields('storage_class_container', array('weight'))
+    ->fields('storage_selector', array('migrating'));
     
-      SELECT {storage_container}.*, {storage_object_instance}.reference, 
-        {storage_class_container}.weight, {storage_selector}.migrating, 'object' AS type
-      FROM {storage_object_instance}
-      INNER JOIN {storage_class_container}
-        ON {storage_object_instance}.container_id = {storage_class_container}.container_id
-      INNER JOIN {storage_selector}
-        ON {storage_class_container}.class_id = {storage_selector}.class_id
-      INNER JOIN {storage_container}
-        ON {storage_object_instance}.container_id = {storage_container}.container_id
-      INNER JOIN {storage_service}
-        ON {storage_container}.service_id = {storage_service}.service_id
-      WHERE {storage_object_instance}.object_id = %d
-        AND {storage_selector}.selector_id = %d
-        AND {storage_container}.suspended = 0
-        AND {storage_service}.suspended = 0
-        
-    ) UNION ALL (
+  $objects_subquery->addExpression('\'object\'', 'type');
+
+  $files_subquery = db_select('storage_file_instance')
+    ->join('storage_class_container', NULL, 'storage_file_instance.container_id = storage_class_container.container_id')
+    ->join('storage_selector', NULL, 'storage_class_container.class_id = storage_selector.class_id')
+    ->join('storage_container', NULL, 'storage_file_instance.container_id = storage_container.container_id')
+    ->join('storage_service', NULL, 'storage_file_instance.service_id = storage_service.service_id')
+    ->condition('storage_file_instance.file_id', $file['file_id'])
+    ->condition('storage_class_container.serving', 1, '>=')
+    ->condition('storage_selector.selector_id', $file['selector_id'])
+    ->condition('storage_container.suspended', 0)
+    ->condition('storage_service.suspended', 0)
+    ->fields('storage_container')
+    ->fields('storage_class_container', array('weight'))
+    ->fields('storage_selector', array('migrating'));
     
-      SELECT {storage_container}.*, {storage_file_instance}.reference, 
-        {storage_class_container}.weight, {storage_selector}.migrating, 'file' AS type
-      FROM {storage_file_instance}
-      INNER JOIN {storage_class_container}
-        ON {storage_file_instance}.container_id = {storage_class_container}.container_id
-      INNER JOIN {storage_selector}
-        ON {storage_class_container}.class_id = {storage_selector}.class_id
-      INNER JOIN {storage_container}
-        ON {storage_file_instance}.container_id = {storage_container}.container_id
-      INNER JOIN {storage_service}
-        ON {storage_container}.service_id = {storage_service}.service_id
-      WHERE {storage_file_instance}.file_id = %d
-        AND {storage_selector}.selector_id = %d
-        AND {storage_container}.suspended = 0
-        AND {storage_service}.suspended = 0
-        
-    )
-    ORDER BY migrating, weight DESC, container_id
-    LIMIT 1
-  ",
-    $file['object_id'],
-    $file['selector_id'],
-    $file['file_id'],
-    $file['selector_id']
-  ));
+  $files_subquery->addExpression('\'file\'', 'type');
+    
+  $container = $objects_subquery->union($files_subquery, 'ALL')
+    ->orderBy('migrating')
+    ->orderBy('weight DESC')
+    ->orderBy('container_id')
+    ->range(0, 1)
+    ->execute()
+    ->fetchAssoc();
   
   if($container) {
   
@@ -1681,15 +1586,14 @@ function storage_api_file_remove($file_id) {
   if(!$file)
     return FALSE;
   
-  db_query("
-    UPDATE {storage_file}
-    SET selector_id = NULL,
-      check_me = 1,
-      serve_url = ''
-    WHERE file_id = %d
-  ",
-    $file_id
-  );
+  db_update('storage_file')
+    ->fields(array(
+      'check_me' => 1,
+      'serve_url' => '',
+    ))
+    ->expression('selector_id', 'NULL')
+    ->condition('file_id', $file_id)
+    ->execute();
   
   storage_api_file_flush($file_id);
   
@@ -1772,29 +1676,22 @@ function storage_api_mime_extension($mimetype) {
  */
 function storage_api_class_add_container($class, $container) {
 
-  db_query("
-    INSERT IGNORE INTO {storage_class_container}
-    SET class_id = %d,
-      container_id = %d
-  ",
-    $class['class_id'],
-    $container['container_id']
-  );
+  db_insert('storage_class_container')
+    ->fields(array(
+      'class_id' => $class['class_id'],
+      'container_id' => $container['container_id'],
+    ))
+    ->execute();  
   
-  db_query("
-    UPDATE {storage_file}
-    SET check_me = 1,
-      serve_url = NULL
-    WHERE selector_id IN (
+  $selector_subquery = db_select('storage_selector')
+    ->fields('storage_selector', array('selector_id'))
+    ->condition('class_id', $class['class_id']);
     
-      SELECT selector_id
-      FROM {storage_selector}
-      WHERE class_id = %d
-      
-    )
-  ",
-    $class['class_id']
-  );
+  db_update('storage_file')
+    ->fields(array('check_me' => 1))
+    ->expression('serve_url', 'NULL')
+    ->condition('selector_id', $selector_subquery, 'IN')
+    ->execute();
 
   $message = 'Storage container <i>' . $container['name'] . 
     '</i> has been added to class <i>' . $class['name'] .'</i>.';
@@ -1814,29 +1711,20 @@ function storage_api_class_add_container($class, $container) {
  */
 function storage_api_drain_container($container) {
 
-  db_query("
-    UPDATE {storage_file}
-    SET check_me = 1,
-      serve_url = NULL
-    WHERE selector_id IN (
+  $selector_subquery = db_select('storage_class_container')
+    ->join('storage_selector', NULL, 'storage_class_container.class_id = storage_selector.class_id')
+    ->fields('storage_selector', array('selector_id'))
+    ->condition('storage_class_container.container_id', $container['container_id']);
     
-      SELECT {storage_selector}.selector_id
-      FROM {storage_class_container}
-      INNER JOIN {storage_selector}
-        ON {storage_class_container}.class_id = {storage_selector}.class_id
-      WHERE {storage_class_container}.container_id = %d
-      
-    )
-  ",
-    $container['container_id']
-  );
+  db_update('storage_file')
+    ->fields(array('check_me' => 1))
+    ->expression('serve_url', 'NULL')
+    ->condition('selector_id', $selector_subquery, 'IN')
+    ->execute();
 
-  db_query("
-    DELETE FROM {storage_class_container}
-    WHERE container_id = %d
-  ",
-    $container['container_id']
-  );
+  db_delete('storage_class_container')
+    ->condition('container_id', $container['container_id'])
+    ->execute();
 
   $message = 'Storage container <i>' . $container['name'] . 
     '</i> has been removed from all classes and will be drained during cron.';

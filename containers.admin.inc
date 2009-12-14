@@ -6,36 +6,31 @@
 
 function _storage_api_containers_query() {
 
-  $query = "
-    SELECT {storage_container}.*, 
-      objects.count AS objects_count, objects.size AS objects_size,
-      files.count AS files_count, files.size AS files_size
-    FROM {storage_container}
-    LEFT JOIN (
+  $objects_subquery = db_select('storage_object_instance')
+    ->join('storage_object', NULL, 'storage_object_instance.object_id = storage_object.object_id')
+    ->fields('storage_object_instance', array('container_id'))
+    ->expression('COUNT(storage_object.object_id)', 'count')
+    ->expression('SUM(storage_object.size)', 'size')
+    ->groupBy('storage_object_instance.container_id');
+
+  $files_subquery = db_select('storage_file_instance')
+    ->join('storage_file', NULL, 'storage_file_instance.file_id = storage_file.file_id')
+    ->join('storage_object', NULL, 'storage_file.object_id = storage_object.object_id')
+    ->fields('storage_file_instance', array('container_id'))
+    ->expression('COUNT(storage_file.file_id)', 'count')
+    ->expression('SUM(storage_object.size)', 'size')
+    ->groupBy('storage_file_instance.container_id');
+
+  $query = db_select('storage_container', NULL, array('fetch' => PDO::FETCH_ASSOC))
+    ->leftJoin($objects_subquery, 'objects', 'storage_container.container_id = objects.container_id')
+    ->leftJoin($files_subquery, 'files', 'storage_container.container_id = files.container_id')
+    ->fields('storage_container');
     
-      SELECT {storage_object_instance}.container_id, 
-        COUNT({storage_object}.object_id) AS count, SUM({storage_object}.size) AS size
-      FROM {storage_object_instance}
-      INNER JOIN {storage_object}
-        ON {storage_object_instance}.object_id = {storage_object}.object_id
-      GROUP BY {storage_object_instance}.container_id
-      
-    ) AS objects
-      ON {storage_container}.container_id = objects.container_id
-    LEFT JOIN (
-    
-      SELECT {storage_file_instance}.container_id, 
-        COUNT({storage_file}.file_id) AS count, SUM({storage_object}.size) AS size
-      FROM {storage_file_instance}
-      INNER JOIN {storage_file}
-        ON {storage_file_instance}.file_id = {storage_file}.file_id
-      INNER JOIN {storage_object}
-        ON {storage_file}.object_id = {storage_object}.object_id
-      GROUP BY {storage_file_instance}.container_id
-      
-    ) AS files
-      ON {storage_container}.container_id = files.container_id
-  ";
+  $query->addField('objects', 'count', 'objects_count');
+  $query->addField('objects', 'size', 'objects_size');
+
+  $query->addField('files', 'count', 'files_count');
+  $query->addField('files', 'size', 'files_size');
   
   return $query;
 }
@@ -47,10 +42,12 @@ function storage_api_containers() {
 
   $header = array(t('Container'), t('Service'), t('Serving'), t('Suspended'), t('Instances'), t('Size'));
 
-  $query = _storage_api_containers_query();
-  $result = db_query($query . "ORDER BY name, container_id");
+  $result = _storage_api_containers_query()
+    ->orderBy('storage_container.name')
+    ->orderBy('storage_container.container_id')
+    ->execute();
 
-  while($container = db_fetch_array($result)) {
+  foreach($result as $container) {
     unset($row);
   
     $row[] = l($container['name'], 'admin/build/storage/containers/' . $container['container_id']);
@@ -287,21 +284,15 @@ function storage_api_create_container_form_submit($form, &$form_state) {
 
 function _storage_api_container_flush_serve_url($container_id) {
 
-  db_query("
-    UPDATE {storage_file}
-    SET serve_url = NULL
-    WHERE selector_id IN (
+  $selector_subquery = db_select('storage_class_container')
+    ->join('storage_selector', NULL, 'storage_class_container.class_id = storage_selector.class_id')
+    ->fields('storage_selector', array('selector_id'))
+    ->condition('storage_class_container.container_id', $container_id);
     
-      SELECT {storage_selector}.selector_id
-      FROM {storage_class_container}
-      INNER JOIN {storage_selector}
-        ON {storage_class_container}.class_id = {storage_selector}.class_id
-      WHERE {storage_class_container}.container_id = %d
-      
-    )
-  ",
-    $container_id
-  );
+  db_update('storage_file')
+    ->expression('serve_url', 'NULL')
+    ->condition('selector_id', $selector_subquery, 'IN')
+    ->execute();
 
   cache_clear_all();
 }
@@ -335,9 +326,10 @@ function storage_api_container_form($form_state, $container) {
       break;
   }
   
-  $query = _storage_api_containers_query();
-  $container_info = db_fetch_array(db_query($query . "WHERE {storage_container}.container_id = %d", 
-    $container['container_id']));
+  $container_info = _storage_api_containers_query()
+    ->condition('storage_container.container_id', $container['container_id'])
+    ->execute()
+    ->fetchAssoc();
 
   $rows[] = array(t('Service'), _storage_api_get_service_name($container['service_id'], TRUE));
   $rows[] = array(t('Serving'), $serving);
@@ -579,33 +571,21 @@ function storage_api_container_destroy_form($form_state, $container) {
 function storage_api_container_destroy_form_submit($form, &$form_state) {
   $container = $form['#parameters'][2];
 
-  db_query("
-    DELETE FROM {storage_container}
-    WHERE container_id = %d
-  ",
-    $container['container_id']
-  );
+  db_delete('storage_container')
+    ->condition('container_id', $container['container_id'])
+    ->execute();
 
-  db_query("
-    DELETE FROM {storage_class_container}
-    WHERE container_id = %d
-  ",
-    $container['container_id']
-  );
+  db_delete('storage_class_container')
+    ->condition('container_id', $container['container_id'])
+    ->execute();
 
-  db_query("
-    DELETE FROM {storage_file_instance}
-    WHERE container_id = %d
-  ",
-    $container['container_id']
-  );
+  db_delete('storage_file_instance')
+    ->condition('container_id', $container['container_id'])
+    ->execute();
 
-  db_query("
-    DELETE FROM {storage_object_instance}
-    WHERE container_id = %d
-  ",
-    $container['container_id']
-  );
+  db_delete('storage_object_instance')
+    ->condition('container_id', $container['container_id'])
+    ->execute();
   
   _storage_api_container_flush_serve_url($container['container_id']);
 
