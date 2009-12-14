@@ -9,7 +9,8 @@
  */
 function storage_rackspace_requirements($phase) {
 
-  @include_once('php-cloudfiles/cloudfiles.php');
+  $path = drupal_get_path('module', 'storage_rackspace');
+  @include_once DRUPAL_ROOT . '/' . $path . '/php-cloudfiles/cloudfiles.php';
 
   $ok = class_exists('CF_Authentication');
   

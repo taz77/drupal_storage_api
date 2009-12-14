@@ -8,7 +8,7 @@ define('STORAGE_API_STORAGE_ONLY', 0);
 define('STORAGE_API_SERVING', 1);
 define('STORAGE_API_ACCESS_CONTROL', 2);
 
-require_once('instance_operations.inc');
+require_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'storage_api') . '/instance_operations.inc';
 
 
 /**
