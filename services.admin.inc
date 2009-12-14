@@ -43,7 +43,7 @@ function _storage_api_services_query() {
 
 function storage_api_services() {
 
-  drupal_set_title(t('Storage services'));
+  drupal_set_title(t('Storage services'), PASS_THROUGH);
 
   $header = array(t('Service'), t('Suspended'), t('Instances'), t('Size'));
 
@@ -98,7 +98,7 @@ function _storage_api_service_flush_serve_url($service_id) {
  */
 function storage_api_service_form($form_state, $service) {
 
-  drupal_set_title(t('Storage service: ') . $service['name']);
+  drupal_set_title(t('Storage service: ') . $service['name'], PASS_THROUGH);
 
   $rows[] = array(t('Suspended'), $service['suspended'] ? t('Yes') : t('No'));
 

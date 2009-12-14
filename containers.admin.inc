@@ -38,7 +38,7 @@ function _storage_api_containers_query() {
 
 function storage_api_containers() {
 
-  drupal_set_title(t('Storage containers'));
+  drupal_set_title(t('Storage containers'), PASS_THROUGH);
 
   $header = array(t('Container'), t('Service'), t('Serving'), t('Suspended'), t('Instances'), t('Size'));
 
@@ -77,7 +77,7 @@ function storage_api_containers() {
  */
 function storage_api_create_container_form($form_state) {
 
-  drupal_set_title(t('Storage containers'));
+  drupal_set_title(t('Storage containers'), PASS_THROUGH);
   
   if(!isset($form_state['values']['step'])) {
     $step = 1;
@@ -309,7 +309,7 @@ function _storage_api_container_flush_serve_url($container_id) {
  */
 function storage_api_container_form($form_state, $container) {
 
-  drupal_set_title(t('Storage container: ') . $container['name']);
+  drupal_set_title(t('Storage container: ') . $container['name'], PASS_THROUGH);
 
   switch($container['serving']) {
   
@@ -612,7 +612,7 @@ function storage_api_container_edit_form($form_state, $container) {
   $service_name = _storage_api_get_service_name($container['service_id']);
 
   drupal_set_title(t('Storage container: ') . $container['name'] . 
-    ' (' . $service_name . ')');
+    ' (' . $service_name . ')', PASS_THROUGH);
   
   $form['name'] = array(
     '#title' => 'Name',

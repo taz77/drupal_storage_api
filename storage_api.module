@@ -580,7 +580,7 @@ function _storage_api_service_unavailable() {
   }
 
   if (empty($return) || $return == MENU_NOT_FOUND || $return == MENU_ACCESS_DENIED) {
-    drupal_set_title(t('Service unavailable'));
+    drupal_set_title(t('Service unavailable'), PASS_THROUGH);
     $return = t('The requested page is not currently available.');
   }
   print theme('page', $return);

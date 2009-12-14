@@ -39,7 +39,7 @@ function _storage_api_classes_query() {
 
 function storage_api_classes_list() {
 
-  drupal_set_title(t('Storage classes'));
+  drupal_set_title(t('Storage classes'), PASS_THROUGH);
 
   $result = _storage_api_classes_query()
     ->orderBy('storage_class.name')
@@ -109,7 +109,7 @@ function _storage_api_class_form_elements($class = NULL) {
  */
 function storage_api_create_class_form($form_state) {
 
-  drupal_set_title(t('Storage classes'));
+  drupal_set_title(t('Storage classes'), PASS_THROUGH);
   
   $form = _storage_api_class_form_elements(); 
 
@@ -148,7 +148,7 @@ function storage_api_create_class_form_submit($form, &$form_state) {
 
 function storage_api_class($class) {
 
-  drupal_set_title(t('Storage class: ') . $class['name']);
+  drupal_set_title(t('Storage class: ') . $class['name'], PASS_THROUGH);
   
   $class_info = _storage_api_classes_query()
     ->havingCondition('storage_class.class_id', $class['class_id'])
@@ -234,7 +234,7 @@ function storage_api_class($class) {
  */
 function storage_api_class_edit_form($form_state, $class) {
 
-  drupal_set_title(t('Storage class: ') . $class['name']);
+  drupal_set_title(t('Storage class: ') . $class['name'], PASS_THROUGH);
 
   $form = _storage_api_class_form_elements($class);
   
@@ -453,7 +453,7 @@ function storage_api_class_destroy_form_submit($form, &$form_state) {
  */
 function storage_api_class_add_container_form($form_state, $class) {
 
-  drupal_set_title(t('Storage class: ') . $class['name']);
+  drupal_set_title(t('Storage class: ') . $class['name'], PASS_THROUGH);
 
   $selector_subquery = db_select('storage_class_container')
     ->fields('storage_class_container', array('container_id'))
