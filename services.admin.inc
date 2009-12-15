@@ -63,7 +63,7 @@ function storage_api_services() {
   
     $name = _storage_api_get_service_name($service['service_id']);
   
-    $row[] = l($name, 'admin/build/storage/services/' . $service['service_id']);
+    $row[] = l($name, 'admin/config/storage/services/' . $service['service_id']);
     $row[] = $service['suspended'] ? t('Yes') : t('No');
     $row[] = $service['objects_count'] + $service['files_count'];
     $row[] = storage_api_format_size($service['objects_size'] + $service['files_size']);
@@ -167,7 +167,7 @@ function storage_api_service_form($form, &$form_state, $service) {
 function storage_api_service_form_suspend($form, &$form_state) {
   $service = $form['#parameters'][2];
 
-  $form_state['redirect'] = 'admin/build/storage/services/' . $service['service_id'] . '/suspend';
+  $form_state['redirect'] = 'admin/config/storage/services/' . $service['service_id'] . '/suspend';
 }
 
 
@@ -180,7 +180,7 @@ function storage_api_service_form_suspend($form, &$form_state) {
 function storage_api_service_form_unsuspend($form, &$form_state) {
   $service = $form['#parameters'][2];
 
-  $form_state['redirect'] = 'admin/build/storage/services/' . $service['service_id'] . '/unsuspend';
+  $form_state['redirect'] = 'admin/config/storage/services/' . $service['service_id'] . '/unsuspend';
 }
 
 
@@ -193,7 +193,7 @@ function storage_api_service_form_unsuspend($form, &$form_state) {
 function storage_api_service_suspend_form($form, &$form_state, $service) {
 
   return confirm_form($form, 'Are you sure you want to suspend storage service <i>' . $service['name'] . '</i> ?', 
-    'admin/build/storage/services/' . $service['service_id'], t(''));
+    'admin/config/storage/services/' . $service['service_id'], t(''));
 }
 
 
@@ -214,7 +214,7 @@ function storage_api_service_suspend_form_submit($form, &$form_state) {
   _storage_api_service_flush_serve_url($service['service_id']);
 
   $message = 'Storage service <i>' . $service['name'] . '</i> has been suspended.';
-  $path = 'admin/build/storage/services/' . $service['service_id']; 
+  $path = 'admin/config/storage/services/' . $service['service_id']; 
 
   drupal_set_message($message);
   watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));
@@ -232,7 +232,7 @@ function storage_api_service_suspend_form_submit($form, &$form_state) {
 function storage_api_service_unsuspend_form($form, &$form_state, $service) {
 
   return confirm_form($form, 'Are you sure you want to unsuspend storage service <i>' . $service['name'] . '</i> ?', 
-    'admin/build/storage/services/' . $service['service_id'], t(''));
+    'admin/config/storage/services/' . $service['service_id'], t(''));
 }
 
 
@@ -253,7 +253,7 @@ function storage_api_service_unsuspend_form_submit($form, &$form_state) {
   _storage_api_service_flush_serve_url($service['service_id']);
 
   $message = 'Storage service <i>' . $service['name'] . '</i> has been unsuspended.';
-  $path = 'admin/build/storage/services/' . $service['service_id']; 
+  $path = 'admin/config/storage/services/' . $service['service_id']; 
 
   drupal_set_message($message);
   watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));

@@ -57,7 +57,7 @@ function storage_api_containers() {
   foreach($result as $container) {
     unset($row);
   
-    $row[] = l($container['name'], 'admin/build/storage/containers/' . $container['container_id']);
+    $row[] = l($container['name'], 'admin/config/storage/containers/' . $container['container_id']);
     $row[] = _storage_api_get_service_name($container['service_id'], TRUE);
     $row[] = $container['serving'] ? 'Yes' : 'No';
     $row[] = $container['suspended'] ? 'Yes' : 'No';
@@ -287,7 +287,7 @@ function storage_api_create_container_form_submit($form, &$form_state) {
   drupal_write_record('storage_container', $container);
 
   $message = 'Storage container <i>' . $form_state['storage']['name'] . '</i> has been created.';
-  $path = 'admin/build/storage/containers/' . $container['container_id'];
+  $path = 'admin/config/storage/containers/' . $container['container_id'];
 
   drupal_set_message($message);
   watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));
@@ -417,7 +417,7 @@ function storage_api_container_form($form, &$form_state, $container) {
 function storage_api_container_form_suspend($form, &$form_state) {
   $container = $form['#parameters'][2];
 
-  $form_state['redirect'] = 'admin/build/storage/containers/' . $container['container_id'] . '/suspend';
+  $form_state['redirect'] = 'admin/config/storage/containers/' . $container['container_id'] . '/suspend';
 }
 
 
@@ -432,7 +432,7 @@ function storage_api_container_form_suspend($form, &$form_state) {
 function storage_api_container_form_unsuspend($form, &$form_state) {
   $container = $form['#parameters'][2];
 
-  $form_state['redirect'] = 'admin/build/storage/containers/' . $container['container_id'] . '/unsuspend';
+  $form_state['redirect'] = 'admin/config/storage/containers/' . $container['container_id'] . '/unsuspend';
 }
 
 
@@ -447,7 +447,7 @@ function storage_api_container_form_unsuspend($form, &$form_state) {
 function storage_api_container_form_drain($form, &$form_state) {
   $container = $form['#parameters'][2];
 
-  $form_state['redirect'] = 'admin/build/storage/containers/' . $container['container_id'] . '/drain';
+  $form_state['redirect'] = 'admin/config/storage/containers/' . $container['container_id'] . '/drain';
 }
 
 
@@ -462,7 +462,7 @@ function storage_api_container_form_drain($form, &$form_state) {
 function storage_api_container_form_destroy($form, &$form_state) {
   $container = $form['#parameters'][2];
 
-  $form_state['redirect'] = 'admin/build/storage/containers/' . $container['container_id'] . '/destroy';
+  $form_state['redirect'] = 'admin/config/storage/containers/' . $container['container_id'] . '/destroy';
 }
 
 
@@ -475,7 +475,7 @@ function storage_api_container_form_destroy($form, &$form_state) {
 function storage_api_container_suspend_form($form, &$form_state, $container) {
 
   return confirm_form($form, 'Are you sure you want to suspend storage container <i>' . $container['name'] . '</i> ?', 
-    'admin/build/storage/containers/' . $container['container_id'], t(''));
+    'admin/config/storage/containers/' . $container['container_id'], t(''));
 }
 
 
@@ -496,7 +496,7 @@ function storage_api_container_suspend_form_submit($form, &$form_state) {
   _storage_api_container_flush_serve_url($container['container_id']);
 
   $message = 'Storage container <i>' . $container['name'] . '</i> has been suspended.';
-  $path = 'admin/build/storage/containers/' . $container['container_id'];
+  $path = 'admin/config/storage/containers/' . $container['container_id'];
 
   drupal_set_message($message);
   watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));
@@ -514,7 +514,7 @@ function storage_api_container_suspend_form_submit($form, &$form_state) {
 function storage_api_container_unsuspend_form($form, &$form_state, $container) {
 
   return confirm_form($form, 'Are you sure you want to unsuspend storage container <i>' . 
-    $container['name'] . '</i> ?', 'admin/build/storage/containers/' . $container['container_id'], t(''));
+    $container['name'] . '</i> ?', 'admin/config/storage/containers/' . $container['container_id'], t(''));
 }
 
 
@@ -535,7 +535,7 @@ function storage_api_container_unsuspend_form_submit($form, &$form_state) {
   _storage_api_container_flush_serve_url($container['container_id']);
 
   $message = 'Storage container <i>' . $container['name'] . '</i> has been unsuspended.';
-  $path = 'admin/build/storage/containers/' . $container['container_id'];
+  $path = 'admin/config/storage/containers/' . $container['container_id'];
 
   drupal_set_message($message);
   watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));
@@ -553,7 +553,7 @@ function storage_api_container_unsuspend_form_submit($form, &$form_state) {
 function storage_api_container_drain_form($form, &$form_state, $container) {
 
   return confirm_form($form, 'Are you sure you want to drain storage container <i>' . 
-    $container['name'] . '</i> ?', 'admin/build/storage/containers/' . $container['container_id'], t(''));
+    $container['name'] . '</i> ?', 'admin/config/storage/containers/' . $container['container_id'], t(''));
 }
 
 
@@ -567,7 +567,7 @@ function storage_api_container_drain_form_submit($form, &$form_state) {
 
   storage_api_drain_container($container);
   
-  $form_state['redirect'] = 'admin/build/storage/containers/' . $container['container_id'];
+  $form_state['redirect'] = 'admin/config/storage/containers/' . $container['container_id'];
 }
 
 
@@ -580,7 +580,7 @@ function storage_api_container_drain_form_submit($form, &$form_state) {
 function storage_api_container_destroy_form($form, &$form_state, $container) {
 
   return confirm_form($form, 'Are you sure you want to destroy storage container <i>' . 
-    $container['name'] . '</i> ?', 'admin/build/storage/containers/' . $container['container_id'], t(''));
+    $container['name'] . '</i> ?', 'admin/config/storage/containers/' . $container['container_id'], t(''));
 }
 
 
@@ -617,7 +617,7 @@ function storage_api_container_destroy_form_submit($form, &$form_state) {
   drupal_set_message($message);
   watchdog('storage_api', $message, NULL);
 
-  $form_state['redirect'] = 'admin/build/storage/containers';
+  $form_state['redirect'] = 'admin/config/storage/containers';
 }
 
 
@@ -695,6 +695,6 @@ function storage_api_container_edit_form_submit($form, &$form_state) {
   drupal_write_record('storage_container', $update, 'container_id');
   _storage_api_container_flush_serve_url($container['container_id']);
   
-  $form_state['redirect'] = 'admin/build/storage/containers/' . $container['container_id'];
+  $form_state['redirect'] = 'admin/config/storage/containers/' . $container['container_id'];
 }
 
