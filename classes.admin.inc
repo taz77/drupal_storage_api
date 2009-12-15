@@ -54,7 +54,7 @@ function storage_api_classes_list() {
   foreach($result as $class) {
     unset($row);
     
-    $row[] = l($class['name'], 'admin/config/storage/classes/' . $class['class_id']);
+    $row[] = l($class['name'], 'admin/config/media/storage/classes/' . $class['class_id']);
     $row[] = $class['files'];
     $row[] = storage_api_format_size($class['size']);
     
@@ -142,7 +142,7 @@ function storage_api_create_class_form_submit($form, &$form_state) {
   drupal_write_record('storage_class', $class);
 
   $message = 'Storage class <i>' . $form_state['values']['name'] . '</i> has been created.';
-  $path = 'admin/config/storage/classes/' . $class['class_id'];
+  $path = 'admin/config/media/storage/classes/' . $class['class_id'];
 
   drupal_set_message($message);
   watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));
@@ -228,9 +228,9 @@ function storage_api_class($class) {
     unset($row);
     
     $row[] = l($container['name'], 
-        'admin/config/storage/containers/' . $container['container_id']);
+        'admin/config/media/storage/containers/' . $container['container_id']);
     $row[] = l(_storage_api_get_service_name($container['service_id']), 
-        'admin/config/storage/services/' . $container['service_id']);
+        'admin/config/media/storage/services/' . $container['service_id']);
     $row[] = $container['serving'] ? t('Yes') : t('No');
     $row[] = $container['objects_count'] + $container['files_count'];
     $row[] = storage_api_format_size($container['objects_size'] + $container['files_size']);
@@ -288,7 +288,7 @@ function storage_api_class_edit_form($form, &$form_state, $class) {
     $form['#container_ids'][] = $container['container_id'];
 
     $form['names'][$container['container_id']] = array(
-      '#markup' => l($container['name'], 'admin/config/storage/containers/' . $container['container_id'])
+      '#markup' => l($container['name'], 'admin/config/media/storage/containers/' . $container['container_id'])
     );
     
     $form['weights'][$container['container_id']] = array(
@@ -300,7 +300,7 @@ function storage_api_class_edit_form($form, &$form_state, $class) {
 
     $form['services'][$container['container_id']] = array(
       '#markup' => l(_storage_api_get_service_name($container['service_id']), 
-        'admin/config/storage/services/' . $container['service_id'])
+        'admin/config/media/storage/services/' . $container['service_id'])
     );
     
     $form['servings'][$container['container_id']] = array(
@@ -314,7 +314,7 @@ function storage_api_class_edit_form($form, &$form_state, $class) {
 
     $form['deletes'][$container['container_id']] = array(
       '#markup' => 
-        l($trash, 'admin/config/storage/classes/' . $class['class_id'] . '/remove/' . $container['container_id'], 
+        l($trash, 'admin/config/media/storage/classes/' . $class['class_id'] . '/remove/' . $container['container_id'], 
           array('html' => TRUE))
     );
   }
@@ -426,7 +426,7 @@ function storage_api_class_edit_form_submit($form, &$form_state) {
   cache_clear_all();
   
   $message = 'Storage class <i>' . $class['name'] . '</i> has been updated.';
-  $path = 'admin/config/storage/classes/' . $class['class_id'];
+  $path = 'admin/config/media/storage/classes/' . $class['class_id'];
 
   drupal_set_message($message);
   watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));
@@ -443,7 +443,7 @@ function storage_api_class_edit_form_submit($form, &$form_state) {
 function storage_api_class_edit_form_destroy($form, &$form_state) {
   $class = $form['#parameters'][2];
 
-  $form_state['redirect'] = 'admin/config/storage/classes/' . $class['class_id'] . '/destroy';
+  $form_state['redirect'] = 'admin/config/media/storage/classes/' . $class['class_id'] . '/destroy';
 }
 
 
@@ -456,7 +456,7 @@ function storage_api_class_edit_form_destroy($form, &$form_state) {
 function storage_api_class_destroy_form($form, &$form_state, $class) {
 
   return confirm_form($form, 'Are you sure you want to destroy storage class <i>' . 
-    $class['name'] . '</i> ?', 'admin/config/storage/classes/' . $class['class_id'], t(''));
+    $class['name'] . '</i> ?', 'admin/config/media/storage/classes/' . $class['class_id'], t(''));
 }
 
 
@@ -477,7 +477,7 @@ function storage_api_class_destroy_form_submit($form, &$form_state) {
   drupal_set_message($message);
   watchdog('storage_api', $message, NULL);
 
-  $form_state['redirect'] = 'admin/config/storage/classes';
+  $form_state['redirect'] = 'admin/config/media/storage/classes';
 }
 
 
@@ -544,7 +544,7 @@ function storage_api_class_add_container_form_submit($form, &$form_state) {
   
   storage_api_class_add_container($class, $container);
   
-  $form_state['redirect'] = 'admin/config/storage/classes/' . $class['class_id'] . '/edit';
+  $form_state['redirect'] = 'admin/config/media/storage/classes/' . $class['class_id'] . '/edit';
 }
 
 
@@ -561,7 +561,7 @@ function storage_api_class_remove_container_form($form_state, $class, $container
 
   return confirm_form($form, 'Are you sure you want to remove storage container <i>' . $container['name'] . 
     '</i> from class <i>' . $class['name'] . '</i>?', 
-    'admin/config/storage/classes/' . $class['class_id'] . '/edit', t(''));
+    'admin/config/media/storage/classes/' . $class['class_id'] . '/edit', t(''));
 }
 
 
@@ -592,7 +592,7 @@ function storage_api_class_remove_container_form_submit($form, &$form_state) {
   cache_clear_all();
 
   $container = storage_api_container_load($container['container_id']);
-  $path = 'admin/config/storage/classes/' . $class['class_id'];
+  $path = 'admin/config/media/storage/classes/' . $class['class_id'];
   
   $message = 'Storage container <i>' . $container['name'] . 
     '</i> has been removed from class <i>' . $class['name'] .'</i>.';

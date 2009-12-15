@@ -38,7 +38,7 @@ function storage_api_menu() {
   );
   
 
-  $items['admin/config/storage'] = array(
+  $items['admin/config/media/storage'] = array(
     'title' => 'Storage',
     'access arguments' => array('administer storage'),
     'description' => 'Configure storage.',
@@ -48,7 +48,7 @@ function storage_api_menu() {
   );
 
 
-  $items['admin/config/storage/services'] = array(
+  $items['admin/config/media/storage/services'] = array(
     'title' => 'Services',
     'description' => 'Configure storage services.',
     'access arguments' => array('administer storage'),
@@ -57,7 +57,7 @@ function storage_api_menu() {
     'file' => 'services.admin.inc'
   );
   
-  $items['admin/config/storage/services/%storage_api_service'] = array(
+  $items['admin/config/media/storage/services/%storage_api_service'] = array(
     'access arguments' => array('administer storage'),
     'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
@@ -65,7 +65,7 @@ function storage_api_menu() {
     'file' => 'services.admin.inc',
   );
   
-  $items['admin/config/storage/services/%storage_api_service/suspend'] = array(
+  $items['admin/config/media/storage/services/%storage_api_service/suspend'] = array(
     'access arguments' => array('administer storage'),
     'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
@@ -73,7 +73,7 @@ function storage_api_menu() {
     'file' => 'services.admin.inc'
   );
   
-  $items['admin/config/storage/services/%storage_api_service/unsuspend'] = array(
+  $items['admin/config/media/storage/services/%storage_api_service/unsuspend'] = array(
     'access arguments' => array('administer storage'),
     'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
@@ -82,7 +82,7 @@ function storage_api_menu() {
   );
   
   
-  $items['admin/config/storage/containers'] = array(
+  $items['admin/config/media/storage/containers'] = array(
     'title' => 'Containers',
     'description' => 'Configure storage containers.',
     'access arguments' => array('administer storage'),
@@ -91,7 +91,7 @@ function storage_api_menu() {
     'file' => 'containers.admin.inc'
   );
 
-  $items['admin/config/storage/containers/list'] = array(
+  $items['admin/config/media/storage/containers/list'] = array(
     'title' => 'Overview',
     'access arguments' => array('administer storage'),
     'type' => MENU_DEFAULT_LOCAL_TASK,
@@ -99,7 +99,7 @@ function storage_api_menu() {
     'file' => 'containers.admin.inc'
   );
   
-  $items['admin/config/storage/containers/create'] = array(
+  $items['admin/config/media/storage/containers/create'] = array(
     'title' => 'Create',
     'access arguments' => array('administer storage'),
     'type' => MENU_LOCAL_TASK,
@@ -109,7 +109,7 @@ function storage_api_menu() {
     'file' => 'containers.admin.inc'
   );
   
-  $items['admin/config/storage/containers/%storage_api_container'] = array(
+  $items['admin/config/media/storage/containers/%storage_api_container'] = array(
     'access arguments' => array('administer storage'),
     'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
@@ -117,7 +117,7 @@ function storage_api_menu() {
     'file' => 'containers.admin.inc'
   );
   
-  $items['admin/config/storage/containers/%storage_api_container/view'] = array(
+  $items['admin/config/media/storage/containers/%storage_api_container/view'] = array(
     'title' => 'View',
     'access arguments' => array('administer storage'),
     'type' => MENU_DEFAULT_LOCAL_TASK,
@@ -125,7 +125,7 @@ function storage_api_menu() {
     'file' => 'containers.admin.inc'
   );
   
-  $items['admin/config/storage/containers/%storage_api_container/suspend'] = array(
+  $items['admin/config/media/storage/containers/%storage_api_container/suspend'] = array(
     'access arguments' => array('administer storage'),
     'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
@@ -133,7 +133,7 @@ function storage_api_menu() {
     'file' => 'containers.admin.inc',
   );
   
-  $items['admin/config/storage/containers/%storage_api_container/unsuspend'] = array(
+  $items['admin/config/media/storage/containers/%storage_api_container/unsuspend'] = array(
     'access arguments' => array('administer storage'),
     'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
@@ -141,7 +141,7 @@ function storage_api_menu() {
     'file' => 'containers.admin.inc'
   );
   
-  $items['admin/config/storage/containers/%storage_api_container/drain'] = array(
+  $items['admin/config/media/storage/containers/%storage_api_container/drain'] = array(
     'access arguments' => array('administer storage'),
     'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
@@ -149,7 +149,7 @@ function storage_api_menu() {
     'file' => 'containers.admin.inc'
   );
 
-  $items['admin/config/storage/containers/%storage_api_container/destroy'] = array(
+  $items['admin/config/media/storage/containers/%storage_api_container/destroy'] = array(
     'access arguments' => array('administer storage'),
     'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
@@ -157,7 +157,7 @@ function storage_api_menu() {
     'file' => 'containers.admin.inc'
   );
   
-  $items['admin/config/storage/containers/%storage_api_container/edit'] = array(
+  $items['admin/config/media/storage/containers/%storage_api_container/edit'] = array(
     'title' => 'Edit',
     'access arguments' => array('administer storage'),
     'type' => MENU_LOCAL_TASK,
@@ -168,7 +168,7 @@ function storage_api_menu() {
   );
 
   
-  $items['admin/config/storage/classes'] = array(
+  $items['admin/config/media/storage/classes'] = array(
     'title' => 'Classes',
     'description' => 'Configure storage classes.',
     'access arguments' => array('administer storage'),
@@ -177,7 +177,7 @@ function storage_api_menu() {
     'file' => 'classes.admin.inc'
   );
 
-  $items['admin/config/storage/classes/list'] = array(
+  $items['admin/config/media/storage/classes/list'] = array(
     'title' => 'Overview',
     'access arguments' => array('administer storage'),
     'type' => MENU_DEFAULT_LOCAL_TASK,
@@ -185,7 +185,7 @@ function storage_api_menu() {
     'file' => 'classes.admin.inc'
   );
 
-  $items['admin/config/storage/classes/create'] = array(
+  $items['admin/config/media/storage/classes/create'] = array(
     'title' => 'Create',
     'access arguments' => array('administer storage'),
     'type' => MENU_LOCAL_TASK,
@@ -195,7 +195,7 @@ function storage_api_menu() {
     'file' => 'classes.admin.inc'
   );
 
-  $items['admin/config/storage/classes/%storage_api_class'] = array(
+  $items['admin/config/media/storage/classes/%storage_api_class'] = array(
     'access arguments' => array('administer storage'),
     'type' => MENU_CALLBACK,
     'page callback' => 'storage_api_class',
@@ -203,7 +203,7 @@ function storage_api_menu() {
     'file' => 'classes.admin.inc'
   );
   
-  $items['admin/config/storage/classes/%storage_api_class/view'] = array(
+  $items['admin/config/media/storage/classes/%storage_api_class/view'] = array(
     'title' => 'View',
     'access arguments' => array('administer storage'),
     'type' => MENU_DEFAULT_LOCAL_TASK,
@@ -211,7 +211,7 @@ function storage_api_menu() {
     'file' => 'classes.admin.inc'
   );
   
-  $items['admin/config/storage/classes/%storage_api_class/edit'] = array(
+  $items['admin/config/media/storage/classes/%storage_api_class/edit'] = array(
     'title' => 'Edit',
     'access arguments' => array('administer storage'),
     'type' => MENU_LOCAL_TASK,
@@ -221,7 +221,7 @@ function storage_api_menu() {
     'file' => 'classes.admin.inc'
   );
   
-  $items['admin/config/storage/classes/%storage_api_class/destroy'] = array(
+  $items['admin/config/media/storage/classes/%storage_api_class/destroy'] = array(
     'access arguments' => array('administer storage'),
     'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
@@ -229,7 +229,7 @@ function storage_api_menu() {
     'file' => 'classes.admin.inc'
   );
   
-  $items['admin/config/storage/classes/%storage_api_class/add'] = array(
+  $items['admin/config/media/storage/classes/%storage_api_class/add'] = array(
     'title' => 'Add container',
     'access arguments' => array('administer storage'),
     'type' => MENU_LOCAL_TASK,
@@ -239,7 +239,7 @@ function storage_api_menu() {
     'file' => 'classes.admin.inc'
   );
   
-  $items['admin/config/storage/classes/%storage_api_class/remove/%storage_api_container'] = array(
+  $items['admin/config/media/storage/classes/%storage_api_class/remove/%storage_api_container'] = array(
     'title' => 'Remove container',
     'access arguments' => array('administer storage'),
     'type' => MENU_CALLBACK,
@@ -484,7 +484,7 @@ function _storage_api_get_service_name($service_id, $link = FALSE) {
   $info = _storage_api_service_invoke($service_id, 'service_info');
   
   if($link)
-    return l($info['name'], 'admin/config/storage/services/' . $service_id);
+    return l($info['name'], 'admin/config/media/storage/services/' . $service_id);
   else
     return $info['name'];
 }
@@ -1708,7 +1708,7 @@ function storage_api_class_add_container($class, $container) {
   $message = 'Storage container <i>' . $container['name'] . 
     '</i> has been added to class <i>' . $class['name'] .'</i>.';
 
-  $path = 'admin/config/storage/classes/' . $class['class_id'];  
+  $path = 'admin/config/media/storage/classes/' . $class['class_id'];  
   
   drupal_set_message($message);
   watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));
@@ -1742,7 +1742,7 @@ function storage_api_drain_container($container) {
   $message = 'Storage container <i>' . $container['name'] . 
     '</i> has been removed from all classes and will be drained during cron.';
 
-  $path = 'admin/config/storage/containers/' . $container['container_id'];
+  $path = 'admin/config/media/storage/containers/' . $container['container_id'];
   
   drupal_set_message($message);
   watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));
