@@ -199,7 +199,7 @@ function storage_api_menu() {
     'access arguments' => array('administer storage'),
     'type' => MENU_CALLBACK,
     'page callback' => 'storage_api_class',
-    'page arguments' => array(4),
+    'page arguments' => array(5),
     'file' => 'classes.admin.inc'
   );
   
