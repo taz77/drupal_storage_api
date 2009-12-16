@@ -567,7 +567,7 @@ function storage_api_serve_access($file) {
 
 
 function _storage_api_service_unavailable() {
-  drupal_set_header('HTTP/1.1 503 Service Unavailable');
+  drupal_add_http_header('503 Service Unavailable');
   watchdog('service unavailable', check_plain($_GET['q']), NULL, WATCHDOG_WARNING);
 
   // Keep old path for reference.
@@ -575,19 +575,20 @@ function _storage_api_service_unavailable() {
     $_REQUEST['destination'] = $_GET['q'];
   }
 
-  $path = drupal_get_normal_path(variable_get('site_503'));
+  $path = drupal_get_normal_path(variable_get('site_503', ''));
   if ($path && $path != $_GET['q']) {
-    // Set the active item in case there are tabs to display or other
-    // dependencies on the path.
+    // Custom 503 handler. Set the active item in case there are tabs to
+    // display, or other dependencies on the path.
     menu_set_active_item($path);
-    $return = menu_execute_active_handler($path);
+    $return = menu_execute_active_handler($path, FALSE);
   }
 
   if (empty($return) || $return == MENU_NOT_FOUND || $return == MENU_ACCESS_DENIED) {
     drupal_set_title(t('Service unavailable'), PASS_THROUGH);
     $return = t('The requested page is not currently available.');
   }
-  print theme('page', $return);
+  
+  print drupal_render_page($return);
 }
 
 
