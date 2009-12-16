@@ -6,18 +6,19 @@
  * Implement hook_requirements() .
  */
 function storage_api_requirements($phase) {
+  $curl = FALSE;
 
   if(function_exists('curl_version'))
-    $version = curl_version();
+    $curl = curl_version();
   
   $description = t('Storage API requires that <a href="http://php.net/manual/en/book.curl.php">cURL</a> be available to PHP.');
 
   $requirements = array(
     array(
       'title' => 'Storage API - cURL',
-      'value' => ($version ? $version['version'] : 'not found'),
-      'description' => $version ? NULL : $description,
-      'severity' => $version ? REQUIREMENT_OK : REQUIREMENT_ERROR,
+      'value' => ($curl ? $curl['version'] : 'Not found'),
+      'description' => $curl ? NULL : $description,
+      'severity' => $curl ? REQUIREMENT_OK : REQUIREMENT_ERROR,
     ),
   );
   
