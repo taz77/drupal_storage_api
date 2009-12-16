@@ -35,7 +35,7 @@ function storage_api_schema() {
   $schema['storage_service'] = array(
     'fields' => array(
       'service_id' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
-      'suspended' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => FALSE)
+      'suspended' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0)
     ),
     'primary key' => array('service_id')
   );
