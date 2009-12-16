@@ -11,10 +11,11 @@ function storage_api_requirements($phase) {
   if(function_exists('curl_version'))
     $curl = curl_version();
   
-  $description = t('Storage API requires that <a href="http://php.net/manual/en/book.curl.php">cURL</a> be available to PHP.');
+  $t = get_t();
+  $description = $t('Storage API requires that <a href="http://php.net/manual/en/book.curl.php">cURL</a> be available to PHP.');
 
   $requirements = array(
-    array(
+    'storage_api_curl' => array(
       'title' => 'Storage API - cURL',
       'value' => ($curl ? $curl['version'] : 'Not found'),
       'description' => $curl ? NULL : $description,
