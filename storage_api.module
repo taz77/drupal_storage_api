@@ -248,6 +248,8 @@ function storage_api_menu() {
 }
 
 
+$_storage_api_file_cache = array();
+
 function storage_api_file_flush($file_id = NULL) {
   global $_storage_api_file_cache;
   
