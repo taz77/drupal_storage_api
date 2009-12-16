@@ -324,7 +324,7 @@ function _storage_api_container_flush_serve_url($container_id) {
  * @see storage_api_container_form_destroy()
  */
 function storage_api_container_form($form, &$form_state, $container) {
-  $form_state['storage']['container'] = $container;
+  $form['#container'] = $container;
 
 
   drupal_set_title(t('Storage container: ') . $container['name'], PASS_THROUGH);
@@ -417,7 +417,7 @@ function storage_api_container_form($form, &$form_state, $container) {
  * @see storage_api_container_form_destroy()
  */
 function storage_api_container_form_suspend($form, &$form_state) {
-  $container = $form_state['storage']['container'];
+  $container = $form['#container'];
 
   $form_state['redirect'] = 'admin/config/media/storage/containers/' . $container['container_id'] . '/suspend';
 }
@@ -432,7 +432,7 @@ function storage_api_container_form_suspend($form, &$form_state) {
  * @see storage_api_container_form_destroy()
  */
 function storage_api_container_form_unsuspend($form, &$form_state) {
-  $container = $form_state['storage']['container'];
+  $container = $form['#container'];
 
   $form_state['redirect'] = 'admin/config/media/storage/containers/' . $container['container_id'] . '/unsuspend';
 }
@@ -447,7 +447,7 @@ function storage_api_container_form_unsuspend($form, &$form_state) {
  * @see storage_api_container_form_destroy()
  */
 function storage_api_container_form_drain($form, &$form_state) {
-  $container = $form_state['storage']['container'];
+  $container = $form['#container'];
 
   $form_state['redirect'] = 'admin/config/media/storage/containers/' . $container['container_id'] . '/drain';
 }
@@ -462,7 +462,7 @@ function storage_api_container_form_drain($form, &$form_state) {
  * @see storage_api_container_form_drain()
  */
 function storage_api_container_form_destroy($form, &$form_state) {
-  $container = $form_state['storage']['container'];
+  $container = $form['#container'];
 
   $form_state['redirect'] = 'admin/config/media/storage/containers/' . $container['container_id'] . '/destroy';
 }
@@ -475,7 +475,7 @@ function storage_api_container_form_destroy($form, &$form_state) {
  * @see storage_api_container_suspend_form_submit()
  */
 function storage_api_container_suspend_form($form, &$form_state, $container) {
-  $form_state['storage']['container'] = $container;
+  $form['#container'] = $container;
 
   return confirm_form($form, 'Are you sure you want to suspend storage container <i>' . $container['name'] . '</i> ?', 
     'admin/config/media/storage/containers/' . $container['container_id'], t(''));
@@ -488,7 +488,7 @@ function storage_api_container_suspend_form($form, &$form_state, $container) {
  * @see storage_api_container_suspend_form()
  */
 function storage_api_container_suspend_form_submit($form, &$form_state) {
-  $container = $form_state['storage']['container'];
+  $container = $form['#container'];
 
   $update = array(
     'container_id' => $container['container_id'],
@@ -515,7 +515,7 @@ function storage_api_container_suspend_form_submit($form, &$form_state) {
  * @see storage_api_container_unsuspend_form_submit()
  */
 function storage_api_container_unsuspend_form($form, &$form_state, $container) {
-  $form_state['storage']['container'] = $container;
+  $form['#container'] = $container;
 
   return confirm_form($form, 'Are you sure you want to unsuspend storage container <i>' . 
     $container['name'] . '</i> ?', 'admin/config/media/storage/containers/' . $container['container_id'], t(''));
@@ -528,7 +528,7 @@ function storage_api_container_unsuspend_form($form, &$form_state, $container) {
  * @see storage_api_container_unsuspend_form()
  */
 function storage_api_container_unsuspend_form_submit($form, &$form_state) {
-  $container = $form_state['storage']['container'];
+  $container = $form['#container'];
 
   $update = array(
     'container_id' => $container['container_id'],
@@ -555,7 +555,7 @@ function storage_api_container_unsuspend_form_submit($form, &$form_state) {
  * @see storage_api_container_drain_form_submit()
  */
 function storage_api_container_drain_form($form, &$form_state, $container) {
-  $form_state['storage']['container'] = $container;
+  $form['#container'] = $container;
 
   return confirm_form($form, 'Are you sure you want to drain storage container <i>' . 
     $container['name'] . '</i> ?', 'admin/config/media/storage/containers/' . $container['container_id'], t(''));
@@ -568,7 +568,7 @@ function storage_api_container_drain_form($form, &$form_state, $container) {
  * @see storage_api_container_drain_form()
  */
 function storage_api_container_drain_form_submit($form, &$form_state) {
-  $container = $form_state['storage']['container'];
+  $container = $form['#container'];
 
   storage_api_drain_container($container);
   
@@ -583,7 +583,7 @@ function storage_api_container_drain_form_submit($form, &$form_state) {
  * @see storage_api_container_destroy_form_submit()
  */
 function storage_api_container_destroy_form($form, &$form_state, $container) {
-  $form_state['storage']['container'] = $container;
+  $form['#container'] = $container;
 
   return confirm_form($form, 'Are you sure you want to destroy storage container <i>' . 
     $container['name'] . '</i> ?', 'admin/config/media/storage/containers/' . $container['container_id'], t(''));
@@ -596,7 +596,7 @@ function storage_api_container_destroy_form($form, &$form_state, $container) {
  * @see storage_api_container_destroy_form()
  */
 function storage_api_container_destroy_form_submit($form, &$form_state) {
-  $container = $form_state['storage']['container'];
+  $container = $form['#container'];
 
   db_delete('storage_container')
     ->condition('container_id', $container['container_id'])
@@ -635,7 +635,7 @@ function storage_api_container_destroy_form_submit($form, &$form_state) {
  * @see storage_api_container_edit_form_validate()
  */
 function storage_api_container_edit_form($form, &$form_state, $container) {
-  $form_state['storage']['container'] = $container;
+  $form['#container'] = $container;
 
   $service_name = _storage_api_get_service_name($container['service_id']);
 
@@ -674,7 +674,7 @@ function storage_api_container_edit_form($form, &$form_state, $container) {
  * @see storage_api_container_edit_form_submit()
  */
 function storage_api_container_edit_form_validate($form, &$form_state) {
-  $container = $form_state['storage']['container'];
+  $container = $form['#container'];
   
   $container['settings'] = $form_state['values']['settings'] + $container['settings'];
 
@@ -689,7 +689,7 @@ function storage_api_container_edit_form_validate($form, &$form_state) {
  * @see storage_api_container_edit_form_validate()
  */
 function storage_api_container_edit_form_submit($form, &$form_state) {
-  $container = $form_state['storage']['container'];
+  $container = $form['#container'];
   
   $form_state['values']['settings'] += $container['settings'];
 

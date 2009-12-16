@@ -16,7 +16,7 @@ function _storage_api_class_name($class_id) {
   return db_select('storage_class')
     ->fields('storage_class', array('name'))
     ->condition('class_id', $class_id)
-    ->excute()
+    ->execute()
     ->fetchField();
 }
 
@@ -264,12 +264,11 @@ function storage_api_class($class) {
  * @see storage_api_class_edit_form_submit()
  */
 function storage_api_class_edit_form($form, &$form_state, $class) {
-  $form_state['storage']['class'] = $class;
-
 
   drupal_set_title(t('Storage class: ') . $class['name'], PASS_THROUGH);
 
   $form = _storage_api_class_form_elements($class);
+  $form['#class'] = $class;
   
   $query = db_select('storage_class_container', NULL, array('fetch' => PDO::FETCH_ASSOC));
   $query->join('storage_container', NULL, 'storage_class_container.container_id = storage_container.container_id');
@@ -397,8 +396,8 @@ function theme_storage_api_class_edit_form($elements) {
  * @see storage_api_class_edit_form()
  */
 function storage_api_class_edit_form_submit($form, &$form_state) {
-  $class = $form_state['storage']['class'];
-
+  $class = $form['#class'];
+  
   $update = array(
     'class_id' => $class['class_id'],
     'name' => $form_state['values']['name'],
@@ -446,7 +445,7 @@ function storage_api_class_edit_form_submit($form, &$form_state) {
  * @see storage_api_class_edit_form()
  */
 function storage_api_class_edit_form_destroy($form, &$form_state) {
-  $class = $form_state['storage']['class'];
+  $class = $form['#class'];
 
   $form_state['redirect'] = 'admin/config/media/storage/classes/' . $class['class_id'] . '/destroy';
 }
@@ -459,7 +458,7 @@ function storage_api_class_edit_form_destroy($form, &$form_state) {
  * @see storage_api_class_destroy_form_submit()
  */
 function storage_api_class_destroy_form($form, &$form_state, $class) {
-  $form_state['storage']['class'] = $class;
+  $form['#class'] = $class;
 
   return confirm_form($form, 'Are you sure you want to destroy storage class <i>' . 
     $class['name'] . '</i> ?', 'admin/config/media/storage/classes/' . $class['class_id'], t(''));
@@ -472,7 +471,7 @@ function storage_api_class_destroy_form($form, &$form_state, $class) {
  * @see storage_api_class_destroy_form()
  */
 function storage_api_class_destroy_form_submit($form, &$form_state) {
-  $class = $form_state['storage']['class'];
+  $class = $form['#class'];
   
   db_delete('storage_class')
     ->condition('class_id', $class['class_id'])
@@ -494,7 +493,7 @@ function storage_api_class_destroy_form_submit($form, &$form_state) {
  * @see storage_api_class_add_container_form_submit()
  */
 function storage_api_class_add_container_form($form, &$form_state, $class) {
-  $form_state['storage']['class'] = $class;
+  $form['#class'] = $class;
   
 
   drupal_set_title(t('Storage class: ') . $class['name'], PASS_THROUGH);
@@ -547,7 +546,7 @@ function storage_api_class_add_container_form($form, &$form_state, $class) {
  * @see storage_api_class_add_container_form()
  */
 function storage_api_class_add_container_form_submit($form, &$form_state) {
-  $class = $form_state['storage']['class'];
+  $class = $form['#class'];
   $container = storage_api_container_load($form_state['values']['container_id']);
   
   storage_api_class_add_container($class, $container);
@@ -563,11 +562,8 @@ function storage_api_class_add_container_form_submit($form, &$form_state) {
  * @see storage_api_class_remove_container_form_submit()
  */
 function storage_api_class_remove_container_form($form_state, $class, $container) {
-  $form_state['storage']['class'] = $class;
-  $form_state['storage']['container'] = $container;
-
-  $form['#class_id'] = $class['class_id'];
-  $form['#container_id'] = $container['container_id'];
+  $form['#class'] = $class;
+  $form['#container'] = $container;
 
   return confirm_form($form, 'Are you sure you want to remove storage container <i>' . $container['name'] . 
     '</i> from class <i>' . $class['name'] . '</i>?', 
@@ -581,8 +577,8 @@ function storage_api_class_remove_container_form($form_state, $class, $container
  * @see storage_api_class_remove_container_form()
  */
 function storage_api_class_remove_container_form_submit($form, &$form_state) {
-  $class = $form_state['storage']['class'];
-  $container = $form_state['storage']['container'];
+  $class = $form['#class'];
+  $container = $form['#container'];
 
   db_delete('storage_class_container')
     ->condition('class_id', $class['class_id'])
