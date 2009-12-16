@@ -266,6 +266,7 @@ function storage_api_class($class) {
 function storage_api_class_edit_form($form, &$form_state, $class) {
   $form_state['storage']['class'] = $class;
 
+
   drupal_set_title(t('Storage class: ') . $class['name'], PASS_THROUGH);
 
   $form = _storage_api_class_form_elements($class);
@@ -280,10 +281,11 @@ function storage_api_class_edit_form($form, &$form_state, $class) {
     ->orderBy('storage_container.container_id')
     ->execute();
 
-  $form['#tree'] = TRUE;
-  
   $trash = _storage_api_trash_icon();
 
+  $form['#container_ids'] = array();
+  $form['#tree'] = TRUE;
+  
   foreach($result as $container) {
   
     $form['#container_ids'][] = $container['container_id'];
@@ -348,14 +350,16 @@ function storage_api_class_edit_form($form, &$form_state, $class) {
  * @ingroup themeable
  * @see storage_api_class_edit_form()
  */
-function theme_storage_api_class_edit_form($form) {
+function theme_storage_api_class_edit_form($elements) {
+  $form = $elements['form'];
 
-  $output .= drupal_render($form['name']);
+  $output = drupal_render($form['name']);
   $output .= drupal_render($form['options']);
 
-  if(is_array($form['#container_ids'])) {
+  if(count($form['#container_ids'])) {
   
     $header = array(t('Container'), t('Service'), t('Weight'), t('Serving'), NULL);
+    $rows = array();
 
     foreach($form['#container_ids'] as $container_id) {
       unset($row);
@@ -371,13 +375,13 @@ function theme_storage_api_class_edit_form($form) {
         'class' => 'draggable',
       );
     }
-  }
 
-  $output .= theme('table', array(
-    'header' => $header, 
-    'rows' => $rows,
-    'attributes' => array('id' => 'my-module-table', 'style' => 'width: auto;'),
-  ));
+    $output .= theme('table', array(
+      'header' => $header, 
+      'rows' => $rows,
+      'attributes' => array('id' => 'my-module-table', 'style' => 'width: auto;'),
+    ));
+  }
 
   $output .= drupal_render_children($form);
   
