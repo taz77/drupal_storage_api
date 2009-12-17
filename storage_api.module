@@ -272,6 +272,10 @@ function storage_api_file_flush($file_id = NULL) {
  */
 function storage_api_file_load($file_id, $reload = FALSE) {
   global $_storage_api_file_cache;
+  
+  // filefield calls hook_file_load($file)
+  if(is_object($file_id))
+    return;
 
   if(!$file_id)
     return FALSE;
