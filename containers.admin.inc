@@ -89,7 +89,7 @@ function storage_api_containers() {
 function storage_api_create_container_form($form, &$form_state) {
 
   drupal_set_title(t('Storage containers'), PASS_THROUGH);
-  
+
   if(!isset($form_state['values']['step'])) {
     $step = 1;
   }
@@ -105,11 +105,13 @@ function storage_api_create_container_form($form, &$form_state) {
     }
   }
 
+
+
   $form['step'] = array(
     '#type' => 'value',
     '#value' => $step
   );
-  
+
   switch($step) {
     
     case 1:
@@ -130,26 +132,26 @@ function storage_api_create_container_form($form, &$form_state) {
         '#title' => t('Name'),
         '#type' => 'textfield',
         '#required' => TRUE,
-        '#default_value' => $form_state['storage']['name']
+//        '#default_value' => $form_state['storage']['name']
       );
       
       $form['service_id'] = array(
         '#type' => 'select',
         '#title' => t('Service'),
         '#options' => $services,
-        '#default_value' => $form_state['storage']['service_id']
+//        '#default_value' => $form_state['storage']['service_id']
       );
       
       $form['serving'] = array(
         '#type' => 'checkbox',
         '#title' => t('Serving'),
-        '#default_value' => $form_state['storage']['serving']
+//        '#default_value' => $form_state['storage']['serving']
       );
       
       $form['access_control'] = array(
         '#type' => 'checkbox',
         '#title' => t('Enforce access control'),
-        '#default_value' => $form_state['storage']['access_control']
+//        '#default_value' => $form_state['storage']['access_control']
       );
 
       $form['next'] = array(
@@ -241,7 +243,7 @@ function storage_api_create_container_form_validate($form, &$form_state) {
 
       if($form_state['values']['serving'] && $form_state['values']['access_control'])
         $form_state['values']['serving'] = STORAGE_API_ACCESS_CONTROL;
-    
+ 
       $form_state['storage'] = array(
         'name' => $form_state['values']['name'],
         'service_id' => $form_state['values']['service_id'],
@@ -279,9 +281,11 @@ function storage_api_create_container_form_validate($form, &$form_state) {
  */
 function storage_api_create_container_form_submit($form, &$form_state) {
 
-  if($form_state['clicked_button']['#value'] != t('Create'))
+  if($form_state['clicked_button']['#value'] != t('Create')) {
+    $form_state['rebuild'] = TRUE;
     return;
-    
+  }
+  
   $container = $form_state['storage'];
 
   drupal_write_record('storage_container', $container);
