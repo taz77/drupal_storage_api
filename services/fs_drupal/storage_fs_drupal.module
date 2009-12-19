@@ -74,8 +74,8 @@ function storage_fs_drupal_storage_container_create($container) {
  */
 function storage_fs_drupal_storage_container_info($container) {
 
-  $info['Directory path'] = realpath($container['settings']['path']);
   $info['Free space'] = storage_api_format_size(@disk_free_space($container['settings']['path']));
+  $info['Directory'] = realpath($container['settings']['path']);
 
   return $info;
 }
