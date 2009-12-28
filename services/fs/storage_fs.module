@@ -87,14 +87,13 @@ function storage_fs_storage_container_create($container) {
   $storage_api_path = drupal_get_path('module', 'storage_api');
 
   if(!file_check_directory($container['settings']['path'], FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS)) {
-    form_set_error('settings');
+    form_set_error('settings][path', t('Unable to create directory. The parent directory must already exist and have the correct permissions.'));
     return $container;
   }
   
   $path = $container['settings']['path'] . '/objects';
   
-  if(!file_check_directory($path, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS)) {
-    form_set_error('settings');
+  if(!file_check_directory($path, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS, 'settings][path')) {
     return $container;
   }
 
@@ -102,8 +101,7 @@ function storage_fs_storage_container_create($container) {
 
   $path = $container['settings']['path'] . '/files';
 
-  if(!file_check_directory($path, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS)) {
-    form_set_error('settings');
+  if(!file_check_directory($path, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS, 'settings][path')) {
     return $container;
   }
 

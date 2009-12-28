@@ -62,7 +62,7 @@ function storage_fs_drupal_storage_container_validate($container, $edit) {
 function storage_fs_drupal_storage_container_create($container) {
 
   if(!file_check_directory($container['settings']['path'], FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS)) {
-    form_set_error('settings');
+    form_set_error('settings][path', t('Unable to create directory. The parent directory must already exist and have the correct permissions.'));
   }
   
   return $container;
