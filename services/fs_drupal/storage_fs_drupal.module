@@ -29,11 +29,17 @@ function storage_fs_drupal_storage_container_settings_form($settings, $serving, 
   $items['path'] = array(
     '#type' => 'textfield',
     '#title' => t('Directory path'),
+    '#description' => t("Can be absolute or relative."),
     '#default_value' => $settings['path'] ? $settings['path'] : file_directory_path(),
     '#maxlength' => 255,
     '#required' => TRUE,
     '#validated' => TRUE
   );
+  
+  if($edit) {
+    $items['path']['#description'] .= '<br />' . 
+      t('If this setting is changed, the directory must be moved manually to the new path.');
+  }
   
   return $items;
 }
