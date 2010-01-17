@@ -122,7 +122,7 @@ function storage_api_create_container_form($form, &$form_state) {
       
         $form[] = array(
           '#markup' => '<p>There are no storage services available. Please enable a service module on the ' . 
-            l('modules page', 'admin/build/modules') . '.</p>'
+            l('modules page', 'admin/modules') . '.</p>'
         );
         
         break;
