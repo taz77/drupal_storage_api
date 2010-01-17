@@ -54,8 +54,7 @@ function storage_api_services() {
 
   $header = array(t('Service'), t('Suspended'), t('Instances'), t('Size'));
 
-  $query = _storage_api_services_query();
-  $result = db_query($query . "ORDER BY service_id");
+  $result = db_query(_storage_api_services_query());
 
   while($service = db_fetch_array($result)) {
     unset($row);
@@ -67,12 +66,14 @@ function storage_api_services() {
     $row[] = $service['objects_count'] + $service['files_count'];
     $row[] = storage_api_format_size($service['objects_size'] + $service['files_size']);
     
-    $rows[] = $row;
+    $rows[$name] = $row;
   }
   
   if(empty($rows)) {
     $rows[] = array(array('data' => t('No service modules enabled.'), 'colspan' => 4, 'class' => 'message'));
   }
+
+  ksort($rows);
 
   return theme('table', $header, $rows, array('style' => 'width: auto;'));
 }
