@@ -47,7 +47,7 @@ function storage_api_schema() {
       'service_id' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
       'settings' => array('type' => 'varchar', 'length' => 16383, 'not null' => TRUE, 'serialize' => TRUE),
       'serving' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE),
-      'suspended' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE)
+      'suspended' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0)
     ),
     'primary key' => array('container_id')
   );
@@ -65,8 +65,8 @@ function storage_api_schema() {
     'fields' => array(
       'class_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
       'container_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
-      'weight' => array('type' => 'int', 'not null' => TRUE),
-      'serving' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE)
+      'weight' => array('type' => 'int', 'not null' => TRUE, 'default' => 0),
+      'serving' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0)
     ),
     'primary key' => array('class_id', 'container_id')
   );

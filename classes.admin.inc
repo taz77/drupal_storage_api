@@ -296,8 +296,7 @@ function storage_api_class_edit_form($form, &$form_state, $class) {
     $form['weights'][$container['container_id']] = array(
       '#type' => 'weight', 
       '#default_value' => $container['weight'],
-      '#attributes' => array('class' => "my-elements-weight")
-
+      '#attributes' => array('class' => array('my-elements-weight'))
     );
 
     $form['services'][$container['container_id']] = array(
@@ -350,6 +349,7 @@ function storage_api_class_edit_form($form, &$form_state, $class) {
  * @see storage_api_class_edit_form()
  */
 function theme_storage_api_class_edit_form($elements) {
+  
   $form = $elements['form'];
 
   $output = drupal_render($form['name']);
@@ -371,10 +371,10 @@ function theme_storage_api_class_edit_form($elements) {
       
       $rows[] = array(
         'data' => $row,
-        'class' => 'draggable',
+        'class' => array('draggable'),
       );
     }
-
+    
     $output .= theme('table', array(
       'header' => $header, 
       'rows' => $rows,
@@ -561,7 +561,7 @@ function storage_api_class_add_container_form_submit($form, &$form_state) {
  * @ingroup forms
  * @see storage_api_class_remove_container_form_submit()
  */
-function storage_api_class_remove_container_form($form_state, $class, $container) {
+function storage_api_class_remove_container_form($form, $form_state, $class, $container) {
   $form['#class'] = $class;
   $form['#container'] = $container;
 

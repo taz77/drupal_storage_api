@@ -38,7 +38,7 @@ function storage_db_storage_container_settings_form($settings, $serving, $edit) 
       '#options' => $options,
       '#required' => TRUE,
       '#validated' => TRUE,
-      '#default_value' => $settings['db'],
+      '#default_value' => isset($settings['db']) ? $settings['db'] : NULL,
     );
   }
   else {
@@ -51,7 +51,7 @@ function storage_db_storage_container_settings_form($settings, $serving, $edit) 
     '#description' => t('Without prefix or {}, e.g. \'storage_contents\'.'),
     '#required' => TRUE,
     '#validated' => TRUE,
-    '#default_value' => $settings['table'],
+    '#default_value' => isset($settings['table']) ? $settings['table'] : NULL,
   );
   
   return $items;

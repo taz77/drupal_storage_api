@@ -1813,7 +1813,7 @@ function storage_api_format_size($count) {
 /**
  * Implement hook_theme() .
  */
-function storage_api_theme() {
+function storage_api_theme($existing, $type, $theme, $path) {
 
   return array(
     'storage_api_class_edit_form' => array(

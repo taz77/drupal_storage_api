@@ -126,10 +126,10 @@ function _storage_s3_request($container, $method, $bucket = NULL, $object_name =
   $result += curl_getinfo($ch);
   curl_close($ch);
   
-  if($fp)
+  if(isset($fp))
     fclose($fp);
     
-  if($result['filepath'] && $result['http_code'] != 200) {
+  if(isset($result['filepath']) && $result['http_code'] != 200) {
     @unlink($result['filepath']);
     unset($result['filepath']);
   }
@@ -202,7 +202,7 @@ function storage_s3_storage_container_settings_form($settings, $serving, $edit) 
     '#title' => t('Access key ID'),
     '#required' => TRUE,
     '#validated' => TRUE,
-    '#default_value' => $settings['access_key_id']
+    '#default_value' => isset($settings['access_key_id']) ? $settings['access_key_id'] : NULL,
   );
   
   $items['secret_access_key'] = array(
@@ -219,7 +219,7 @@ function storage_s3_storage_container_settings_form($settings, $serving, $edit) 
       '#title' => t('Bucket name'),
       '#required' => TRUE,
       '#validated' => TRUE,
-      '#default_value' => $settings['bucket'],
+      '#default_value' => isset($settings['bucket']) ? $settings['bucket'] : NULL,
       '#maxlength' => 63,
       '#description' => t('The bucket namespace is shared by all users of Amazon S3.'),
     );
@@ -228,6 +228,7 @@ function storage_s3_storage_container_settings_form($settings, $serving, $edit) 
       '#type' => 'select',
       '#title' => t('Location'),
       '#options' => _storage_s3_locations(),
+      '#default_value' => isset($settings['location']) ? $settings['location'] : NULL,
     );
   }
   
@@ -240,7 +241,7 @@ function storage_s3_storage_container_settings_form($settings, $serving, $edit) 
       '#title' => t('URL lifetime'),
       '#required' => TRUE,
       '#validated' => TRUE,
-      '#default_value' => $settings['url_lifetime'] ? $settings['url_lifetime'] : 60 * 60,
+      '#default_value' => isset($settings['url_lifetime']) ? $settings['url_lifetime'] : 60 * 60,
       '#description' => $description,
       '#size' => 8,
       '#maxlength' => 8,

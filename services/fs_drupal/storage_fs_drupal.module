@@ -30,7 +30,7 @@ function storage_fs_drupal_storage_container_settings_form($settings, $serving, 
     '#type' => 'textfield',
     '#title' => t('Directory path'),
     '#description' => t("Can be absolute or relative."),
-    '#default_value' => $settings['path'] ? $settings['path'] : file_directory_path(),
+    '#default_value' => isset($settings['path']) ? $settings['path'] : file_directory_path(),
     '#maxlength' => 255,
     '#required' => TRUE,
     '#validated' => TRUE
@@ -55,7 +55,7 @@ function storage_fs_drupal_storage_container_validate($container, $edit) {
   }
   else if(!$edit) {
   
-    if(file_check_directory($container['settings']['path'])) {
+    if(file_prepare_directory($container['settings']['path'])) {
       form_set_error('settings][path', t('Directory already exists.'));
     }
   }
@@ -67,7 +67,7 @@ function storage_fs_drupal_storage_container_validate($container, $edit) {
  */
 function storage_fs_drupal_storage_container_create($container) {
 
-  if(!file_check_directory($container['settings']['path'], FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS)) {
+  if(!file_prepare_directory($container['settings']['path'], FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS)) {
     form_set_error('settings');
   }
   

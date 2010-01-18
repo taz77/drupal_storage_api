@@ -132,26 +132,26 @@ function storage_api_create_container_form($form, &$form_state) {
         '#title' => t('Name'),
         '#type' => 'textfield',
         '#required' => TRUE,
-//        '#default_value' => $form_state['storage']['name']
+        '#default_value' => isset($form_state['storage']['name']) ? $form_state['storage']['name'] : NULL,
       );
       
       $form['service_id'] = array(
         '#type' => 'select',
         '#title' => t('Service'),
         '#options' => $services,
-//        '#default_value' => $form_state['storage']['service_id']
+        '#default_value' => isset($form_state['storage']['service_id']) ? $form_state['storage']['service_id'] : NULL,
       );
       
       $form['serving'] = array(
         '#type' => 'checkbox',
         '#title' => t('Serving'),
-//        '#default_value' => $form_state['storage']['serving']
+        '#default_value' => isset($form_state['storage']['serving']) ? $form_state['storage']['serving'] : NULL,
       );
       
       $form['access_control'] = array(
         '#type' => 'checkbox',
         '#title' => t('Enforce access control'),
-//        '#default_value' => $form_state['storage']['access_control']
+        '#default_value' => isset($form_state['storage']['access_control']) ? $form_state['storage']['access_control'] : NULL
       );
 
       $form['next'] = array(
@@ -209,8 +209,10 @@ function storage_api_create_container_form($form, &$form_state) {
         '#tree' => TRUE
       );
       
+      $settings = isset($form_state['storage']['settings']) ? $form_state['storage']['settings'] : array();
+      
       $form['settings'] += _storage_api_service_invoke($form_state['storage']['service_id'], 
-        'container_settings_form', $form_state['storage']['settings'], $form_state['storage']['serving'], FALSE);
+        'container_settings_form', $settings, $form_state['storage']['serving'], FALSE);
       
       $form['back'] = array(
         '#type' => 'submit',
@@ -243,13 +245,11 @@ function storage_api_create_container_form_validate($form, &$form_state) {
 
       if($form_state['values']['serving'] && $form_state['values']['access_control'])
         $form_state['values']['serving'] = STORAGE_API_ACCESS_CONTROL;
- 
-      $form_state['storage'] = array(
-        'name' => $form_state['values']['name'],
-        'service_id' => $form_state['values']['service_id'],
-        'serving' => $form_state['values']['serving']
-      );
-      
+
+      $form_state['storage']['name'] = $form_state['values']['name'];
+      $form_state['storage']['service_id'] = $form_state['values']['service_id'];
+      $form_state['storage']['serving'] = $form_state['values']['serving'];
+    
       break;
       
       
@@ -304,9 +304,10 @@ function storage_api_create_container_form_submit($form, &$form_state) {
 
 function _storage_api_container_flush_serve_url($container_id) {
 
-  $selector_subquery = db_select('storage_class_container')
-    ->join('storage_selector', NULL, 'storage_class_container.class_id = storage_selector.class_id')
-    ->fields('storage_selector', array('selector_id'))
+  $selector_subquery = db_select('storage_class_container');
+  $selector_subquery->join('storage_selector', NULL, 'storage_class_container.class_id = storage_selector.class_id');
+    
+  $selector_subquery->fields('storage_selector', array('selector_id'))
     ->condition('storage_class_container.container_id', $container_id);
     
   db_update('storage_file')

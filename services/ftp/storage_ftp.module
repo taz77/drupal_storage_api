@@ -51,7 +51,7 @@ function storage_ftp_storage_container_settings_form($settings, $serving, $edit)
     '#description' => t('The FTP server address. This parameter shouldn\'t have any trailing slashes and shouldn\'t be prefixed with ftp:// .'),
     '#required' => TRUE,
     '#validated' => TRUE,
-    '#default_value' => $settings['host']
+    '#default_value' => isset($settings['host']) ? $settings['host'] : NULL,
   );
   
   $items['port'] = array(
@@ -60,7 +60,7 @@ function storage_ftp_storage_container_settings_form($settings, $serving, $edit)
     '#description' => t('If omitted, the default FTP port (21) will be used.'),
     '#maxlength' => 5,
     '#size' => 5,
-    '#default_value' => $settings['port']
+    '#default_value' => isset($settings['port']) ? $settings['port'] : NULL,
   );
   
   $items['username'] = array(
@@ -69,13 +69,12 @@ function storage_ftp_storage_container_settings_form($settings, $serving, $edit)
     '#description' => t(''),
     '#required' => TRUE,
     '#validated' => TRUE,
-    '#default_value' => $settings['username']
+    '#default_value' => isset($settings['username']) ? $settings['username'] : NULL,
   );
 
   $items['password'] = array(
     '#type' => 'password',
     '#title' => t('Password'),
-    '#default_value' => $settings['password']
   );
 
   $items['directory'] = array(
@@ -84,7 +83,7 @@ function storage_ftp_storage_container_settings_form($settings, $serving, $edit)
     '#description' => t('The directory to be created on the FTP server.'),
     '#required' => TRUE,
     '#validated' => TRUE,
-    '#default_value' => $settings['directory']
+    '#default_value' => isset($settings['directory']) ? $settings['directory'] : NULL,
   );
   
   $items['permissions'] = array(
@@ -93,7 +92,7 @@ function storage_ftp_storage_container_settings_form($settings, $serving, $edit)
     '#description' => t('Octal format, e.g. 644.<br />For serving, ensure the files are readable by the web server.<br />If omitted, the FTP server\'s default permissions will be used.'),
     '#maxlength' => 4,
     '#size' => 5,
-    '#default_value' => $settings['permissions']
+    '#default_value' => isset($settings['permissions']) ? $settings['permissions'] : NULL,
   );
   
   if($serving) {
@@ -104,7 +103,7 @@ function storage_ftp_storage_container_settings_form($settings, $serving, $edit)
       '#description' => t('The URL of the directory specified above.'),
       '#required' => TRUE,
       '#validated' => TRUE,
-      '#default_value' => $settings['base_url']
+      '#default_value' => isset($settings['base_url']) ? $settings['base_url'] : NULL,
     );
   }
 

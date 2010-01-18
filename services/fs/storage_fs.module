@@ -30,7 +30,7 @@ function storage_fs_storage_container_settings_form($settings, $serving, $edit) 
     '#type' => 'textfield',
     '#title' => t('Directory path'),
     '#description' => t("Can be absolute or relative."),
-    '#default_value' => $settings['path'] ? $settings['path'] : file_directory_path(),
+    '#default_value' => isset($settings['path']) ? $settings['path'] : file_directory_path(),
     '#required' => TRUE,
     '#validated' => TRUE,
   );
@@ -49,7 +49,7 @@ function storage_fs_storage_container_settings_form($settings, $serving, $edit) 
       '#type' => 'textfield',
       '#title' => t('Base URL path'),
       '#description' => t($description),
-      '#default_value' => $settings['base_url'] ? $settings['base_url'] : file_directory_path(),
+      '#default_value' => isset($settings['base_url']) ? $settings['base_url'] : file_directory_path(),
       '#required' => TRUE,
       '#validated' => TRUE,
     );
@@ -69,7 +69,7 @@ function storage_fs_storage_container_validate($container, $edit) {
   }
   else if(!$edit) {
   
-    if(file_check_directory($container['settings']['path'])) {
+    if(file_prepare_directory($container['settings']['path'])) {
       form_set_error('settings][path', t('Directory already exists.'));
     }
   }
@@ -90,14 +90,14 @@ function storage_fs_storage_container_create($container) {
 
   $storage_api_path = drupal_get_path('module', 'storage_api');
 
-  if(!file_check_directory($container['settings']['path'], FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS)) {
+  if(!file_prepare_directory($container['settings']['path'], FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS)) {
     form_set_error('settings');
     return $container;
   }
   
   $path = $container['settings']['path'] . '/objects';
   
-  if(!file_check_directory($path, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS)) {
+  if(!file_prepare_directory($path, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS)) {
     form_set_error('settings');
     return $container;
   }
@@ -106,7 +106,7 @@ function storage_fs_storage_container_create($container) {
 
   $path = $container['settings']['path'] . '/files';
 
-  if(!file_check_directory($path, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS)) {
+  if(!file_prepare_directory($path, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS)) {
     form_set_error('settings');
     return $container;
   }

@@ -118,7 +118,7 @@ function storage_rackspace_storage_container_settings_form($settings, $serving, 
     '#title' => t('Username'),
     '#required' => TRUE,
     '#validated' => TRUE,
-    '#default_value' => $settings['username']
+    '#default_value' => isset($settings['username']) ? $settings['username'] : NULL,
   );
   
   $items['api_key'] = array(
@@ -135,7 +135,7 @@ function storage_rackspace_storage_container_settings_form($settings, $serving, 
       '#title' => t('Cloud Files container'),
       '#required' => TRUE,
       '#validated' => TRUE,
-      '#default_value' => $settings['rscf_container']
+      '#default_value' => isset($settings['rscf_container']) ? $settings['rscf_container'] : NULL,
     );
   }
   
