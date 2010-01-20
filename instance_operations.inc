@@ -23,7 +23,7 @@ function _storage_api_create_object_instance(&$container, $file) {
 
   drupal_write_record('storage_object_instance', $instance);
   
-  _storage_api_flush_serve_url($file['file_id']);
+  _storage_api_flush_serving_container($file['file_id']);
   
   $message = 'Object instance created. <br />';
   $message .= _storage_api_container_log_info($container);
@@ -54,7 +54,7 @@ function _storage_api_create_file_instance(&$container, $file) {
 
   drupal_write_record('storage_file_instance', $instance);
   
-  _storage_api_flush_serve_url($file['file_id']);
+  _storage_api_flush_serving_container($file['file_id']);
   
   $message = 'File instance created' . ($file['filename'] ? (': ' . $file['filename'] . ' ') : '') . '. <br />';
   $message .= _storage_api_container_log_info($container);
@@ -125,7 +125,7 @@ function _storage_api_object_instance_copy(&$container, $file, $source_container
 
   drupal_write_record('storage_object_instance', $instance);
   
-  _storage_api_flush_serve_url($file['file_id']);
+  _storage_api_flush_serving_container($file['file_id']);
   
   $message = 'Object instance copied. <br />';
   $message .= _storage_api_container_log_info($container);
@@ -156,7 +156,7 @@ function _storage_api_file_instance_copy(&$container, $file, $source_container) 
 
   drupal_write_record('storage_file_instance', $instance);
   
-  _storage_api_flush_serve_url($file['file_id']);
+  _storage_api_flush_serving_container($file['file_id']);
   
   $message = 'File instance copied' . ($file['filename'] ? (': ' . $file['filename'] . ' ') : '') . '. <br />';
   $message .= _storage_api_container_log_info($container);

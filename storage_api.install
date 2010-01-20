@@ -108,7 +108,7 @@ function storage_api_schema() {
       'nid' => array('type' => 'int', 'unsigned' => TRUE),
       'check_me' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE),
       'data' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'serialize' => TRUE),
-      'serve_url' => array('type' => 'varchar', 'length' => 4095),
+      'serving_container' => array('type' => 'varchar', 'length' => '16383', 'not null' => FALSE),
       'servings' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
       'last_touched' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE)
     ),

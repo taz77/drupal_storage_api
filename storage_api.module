@@ -309,6 +309,9 @@ function storage_api_file_load($file_id, $reload = FALSE) {
   $file['data'] = unserialize($file['data']);
   $file['options'] = unserialize($file['options']);
   
+  if($file['serving_container'])
+    $file['serving_container'] = unserialize($file['serving_container']);
+  
   $_storage_api_file_cache[$file_id] = $file;
   
   return $file;
@@ -645,10 +648,10 @@ function _storage_api_serving_container($file) {
 }
 
 
-function _storage_api_cache_serve_url($file_id, $url) {
+function _storage_api_cache_serving_container($file_id, $container) {
 
   db_update('storage_file')
-    ->fields(array('serve_url' => $url))
+    ->fields(array('serving_container' => serialize($container)))
     ->condition('file_id', $file_id)
     ->execute();
 
@@ -656,10 +659,10 @@ function _storage_api_cache_serve_url($file_id, $url) {
 }
 
 
-function _storage_api_flush_serve_url($file_id) {
+function _storage_api_flush_serving_container($file_id) {
 
   db_update('storage_file')
-    ->expression('serve_url', 'NULL')
+    ->expression('serving_container', 'NULL')
     ->condition('file_id', $file_id)
     ->execute();
 
@@ -708,16 +711,18 @@ function _storage_api_file_generate(&$file) {
  */
 function storage_api_serve($file) {
   
-  if($file['serve_url']) {
-    _storage_api_log_serving($file);
-    drupal_goto($file['serve_url']);    // 302 redirect (don't cache)
+  if($file['serving_container'] !== NULL) {   // FALSE means there is no container
+    $container = $file['serving_container'];
   }
-
-  $container = _storage_api_serving_container($file);
+  else {
+    $container = _storage_api_serving_container($file);
   
-  if(!$container)
-    $container = _storage_api_file_generate($file);
-
+    if(!$container)
+      $container = _storage_api_file_generate($file);
+      
+    _storage_api_cache_serving_container($file['file_id'], $container);
+  }
+  
   if($container) {
     _storage_api_log_serving($file, $container['container_id']);
     
@@ -745,9 +750,6 @@ function storage_api_serve($file) {
     return;
   }
   
-  if($container['serving'] != STORAGE_API_ACCESS_CONTROL)
-    _storage_api_cache_serve_url($file['file_id'], $url);
-  
   // this will definitely not return
   drupal_goto($url);    // 302 redirect (don't cache)
 }
@@ -773,7 +775,7 @@ function _storage_api_serve_path($file) {
  */
 function storage_api_serve_url($file, $absolute = FALSE) {
   
-  if($file['serve_url'] === '' || $file['options']['redirect']) {
+  if(!$file || $file['serving_container'] === FALSE || $file['options']['redirect']) {  // FALSE means there is no container
     $serve_from_site = TRUE;
   }
   else if(!storage_api_serve_access($file)) {
@@ -782,15 +784,17 @@ function storage_api_serve_url($file, $absolute = FALSE) {
   
   if($serve_from_site)
     return url(_storage_api_serve_path($file), array('absolute' => $absolute));
-  
-  if($file['serve_url']) {
-    _storage_api_file_touch($file);
-    return url($file['serve_url'], array('absolute' => $absolute));
+
+
+  if($file['serving_container']) {
+    $container = $file['serving_container'];
   }
+  else {
+    $container = _storage_api_serving_container($file);
 
-
-  $container = _storage_api_serving_container($file);
-
+    _storage_api_cache_serving_container($file['file_id'], $container);
+  }
+  
   if($container) {
     $info = _storage_api_service_invoke($container['service_id'], 'service_info');
     
@@ -815,13 +819,6 @@ function storage_api_serve_url($file, $absolute = FALSE) {
     $url = $file['source_url'];
   }
   
-  // if we don't have a url, we can cache that we serve from source
-  // if we don't have a container, we are serving the source_url and can cache that
-  // if the container isn't secure, then we can cache because the url will not expire
-  
-  if(!$url || !$container || $container['serving'] != STORAGE_API_ACCESS_CONTROL)
-    _storage_api_cache_serve_url($file['file_id'], (string)$url);
-
   if(!$url)
     $url = _storage_api_serve_path($file);
   else
@@ -960,7 +957,7 @@ function storage_api_selector_submit($form_item) {
 
     db_update('storage_file')
       ->fields(array('check_me' => 1))
-      ->expression('serve_url', 'NULL')
+      ->expression('serving_container', 'NULL')
       ->condition('selector_id', $form_item['selector_id'])
       ->execute();
     
@@ -1602,7 +1599,7 @@ function storage_api_file_remove($file_id) {
   db_update('storage_file')
     ->fields(array(
       'check_me' => 1,
-      'serve_url' => '',
+      'serving_container' => serialize(FALSE),
     ))
     ->expression('selector_id', 'NULL')
     ->condition('file_id', $file_id)
@@ -1702,7 +1699,7 @@ function storage_api_class_add_container($class, $container) {
     
   db_update('storage_file')
     ->fields(array('check_me' => 1))
-    ->expression('serve_url', 'NULL')
+    ->expression('serving_container', 'NULL')
     ->condition('selector_id', $selector_subquery, 'IN')
     ->execute();
 
@@ -1732,7 +1729,7 @@ function storage_api_drain_container($container) {
     
   db_update('storage_file')
     ->fields(array('check_me' => 1))
-    ->expression('serve_url', 'NULL')
+    ->expression('serving_container', 'NULL')
     ->condition('selector_id', $selector_subquery, 'IN')
     ->execute();
 

@@ -84,7 +84,7 @@ function storage_api_services() {
 }
 
 
-function _storage_api_service_flush_serve_url($service_id) {
+function _storage_api_service_flush_serving_container($service_id) {
 
   $selector_subquery = db_select('storage_container');
   $selector_subquery->join('storage_class_container', NULL, 'storage_container.container_id = storage_class_container.container_id');
@@ -94,7 +94,7 @@ function _storage_api_service_flush_serve_url($service_id) {
     ->condition('storage_container.service_id', $service_id);
     
   db_update('storage_file')
-    ->expression('serve_url', 'NULL')
+    ->expression('serving_container', 'NULL')
     ->condition('selector_id', $selector_subquery, 'IN')
     ->execute();
 
@@ -215,7 +215,7 @@ function storage_api_service_suspend_form_submit($form, &$form_state) {
   );
   
   drupal_write_record('storage_service', $update, 'service_id');
-  _storage_api_service_flush_serve_url($service['service_id']);
+  _storage_api_service_flush_serving_container($service['service_id']);
 
   $message = 'Storage service <i>' . $service['name'] . '</i> has been suspended.';
   $path = 'admin/config/media/storage/services/' . $service['service_id']; 
@@ -255,7 +255,7 @@ function storage_api_service_unsuspend_form_submit($form, &$form_state) {
   );
   
   drupal_write_record('storage_service', $update, 'service_id');
-  _storage_api_service_flush_serve_url($service['service_id']);
+  _storage_api_service_flush_serving_container($service['service_id']);
 
   $message = 'Storage service <i>' . $service['name'] . '</i> has been unsuspended.';
   $path = 'admin/config/media/storage/services/' . $service['service_id']; 

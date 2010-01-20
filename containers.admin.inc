@@ -302,7 +302,7 @@ function storage_api_create_container_form_submit($form, &$form_state) {
 }
 
 
-function _storage_api_container_flush_serve_url($container_id) {
+function _storage_api_container_flush_serving_container($container_id) {
 
   $selector_subquery = db_select('storage_class_container');
   $selector_subquery->join('storage_selector', NULL, 'storage_class_container.class_id = storage_selector.class_id');
@@ -311,7 +311,7 @@ function _storage_api_container_flush_serve_url($container_id) {
     ->condition('storage_class_container.container_id', $container_id);
     
   db_update('storage_file')
-    ->expression('serve_url', 'NULL')
+    ->expression('serving_container', 'NULL')
     ->condition('selector_id', $selector_subquery, 'IN')
     ->execute();
 
@@ -501,7 +501,7 @@ function storage_api_container_suspend_form_submit($form, &$form_state) {
   );
   
   drupal_write_record('storage_container', $update, 'container_id');
-  _storage_api_container_flush_serve_url($container['container_id']);
+  _storage_api_container_flush_serving_container($container['container_id']);
 
   $message = 'Storage container <i>' . $container['name'] . '</i> has been suspended.';
   $path = 'admin/config/media/storage/containers/' . $container['container_id'];
@@ -541,7 +541,7 @@ function storage_api_container_unsuspend_form_submit($form, &$form_state) {
   );
   
   drupal_write_record('storage_container', $update, 'container_id');
-  _storage_api_container_flush_serve_url($container['container_id']);
+  _storage_api_container_flush_serving_container($container['container_id']);
 
   $message = 'Storage container <i>' . $container['name'] . '</i> has been unsuspended.';
   $path = 'admin/config/media/storage/containers/' . $container['container_id'];
@@ -619,7 +619,7 @@ function storage_api_container_destroy_form_submit($form, &$form_state) {
     ->condition('container_id', $container['container_id'])
     ->execute();
   
-  _storage_api_container_flush_serve_url($container['container_id']);
+  _storage_api_container_flush_serving_container($container['container_id']);
 
   $success = _storage_api_service_invoke($container['service_id'], 'container_destroy', $container);
 
@@ -705,7 +705,7 @@ function storage_api_container_edit_form_submit($form, &$form_state) {
   );
   
   drupal_write_record('storage_container', $update, 'container_id');
-  _storage_api_container_flush_serve_url($container['container_id']);
+  _storage_api_container_flush_serving_container($container['container_id']);
   
   $form_state['redirect'] = 'admin/config/media/storage/containers/' . $container['container_id'];
 }

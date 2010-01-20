@@ -423,7 +423,7 @@ function storage_api_class_edit_form_submit($form, &$form_state) {
     ->condition('class_id', $class['class_id']);
 
   db_update('storage_file')
-    ->expression('serve_url', 'NULL')
+    ->expression('serving_container', 'NULL')
     ->condition('selector_id', $selector_subquery, 'IN')
     ->execute();
   
@@ -591,7 +591,7 @@ function storage_api_class_remove_container_form_submit($form, &$form_state) {
 
   db_update('storage_file')
     ->fields(array('check_me' => 1))
-    ->expression('serve_url', 'NULL')
+    ->expression('serving_container', 'NULL')
     ->condition('selector_id', $selector_subquery, 'IN')
     ->execute();
 
