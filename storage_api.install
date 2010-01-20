@@ -108,7 +108,7 @@ function storage_api_schema() {
       'nid' => array('type' => 'int', 'unsigned' => TRUE),
       'check_me' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE),
       'data' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'serialize' => TRUE),
-      'serve_url' => array('type' => 'varchar', 'length' => 4095),
+      'serving_container' => array('type' => 'varchar', 'length' => '16383', 'not null' => FALSE),
       'servings' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
       'last_touched' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE)
     ),
@@ -261,7 +261,24 @@ function storage_api_update_6106() {
   return $ret;
 }
 
- 
+
+function storage_api_update_6107() {
+  $ret = array();
+
+  $ret[] = update_sql("
+    ALTER TABLE {storage_file}
+    CHANGE serve_url serving_container VARCHAR(16383) NULL DEFAULT NULL
+  ");
+  
+  $ret[] = update_sql("
+    UPDATE {storage_file}
+    SET serving_container = NULL
+  ");
+
+  return $ret;
+}
+
+
 /**
  * Implement hook_uninstall() .
  */

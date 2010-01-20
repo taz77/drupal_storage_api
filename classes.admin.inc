@@ -401,7 +401,7 @@ function storage_api_class_edit_form_submit($form, &$form_state) {
   
   db_query("
     UPDATE {storage_file}
-    SET serve_url = NULL
+    SET serving_container = NULL
     WHERE selector_id IN (
     
       SELECT selector_id
@@ -581,7 +581,7 @@ function storage_api_class_remove_container_form_submit($form, &$form_state) {
   db_query("
     UPDATE {storage_file}
     SET check_me = 1,
-      serve_url = NULL
+      serving_container = NULL
     WHERE selector_id IN (
     
       SELECT selector_id
