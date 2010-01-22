@@ -139,6 +139,30 @@ function hook_storage_container_create($container) {
 
 
 /**
+ * Respond to a container having been created.
+ *
+ * container_id is now available.
+ *
+ * @param $container
+ *   Container that has been created.
+ */
+function hook_storage_container_postcreate($container) {
+}
+
+
+/**
+ * Update a storage container.
+ *
+ * @param $container
+ *   Modified container.
+ * @return
+ *   The container (with any further modifications). Even return on failure.
+ */
+function hook_storage_container_update($container) {
+}
+
+
+/**
  * Provide info about a container.
  *
  * @param $container

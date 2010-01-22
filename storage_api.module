@@ -455,10 +455,13 @@ function _storage_api_update_services() {
 function _storage_api_service_invoke() {
   $args = func_get_args();
   
-  $args[0] = 'storage_' . $args[0];
-  $args[1] = 'storage_' . $args[1];
+  $module = 'storage_' . array_shift($args);
+  $hook = 'storage_' . array_shift($args);
   
-  return call_user_func_array('module_invoke', $args);
+  if(module_hook($module, $hook))
+    return call_user_func_array($module . '_' . $hook, $args);
+  else
+    return $args[0];
 }
 
 
@@ -695,6 +698,28 @@ function _storage_api_flush_serving_container($file_id) {
 }
 
 
+function _storage_api_container_flush_serving_container($container_id) {
+
+  db_query("
+    UPDATE {storage_file}
+    SET serving_container = NULL
+    WHERE selector_id IN (
+    
+      SELECT {storage_selector}.selector_id
+      FROM {storage_class_container}
+      INNER JOIN {storage_selector}
+        ON {storage_class_container}.class_id = {storage_selector}.class_id
+      WHERE {storage_class_container}.container_id = %d
+      
+    )
+  ",
+    $container_id
+  );
+
+  cache_clear_all();
+}
+
+
 function _storage_api_file_generate(&$file) {
 
   $container = _storage_api_get_initial_container($file['selector_id']);
@@ -735,8 +760,8 @@ function _storage_api_file_generate(&$file) {
  *   The file that is to be served.
  */
 function storage_api_serve($file) {
-  
-  if($file['serving_container'] !== NULL) {   // FALSE means there is no container
+
+  if($file['serving_container']) {
     $container = $file['serving_container'];
   }
   else {
