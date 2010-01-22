@@ -290,6 +290,8 @@ function storage_api_create_container_form_submit($form, &$form_state) {
 
   drupal_write_record('storage_container', $container);
 
+  _storage_api_service_invoke($container['service_id'], 'container_postcreate', $container);
+
   $message = 'Storage container <i>' . $form_state['storage']['name'] . '</i> has been created.';
   $path = 'admin/config/media/storage/containers/' . $container['container_id'];
 
@@ -299,23 +301,6 @@ function storage_api_create_container_form_submit($form, &$form_state) {
   unset($form_state['storage']);
   $form_state['rebuild'] = FALSE;
   $form_state['redirect'] = $path;
-}
-
-
-function _storage_api_container_flush_serving_container($container_id) {
-
-  $selector_subquery = db_select('storage_class_container');
-  $selector_subquery->join('storage_selector', NULL, 'storage_class_container.class_id = storage_selector.class_id');
-    
-  $selector_subquery->fields('storage_selector', array('selector_id'))
-    ->condition('storage_class_container.container_id', $container_id);
-    
-  db_update('storage_file')
-    ->expression('serving_container', 'NULL')
-    ->condition('selector_id', $selector_subquery, 'IN')
-    ->execute();
-
-  cache_clear_all();
 }
 
 
@@ -695,18 +680,21 @@ function storage_api_container_edit_form_validate($form, &$form_state) {
  */
 function storage_api_container_edit_form_submit($form, &$form_state) {
   $container = $form['#container'];
-  
-  $form_state['values']['settings'] += $container['settings'];
 
-  $update = array(
-    'container_id' => $container['container_id'],
-    'name' => $form_state['values']['name'],
-    'settings' => $form_state['values']['settings'],
-  );
-  
-  drupal_write_record('storage_container', $update, 'container_id');
+  $container['name'] = $form_state['values']['name'];
+  $container['settings'] = $form_state['values']['settings'] + $container['settings'];
+
+  $container = _storage_api_service_invoke($container['service_id'], 'container_update', $container);
+
+  drupal_write_record('storage_container', $container, 'container_id');
   _storage_api_container_flush_serving_container($container['container_id']);
-  
-  $form_state['redirect'] = 'admin/config/media/storage/containers/' . $container['container_id'];
+
+  $message = 'Storage container <i>' . $container['name'] . '</i> has been updated.';
+  $path = 'admin/build/storage/containers/' . $container['container_id'];
+
+  drupal_set_message($message);
+  watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));
+
+  $form_state['redirect'] = 'admin/build/storage/containers/' . $container['container_id'];
 }
 
