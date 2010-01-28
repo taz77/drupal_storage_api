@@ -666,7 +666,8 @@ function storage_api_container_edit_form_submit($form, &$form_state) {
   $container['name'] = $form_state['values']['name'];
   $container['settings'] = $form_state['values']['settings'] + $container['settings'];
 
-  $container = _storage_api_service_invoke($container['service_id'], 'container_update', $container);
+  $updated_container = _storage_api_service_invoke($container['service_id'], 'container_update', $container);
+  $container = $updated_container ? $updated_container : $container;
 
   drupal_write_record('storage_container', $container, 'container_id');
   _storage_api_container_flush_serving_container($container['container_id']);
