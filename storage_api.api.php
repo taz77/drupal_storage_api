@@ -263,6 +263,22 @@ function hook_storage_object_instance_serve($container, $file) {
 
 
 /**
+ * Returns information required to stream an object instance with RTMP.
+ *
+ * @param $container
+ *   Container that holds the object instance.
+ * @param $file
+ *   File representing the object to be served.
+ * @return
+ *   An associative array of information to stream the file with RTMP:
+ *     - 'streamer'
+ *     - 'file'
+ */
+function hook_storage_object_instance_serve_rtmp($container, $file) {
+}
+
+
+/**
  * Create a file instance in a container.
  *
  * Don't implement for dynamic services.
@@ -339,5 +355,21 @@ function hook_storage_file_instance_get_filepath($container, $file) {
  *   An absolute URL.
  */
 function hook_storage_file_instance_serve($container, $file) {
+}
+
+
+/**
+ * Returns information required to stream a file instance with RTMP.
+ *
+ * @param $container
+ *   Container that holds the object instance.
+ * @param $file
+ *   File representing the object to be served.
+ * @return
+ *   An associative array of information to stream the file with RTMP:
+ *     - 'streamer'
+ *     - 'file'
+ */
+function hook_storage_file_instance_serve_rtmp($container, $file) {
 }
 

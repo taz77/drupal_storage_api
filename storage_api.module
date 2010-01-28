@@ -446,13 +446,10 @@ function _storage_api_update_services() {
 function _storage_api_service_invoke() {
   $args = func_get_args();
   
-  $module = 'storage_' . array_shift($args);
-  $hook = 'storage_' . array_shift($args);
+  $args[0] = 'storage_' . $args[0];
+  $args[1] = 'storage_' . $args[1];
   
-  if(module_hook($module, $hook))
-    return call_user_func_array($module . '_' . $hook, $args);
-  else
-    return $args[0];
+  return call_user_func_array('module_invoke', $args);
 }
 
 
@@ -845,6 +842,55 @@ function storage_api_serve_url($file, $absolute = FALSE) {
     _storage_api_file_touch($file);
 
   return url($url, array('absolute' => $absolute));
+}
+
+
+/**
+ * Returns information required to stream a file with RTMP.
+ *
+ * Not all services support RTMP.
+ *
+ * @param $file
+ *   The file to be streamed. Returned from storage_api_file_load() .
+ * @return
+ *   An associative array of information to stream the file with RTMP:
+ *     - 'streamer'
+ *     - 'file'
+ */
+function storage_api_serve_rtmp($file) {
+  
+  if(!$file || $file['serving_container'] === FALSE) {  // FALSE means there is no container
+    return FALSE;
+  }
+  
+  if($file['serving_container']) {
+    $container = $file['serving_container'];
+  }
+  else {
+    $container = _storage_api_serving_container($file);
+
+    _storage_api_cache_serving_container($file['file_id'], $container);
+  }
+  
+  if(!$container)
+    return FALSE;
+  
+  if(!storage_api_serve_access($file)) {
+    return FALSE;
+  }
+  
+  switch($container['type']) {
+  
+    case 'object':
+      return _storage_api_service_invoke($container['service_id'], 'object_instance_serve_rtmp', 
+        $container, $file);
+      break;
+    
+    case 'file':
+      return _storage_api_service_invoke($container['service_id'], 'file_instance_serve_rtmp',
+        $container, $file);
+      break;
+  }
 }
 
 
