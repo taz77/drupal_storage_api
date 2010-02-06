@@ -114,23 +114,15 @@ function storage_api_service_form($form_state, $service) {
 
   drupal_set_title(t('Storage service: ') . $service['name']);
 
-  $rows[] = array(t('Suspended'), $service['suspended'] ? t('Yes') : t('No'));
-
   $query = _storage_api_services_query();
-  $info = db_fetch_array(db_query($query . "WHERE {storage_service}.service_id = '%s'", $service['service_id']));
+  $data = db_fetch_array(db_query($query . "WHERE {storage_service}.service_id = '%s'", $service['service_id']));
 
-  $rows[] = array(t('Instances'), $info['objects_count'] + $info['files_count']);
-  $rows[] = array(t('Size'), storage_api_format_size($info['objects_size'] + $info['files_size']));
-  
-  foreach($rows as &$row) {
-    $row[0] = array(
-      'data' => $row[0] . ':',
-      'style' => 'font-weight: bold',
-    );
-  }
+  $info[t('Instances')] = $data['objects_count'] + $data['files_count'];
+  $info[t('Size')] = storage_api_format_size($data['objects_size'] + $data['files_size']);
+  $info[t('Suspended')] = $service['suspended'] ? t('Yes') : t('No');
   
   $form['status'] = array(
-    '#value' => '<p>' . theme('table', NULL, $rows, array('style' => 'width: auto;')) . '</p>'
+    '#value' => theme_storage_api_info_table($info)
   );
 
   if(!$service['suspended']) {

@@ -102,9 +102,14 @@ function storage_ftp_storage_container_settings_form($settings, $serving, $edit)
       '#type' => 'textfield',
       '#title' => t('Base URL'),
       '#description' => t('The URL of the directory specified above.'),
-      '#required' => TRUE,
-      '#validated' => TRUE,
-      '#default_value' => $settings['base_url']
+      '#default_value' => $settings['base_url'],
+    );
+
+    $items['base_url_rtmp'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Base RTMP URL'),
+      '#description' => t('The RTMP URL of the directory specified above.<br />This is for Flash media streaming.'),
+      '#default_value' => $settings['base_url_rtmp'],
     );
   }
 
@@ -128,14 +133,7 @@ function storage_ftp_storage_container_validate($container, $edit) {
   if(!$container['settings']['directory']) {
     form_set_error('settings][directory', t('Password field is required.'));
   }
-  
-  if($container['serving']) {
-  
-    if(!$container['settings']['base_url']) {
-      form_set_error('settings][base_url', t('Base URL field is required.'));
-    }
-  }
-  
+
   if(form_get_errors())
     return;
 
@@ -309,6 +307,23 @@ function storage_ftp_storage_object_instance_serve($container, $file) {
 
 
 /**
+ * Implement hook_storage_object_instance_serve_rmtp() .
+ */
+function storage_ftp_storage_object_instance_serve_rtmp($container, $file) {
+
+  if($container['settings']['base_url_rtmp']) {
+  
+    return array(
+      'streamer' => $container['settings']['base_url_rtmp'] . '/objects/',
+      'file' => $container['reference'],
+    );
+  }
+
+  return FALSE;
+}
+
+
+/**
  * Implement hook_storage_file_instance_create() .
  */
 function storage_ftp_storage_file_instance_create($container, $file) {
@@ -389,5 +404,22 @@ function storage_ftp_storage_file_instance_get_filepath($container, $file) {
 function storage_ftp_storage_file_instance_serve($container, $file) {
 
   return $container['settings']['base_url'] . '/files/' . $container['reference'];
+}
+
+
+/**
+ * Implement hook_storage_file_instance_serve_rtmp() .
+ */
+function storage_ftp_storage_file_instance_serve_rtmp($container, $file) {
+
+  if($container['settings']['base_url_rtmp']) {
+  
+    return array(
+      'streamer' => $container['settings']['base_url_rtmp'] . '/files/',
+      'file' => $container['reference'],
+    );
+  }
+
+  return FALSE;
 }
 

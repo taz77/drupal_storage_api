@@ -279,6 +279,43 @@ function storage_api_update_6107() {
 }
 
 
+function storage_api_update_6108() {
+  $ret = array();
+
+  $result = db_query("
+    SELECT class_id
+    FROM {storage_class}
+  ");
+  
+  while($class = db_fetch_array($result)) {
+  
+    $class = storage_api_class_load($class['class_id']);
+
+    // find the container with the lowest priority in the class
+
+    $class['options']['initial_container_id'] = db_result(db_query("
+      SELECT {storage_container}.container_id
+      FROM {storage_class_container}
+      INNER JOIN {storage_container}
+        ON {storage_class_container}.container_id = {storage_container}.container_id
+      INNER JOIN {storage_service}
+        ON {storage_container}.service_id = {storage_service}.service_id
+      WHERE {storage_class_container}.class_id = %d
+        AND {storage_container}.suspended = 0
+        AND {storage_service}.suspended = 0
+      ORDER BY {storage_class_container}.weight DESC, {storage_container}.container_id DESC
+      LIMIT 1
+    ",
+      $class['class_id']
+    ));
+
+    drupal_write_record('storage_class', $class, 'class_id');
+  }
+
+  return $ret;
+}
+
+
 /**
  * Implement hook_uninstall() .
  */

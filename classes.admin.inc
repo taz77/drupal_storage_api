@@ -100,7 +100,7 @@ function _storage_api_class_form_elements($class = NULL) {
       '#description' => t('If no instances are available, serve the source url.')
     )
   );
-  
+
   return $form;
 }  
 
@@ -157,20 +157,16 @@ function storage_api_class($class) {
   $query = _storage_api_classes_query();
   $class_info = db_fetch_array(db_query($query . "HAVING class_id = %d", $class['class_id']));
 
-  $rows[] = array(t('Files'), $class_info['files']);
-  $rows[] = array(t('Size'), storage_api_format_size($class_info['size']));
+  $info[t('Files')] = $class_info['files'];
+  $info[t('Size')] = storage_api_format_size($class_info['size']);
+  $info[t('Access control')] = $class['options']['access_control'] ? t('Yes') : t('No');
+  $info[t('Redirection')] = $class['options']['redirect'] ? t('Yes') : t('No');
+  $info[t('Serve source')] = $class['options']['serve_source_url'] ? t('Yes') : t('No');
+  $info[t('Initial container')] = _storage_api_container_link($class['initial_container']);
   
-  foreach($rows as &$row) {
-    $row[0] = array(
-      'data' => $row[0] . ':',
-      'style' => 'font-weight: bold',
-    );
-  }
-  
-  $output = theme('table', NULL, $rows, array('style' => 'width: auto;'));
-  
-  unset($rows);
+  $output = theme_storage_api_info_table($info);
 
+  
   $result = db_query("
     SELECT {storage_container}.*, {storage_class_container}.serving AS serving, 
       objects.count AS objects_count, objects.size AS objects_size,
@@ -219,8 +215,7 @@ function storage_api_class($class) {
   while($container = db_fetch_array($result)) {
     unset($row);
     
-    $row[] = l($container['name'], 
-        'admin/build/storage/containers/' . $container['container_id']);
+    $row[] = _storage_api_container_link($container);
     $row[] = l(_storage_api_get_service_name($container['service_id']), 
         'admin/build/storage/services/' . $container['service_id']);
     $row[] = $container['serving'] ? t('Yes') : t('No');
@@ -236,9 +231,6 @@ function storage_api_class($class) {
 
   $header = array(t('Container'), t('Service'), t('Serving'), t('Files'), t('Size'));
   $output .= theme('table', $header, $rows, array('style' => 'width: auto;'));
-
-  if(count($rows) > 1)
-    $output .= '<p>' . t('Files are served from the container nearest the top that is capable.') . '</p>';
 
   return $output;
 }
@@ -277,7 +269,7 @@ function storage_api_class_edit_form($form_state, $class) {
     $form['#container_ids'][] = $container['container_id'];
 
     $form['names'][$container['container_id']] = array(
-      '#value' => l($container['name'], 'admin/build/storage/containers/' . $container['container_id'])
+      '#value' => _storage_api_container_link($container)
     );
     
     $form['weights'][$container['container_id']] = array(
@@ -308,13 +300,26 @@ function storage_api_class_edit_form($form_state, $class) {
     );
   }
 
-  if(count($form['#container_ids']) > 1) {
+  $result = db_query("
+    SELECT *
+    FROM {storage_container}
+    ORDER BY name, container_id
+  ",
+    $class['class_id']
+  );
   
-    $form['info'] = array(
-      '#value' => '<p>' . t('Files are served from the container nearest the top that is capable.') . '</p>',
-    );
+  while($container = db_fetch_array($result)) {
+    $containers[$container['container_id']] = $container['name'];
   }
-  
+
+  $form['initial_container_id'] = array(
+    '#type' => 'select',
+    '#title' => t('Initial container'),
+    '#options' => $containers,
+    '#default_value' => $class['options']['initial_container_id'],
+    '#description' => t('Files added to the class will initially only have an instance in this container.<br />If the initial container is not in the class, then files\' instances in it will be destroyed once they have been fully propagated.<br />When it is not possible to serve from a container in the class, this container will be used (while instances still exist).<br />Typically this is used to quickly store files locally on the server, providing a faster experience for the user. This is especially important for images rendered in-request.'),
+  );
+
   $form['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Save')
@@ -360,13 +365,21 @@ function theme_storage_api_class_edit_form($form) {
       );
     }
   }
-
-  $output .= theme('table', $header, $rows, array('id' => 'my-module-table', 'style' => 'width: auto;'));
   
-  $output .= drupal_render($form);
+  $fieldset = array(
+    '#type' => 'fieldset',
+    '#title' => t('Class containers'),
+    'table' => array(
+      '#value' => theme('table', $header, $rows, array('id' => 'my-module-table', 'style' => 'width: auto;')),
+    ),
+    '#description' => t('<p>Broadly speaking, containers at the top should be nearest the client; those at the bottom should be nearest the server.</p><p>During cron, files are propagated to all the containers in their class (starting at the top). Once this is complete, any instances of files that are not in these containers will be destroyed.</p><p>Files are served from the container nearest the top that has an instance of the file and is capable of serving - it must be a serving container, it must not be suspended, its service must not be suspended and it must also be configured to be serving within the class.</p>'),
+  );
+
+  $output .= drupal_render($fieldset);
   
   drupal_add_tabledrag('my-module-table', 'order', 'sibling', 'my-elements-weight');
 
+  $output .= drupal_render($form);
   return $output;
 }
 
@@ -385,6 +398,8 @@ function storage_api_class_edit_form_submit($form, &$form_state) {
     'options' => $form_state['values']['options'],
   );
   
+  $update['options']['initial_container_id'] = $form_state['values']['initial_container_id'];
+
   drupal_write_record('storage_class', $update, 'class_id');
   
   foreach($form['#container_ids'] as $container_id) {
