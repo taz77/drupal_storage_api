@@ -397,6 +397,7 @@ function storage_api_class_load($class_id) {
     return FALSE;
   
   $class['options'] = unserialize($class['options']);
+  $class['initial_container'] = storage_api_container_load($class['options']['initial_container_id']);
   
   return $class;
 }
@@ -490,6 +491,12 @@ function _storage_api_get_service_name($service_id, $link = FALSE) {
     return l($info['name'], 'admin/config/media/storage/services/' . $service_id);
   else
     return $info['name'];
+}
+
+
+function _storage_api_container_link($container) {
+
+  return l($container['name'], 'admin/config/media/storage/containers/' . $container['container_id']);
 }
 
 
@@ -595,6 +602,43 @@ function _storage_api_service_unavailable() {
 }
 
 
+function _storage_api_initial_container_instance($file) {
+
+  $container = _storage_api_get_initial_container($file['selector_id']);
+
+
+  $objects_subquery = db_select('storage_object_instance');
+  
+  $objects_subquery->condition('storage_object_instance.object_id', $file['object_id'])
+    ->condition('storage_object_instance.container_id', $container['container_id'])
+    ->fields('storage_object_instance', array('reference'));
+    
+  $objects_subquery->addExpression('\'object\'', 'type');
+
+
+  $files_subquery = db_select('storage_file_instance');
+  
+  $files_subquery->condition('storage_file_instance.file_id', $file['file_id'])
+    ->condition('storage_file_instance.container_id', $container['container_id'])
+    ->fields('storage_file_instance', array('reference'));
+    
+  $files_subquery->addExpression('\'file\'', 'type');
+
+
+  $instance = $objects_subquery->union($files_subquery, 'ALL')
+    ->range(0, 1)
+    ->execute()
+    ->fetchAssoc();
+
+  if(!$instance)
+    return FALSE;
+
+  $container += $instance;
+
+  return $container;
+}
+
+
 function _storage_api_serving_container($file) {
 
   $objects_subquery = db_select('storage_object_instance');
@@ -640,11 +684,17 @@ function _storage_api_serving_container($file) {
     ->execute()
     ->fetchAssoc();
   
-  if(!$container)
-    return FALSE;
+  if($container) {
 
-  $container['settings'] = unserialize($container['settings']);
-  return $container;
+    $container['settings'] = unserialize($container['settings']);
+    return $container;
+  }
+  
+  
+  // we couldn't serve the file from any of the containers it is supposed to be in
+  // lets see if the file is in the class's initial container
+
+  return _storage_api_initial_container_instance($file);
 }
 
 
@@ -702,6 +752,8 @@ function _storage_api_file_generate(&$file) {
   $file['filepath'] = $filepath;
   $file['keep_me'] = $keep_me;
   
+  $link = $file['nid'] ? l(t('view'), 'node/' . $file['nid']) : NULL;
+
   if(!_storage_api_create_instance($container, $file)) {
 
     $message = 'Failed to create instance of file ' . ($file['filename'] ? ($file['filename'] . ' ') : '');
@@ -1061,30 +1113,16 @@ function storage_api_selector_delete($selector_id) {
 
 function _storage_api_get_initial_container($selector_id) {
 
-  // find the container with the lowest priority in the class
-  
-  $query = db_select('storage_selector');
-  $query->join('storage_class_container', NULL, 'storage_selector.class_id = storage_class_container.class_id');
-  $query->join('storage_container', NULL, 'storage_class_container.container_id = storage_container.container_id');
-  $query->join('storage_service', NULL, 'storage_container.service_id = storage_service.service_id');
-  
-  $container = $query->fields('storage_container')
-    ->condition('storage_selector.selector_id', $selector_id)
-    ->condition('storage_selector.migrating', 0)
-    ->condition('storage_container.suspended', 0)
-    ->condition('storage_service.suspended', 0)
-    ->orderBy('storage_class_container.weight', 'DESC')
-    ->orderBy('storage_container.container_id', 'DESC')
-    ->range(0, 1)
+  $class_id = db_select('storage_selector')
+    ->fields('storage_selector', array('class_id'))
+    ->condition('selector_id', $selector_id)
+    ->condition('migrating', 0)
     ->execute()
-    ->fetchAssoc();
-  
-  if(!$container)
-    return FALSE;
+    ->fetchField();
 
-  $container['settings'] = unserialize($container['settings']);
-  
-  return $container;
+  $class = storage_api_class_load($class_id);
+
+  return $class['initial_container'];
 }
 
 
@@ -1240,7 +1278,7 @@ function storage_api_inherit_servings($new_file_id, $old_file_id) {
 /**
  * Adds a file for Storage API to manage.
  *
- * The file will initially be stored in the lowest prioity container that is available in the file's class.
+ * The file will initially be stored in file's class's initial container.
  *
  * @param $selector_id
  *   selector_id of class selector to put the file in.
@@ -1572,10 +1610,13 @@ function storage_api_get_local_filepath(&$file, &$keep_me) {
     ->execute()
     ->fetchAssoc();
   
+  if($container)
+    $container['settings'] = unserialize($container['settings']);
+  else
+    $container = _storage_api_initial_container_instance($file);
+  
   if($container) {
   
-    $container['settings'] = unserialize($container['settings']);
-
     switch($container['type']) {
     
       case 'object':
@@ -1882,7 +1923,29 @@ function storage_api_theme($existing, $type, $theme, $path) {
     'storage_api_class_edit_form' => array(
       'render element' => 'form',
     ),
+    'theme_storage_api_info_table' => array(
+      'render element' => 'rows',
+    ),
   );
+}
+
+
+function theme_storage_api_info_table($info) {
+
+  foreach($info as $key => $value) {
+    $rows[] = array(
+      array(
+        'data' => $key . ':',
+        'style' => 'font-weight: bold',
+      ),
+      $value,
+    );
+  }
+  
+  return '<p>' . theme('table', array(
+    'rows' => $rows, 
+    'attributes' => array('style' => 'width: auto;')
+  )) . '</p>';
 }
 
 

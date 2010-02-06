@@ -369,8 +369,8 @@ function storage_s3_storage_container_settings_form($settings, $serving, $edit) 
     $items['cloudfront_streaming'] = array(
       '#type' => 'checkbox',
       '#title' => t('Stream with CloudFront'),
-      '#default_value' => $settings['cloudfront_streaming'],
-      '#description' => $description,
+      '#default_value' => isset($settings['cloudfront_streaming']) ? $settings['cloudfront_streaming'] : NULL,
+//      '#description' => $description,
     );
   }
 

@@ -57,7 +57,7 @@ function storage_api_containers() {
   foreach($result as $container) {
     unset($row);
   
-    $row[] = l($container['name'], 'admin/config/media/storage/containers/' . $container['container_id']);
+    $row[] = _storage_api_container_link($container);
     $row[] = _storage_api_get_service_name($container['service_id'], TRUE);
     $row[] = $container['serving'] ? 'Yes' : 'No';
     $row[] = $container['suspended'] ? 'Yes' : 'No';
@@ -181,26 +181,14 @@ function storage_api_create_container_form($form, &$form_state) {
           break;
       }
 
-      $rows = array(
-        array(t('Name'), $form_state['storage']['name']),
-        array(t('Service'), $service_name),
-        array(t('Serving'), $serving),
+      $info = array(
+        t('Name') => $form_state['storage']['name'],
+        t('Service') => $service_name,
+        t('Serving') => $serving,
       );
-      
-      foreach($rows as &$row) {
-        $row[0] = array(
-          'data' => $row[0] . ':',
-          'style' => 'font-weight: bold',
-        );
-      }
-      
-      $table = theme('table', array(
-        'rows' => $rows,
-        'attributes' => array('style' => 'width: auto;'),
-      ));
 
       $form['info'] = array(
-        '#markup' => '<p>' . $table . '</p>'
+        '#markup' => theme_storage_api_info_table($info)
       );
 
       $form['settings'] = array(
@@ -339,31 +327,16 @@ function storage_api_container_form($form, &$form_state, $container) {
     ->execute()
     ->fetchAssoc();
 
-  $rows[] = array(t('Service'), _storage_api_get_service_name($container['service_id'], TRUE));
-  $rows[] = array(t('Serving'), $serving);
-  $rows[] = array(t('Suspended'), $container['suspended'] ? t('Yes') : t('No'));
-  $rows[] = array(t('Instances'), $container_info['objects_count'] + $container_info['files_count']);
-  $rows[] = array(t('Size'), storage_api_format_size($container_info['objects_size'] + $container_info['files_size']));
-  
-  $info = _storage_api_service_invoke($container['service_id'], 'container_info', $container);
+  $info[t('Service')] = _storage_api_get_service_name($container['service_id'], TRUE);
+  $info[t('Serving')] = $serving;
+  $info[t('Suspended')] = $container['suspended'] ? t('Yes') : t('No');
+  $info[t('Instances')] = $container_info['objects_count'] + $container_info['files_count'];
+  $info[t('Size')] = storage_api_format_size($container_info['objects_size'] + $container_info['files_size']);
 
-  foreach($info as $key => $item)
-    $rows[] = array($key, $item);
-    
-  foreach($rows as &$row) {
-    $row[0] = array(
-      'data' => $row[0] . ':',
-      'style' => 'font-weight: bold',
-    );
-  }
-  
-  $table = theme('table', array(
-    'rows' => $rows,
-    'attributes' => array('style' => 'width: auto;'),
-  ));
+  $info += _storage_api_service_invoke($container['service_id'], 'container_info', $container);
 
   $form['status'] = array(
-    '#markup' => '<p>' . $table . '</p>',
+    '#markup' => theme_storage_api_info_table($info)
   );
   
   if(!$container['suspended']) {
@@ -371,27 +344,27 @@ function storage_api_container_form($form, &$form_state, $container) {
     $form['suspend'] = array(
       '#type' => 'submit',
       '#value' => t('Suspend'),
-      '#submit' => array('storage_api_container_form_suspend')
+      '#submit' => array('storage_api_container_form_suspend'),
     );
   }
   else {
     $form['unsuspend'] = array(
       '#type' => 'submit',
       '#value' => t('Unsuspend'),
-      '#submit' => array('storage_api_container_form_unsuspend')
+      '#submit' => array('storage_api_container_form_unsuspend'),
     );
   }
 
   $form['drain'] = array(
     '#type' => 'submit',
     '#value' => t('Drain'),
-    '#submit' => array('storage_api_container_form_drain')
+    '#submit' => array('storage_api_container_form_drain'),
   );
 
   $form['destroy'] = array(
     '#type' => 'submit',
     '#value' => t('Destroy'),
-    '#submit' => array('storage_api_container_form_destroy')
+    '#submit' => array('storage_api_container_form_destroy'),
   );
 
   return $form;
