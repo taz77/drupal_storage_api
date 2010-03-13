@@ -314,7 +314,7 @@ function storage_ftp_storage_object_instance_serve_rtmp($container, $file) {
   if($container['settings']['base_url_rtmp']) {
   
     return array(
-      'streamer' => $container['settings']['base_url_rtmp'] . '/objects/',
+      'streamer' => $container['settings']['base_url_rtmp'] . '/objects',
       'file' => $container['reference'],
     );
   }
@@ -415,7 +415,7 @@ function storage_ftp_storage_file_instance_serve_rtmp($container, $file) {
   if($container['settings']['base_url_rtmp']) {
   
     return array(
-      'streamer' => $container['settings']['base_url_rtmp'] . '/files/',
+      'streamer' => $container['settings']['base_url_rtmp'] . '/files',
       'file' => $container['reference'],
     );
   }
