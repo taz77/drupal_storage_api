@@ -119,7 +119,7 @@ function _storage_s3_request($container, $method, $bucket = NULL, $object_name =
   
   if($bucket)  
     $bucket .= '.';
-  
+
   $ch = curl_init('http://' . $bucket . 's3.amazonaws.com' . $object_name);
   curl_setopt_array($ch, $curl_options);
   $transfer = curl_exec($ch);
@@ -140,7 +140,7 @@ function _storage_s3_request($container, $method, $bucket = NULL, $object_name =
 
     if($result['simplexml']) {
       if($result['simplexml']->getName() == 'Error') {
-      
+
         $msg = (string)$result['simplexml']->Message;
 
         watchdog('storage_s3', 'Amazon S3 error: @msg', array('@msg' => $msg), WATCHDOG_ERROR);
@@ -882,10 +882,10 @@ function storage_s3_storage_object_instance_create($container, $file) {
  */
 function storage_s3_storage_object_instance_copy($container, $file, $source_container) {
 
-  $file['copy_source'] = '/' . $source_container['settings']['bucket'] . '/object-' . $file['object_id'];
+  $source['copy_source'] = '/' . $source_container['settings']['bucket'] . '/object-' . $file['object_id'];
   
   $result = _storage_s3_request($container, 'PUT', $container['settings']['bucket'], 
-    'object-' . $file['object_id'], $file);
+    'object-' . $file['object_id'], $source);
     
   if($result['http_code'] == 200 && $result['simplexml']) {
 
@@ -956,10 +956,10 @@ function storage_s3_storage_file_instance_create($container, $file) {
  */
 function storage_s3_storage_file_instance_copy($container, $file, $source_container) {
   
-  $file['copy_source'] = '/' . $source_container['settings']['bucket'] . '/file-' . $file['file_id'];
+  $source['copy_source'] = '/' . $source_container['settings']['bucket'] . '/file-' . $file['file_id'];
   
   $result = _storage_s3_request($container, 'PUT', $container['settings']['bucket'], 
-    'file-' . $file['file_id'], $file);
+    'file-' . $file['file_id'], $source);
   
   if($result['http_code'] == 200 && $result['simplexml']) {
 
