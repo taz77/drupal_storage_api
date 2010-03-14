@@ -216,7 +216,7 @@ function _storage_s3_cloudfront_request($container, $method, $streaming = FALSE,
 
   if($streaming) {
     $path = '/2009-12-01/streaming-distribution';
-    $id = $container['settings']['cloudfront_steaming_id'];
+    $id = $container['settings']['cloudfront_streaming_id'];
   }
   else {
     $path = '/2009-12-01/distribution';
@@ -669,8 +669,7 @@ function _storage_s3_cloudfront_streaming_deploy() {
         $container['name'] . '</i>.';
     }
     else {
-      $container['settings']['cloudfront_streaming_status'] = 
-        (string)$result['simplexml']->StreamingDistributionSummary->Status;
+      $container['settings']['cloudfront_streaming_status'] = (string)$result['simplexml']->Status;
       
       if($container['settings']['cloudfront_streaming_status'] != 'Deployed')
         continue;
