@@ -156,7 +156,7 @@ function _storage_s3_request($container, $method, $bucket = NULL, $object_name =
 
 
 function _storage_s3_url($container, $s3_object) {
-  
+
   if($container['settings']['cloudfront'] && 
     $container['settings']['cloudfront_status'] == 'Deployed')
   {
@@ -186,7 +186,7 @@ function _storage_s3_url($container, $s3_object) {
 
 
 function _storage_s3_rtmp($container, $s3_object) {
-  
+
   if($container['settings']['cloudfront_streaming'] && 
     $container['settings']['cloudfront_streaming_status'] == 'Deployed')
   {
@@ -425,12 +425,20 @@ function storage_s3_storage_container_validate($container, $edit) {
 }
 
 
+function _storage_s3_cloudfront_caller_reference() {
+  static $id;
+
+  // make sure we can create multiple distributions at the same time
+  return $_SERVER['REQUEST_TIME'] . '-' . ++$id;
+}
+
+
 function _storage_s3_cloudfront_distribution_create(&$container) {
 
   $xml = '<?xml version="1.0" encoding="UTF-8"?>';
   $xml .= '<DistributionConfig xmlns="http://cloudfront.amazonaws.com/doc/2009-12-01/">';
   $xml .= '<Origin>' . $container['settings']['bucket'] . '.s3.amazonaws.com</Origin>';
-  $xml .= '<CallerReference>' . $_SERVER['REQUEST_TIME'] . '</CallerReference>';
+  $xml .= '<CallerReference>' . _storage_s3_cloudfront_caller_reference() . '</CallerReference>';
   $xml .= '<Enabled>true</Enabled>';
   $xml .= '</DistributionConfig>';
 
@@ -458,7 +466,7 @@ function _storage_s3_cloudfront_streaming_distribution_create(&$container) {
   $xml = '<?xml version="1.0" encoding="UTF-8"?>';
   $xml .= '<StreamingDistributionConfig xmlns="http://cloudfront.amazonaws.com/doc/2009-12-01/">';
   $xml .= '<Origin>' . $container['settings']['bucket'] . '.s3.amazonaws.com</Origin>';
-  $xml .= '<CallerReference>' . $_SERVER['REQUEST_TIME'] . '</CallerReference>';
+  $xml .= '<CallerReference>' . _storage_s3_cloudfront_caller_reference() . '</CallerReference>';
   $xml .= '<Enabled>true</Enabled>';
   $xml .= '</StreamingDistributionConfig>';
 
