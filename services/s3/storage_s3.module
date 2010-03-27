@@ -48,7 +48,7 @@ function _storage_s3_request($container, $method, $bucket = NULL, $object_name =
       
       if($file) {
 
-        if($container['serving'] == STORAGE_API_SERVING) {
+        if($container['capability'] == STORAGE_API_SERVING) {
           $headers[] = 'x-amz-acl: public-read';
           $components[] = 'x-amz-acl:public-read';
         }
@@ -165,7 +165,7 @@ function _storage_s3_url($container, $s3_object) {
   else {
     $path = 'http://' . $container['settings']['bucket'] . '.s3.amazonaws.com/' . $s3_object;
 
-    if($container['serving'] == STORAGE_API_ACCESS_CONTROL) {
+    if($container['capability'] == STORAGE_API_ACCESS_CONTROL) {
       $query['AWSAccessKeyId'] = $container['settings']['access_key_id'];
       $query['Expires'] = $_SERVER['REQUEST_TIME'] + $container['settings']['url_lifetime'];
       
@@ -822,7 +822,7 @@ function storage_s3_storage_container_info($container) {
     t('Location') => $locations[$container['settings']['location']],
   );
   
-  if($container['serving'] == STORAGE_API_SERVING) {
+  if($container['capability'] == STORAGE_API_SERVING) {
   
     if($container['settings']['cloudfront']) {
     
@@ -863,7 +863,7 @@ function storage_s3_storage_container_info($container) {
     }
   }
   
-  if($container['serving'] == STORAGE_API_ACCESS_CONTROL)
+  if($container['capability'] == STORAGE_API_ACCESS_CONTROL)
     $info[t('URL lifetime')] = format_interval($container['settings']['url_lifetime']);
 
   return $info;

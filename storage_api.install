@@ -46,7 +46,7 @@ function storage_api_schema() {
       'name' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
       'service_id' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
       'settings' => array('type' => 'varchar', 'length' => 16383, 'not null' => TRUE, 'serialize' => TRUE),
-      'serving' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE),
+      'capability' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE),
       'suspended' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0)
     ),
     'primary key' => array('container_id')

@@ -211,7 +211,7 @@ function storage_ftp_storage_container_info($container) {
   if($container['settings']['permissions'])
     $info[t('File permissions')] = $container['settings']['permissions'];
 
-  if($container['serving'])
+  if($container['capability'])
     $info[t('Base URL')] = url($container['settings']['base_url'], array('absolute' => TRUE));
 
   return $info;

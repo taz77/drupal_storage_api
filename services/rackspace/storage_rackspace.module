@@ -196,7 +196,7 @@ function storage_rackspace_storage_container_create($container) {
   try {
     $rscf_container = $conn->create_container($container['settings']['rscf_container']);
   
-    if($container['serving'] == STORAGE_API_SERVING) {
+    if($container['capability'] == STORAGE_API_SERVING) {
     
       $rscf_container->make_public(60 * 60 * 24 * 3);    // 3 days is the maximum ttl that can be set in the api
       $container['settings']['cdn_uri'] = $rscf_container->cdn_uri;

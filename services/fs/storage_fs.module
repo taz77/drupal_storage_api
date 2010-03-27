@@ -73,7 +73,7 @@ function storage_fs_storage_container_validate($container, $edit) {
     }
   }
     
-  if($container['serving']) {
+  if($container['capability']) {
   
     if(!$container['settings']['base_url']) {
       form_set_error('settings][base_url', t('Base URL path field is required.'));
@@ -126,7 +126,7 @@ function storage_fs_storage_container_info($container) {
   $info['Free space'] = storage_format_size(@disk_free_space($container['settings']['path']));
   $info['Directory'] = realpath($container['settings']['path']);
 
-  if($container['serving'])
+  if($container['capability'])
     $info['Base URL'] = url($container['settings']['base_url'], array('absolute' => TRUE));
 
   return $info;

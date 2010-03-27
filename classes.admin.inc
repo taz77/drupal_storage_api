@@ -1,7 +1,7 @@
 <?php
 // $Id$
 
-// Copyright 2008-2009 Jonathan Brown
+// Copyright 2008-2010 Jonathan Brown
 
 
 function _storage_trash_icon() {
@@ -134,7 +134,6 @@ function storage_create_class_form($form, &$form_state) {
     '#type' => 'select',
     '#title' => t('Initial container'),
     '#options' => $containers,
-    '#default_value' => $class['options']['initial_container_id'],
     '#description' => t('Files added to the class will initially only have an instance in this container.<br />If the initial container is not in the class, then files\' instances in it will be destroyed once they have been fully propagated.<br />When it is not possible to serve from a container in the class, this container will be used (while instances still exist).<br />Typically this is used to quickly store files locally on the server, providing a faster experience for the user. This is especially important for images rendered in-request.'),
   );
 
