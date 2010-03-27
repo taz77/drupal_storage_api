@@ -155,6 +155,7 @@ function _storage_s3_request($container, $method, $bucket = NULL, $object_name =
 
 
 function _storage_s3_url($container, $s3_object) {
+  $query = array();
 
   if($container['settings']['cloudfront'] && 
     $container['settings']['cloudfront_status'] == 'Deployed')
