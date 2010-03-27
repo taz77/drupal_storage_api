@@ -195,3 +195,12 @@ function storage_fs_storage_instance_serve($container, $file) {
   return $container['settings']['base_url'] . '/' . $container['reference'];
 }
 
+/*
+function storage_fs_storage_instance_serve($container, $file) {
+  storage_api_set_http_headers($file);
+
+  @readfile($container['settings']['path'] . '/' . $container['reference']);
+  exit();
+}
+*/
+

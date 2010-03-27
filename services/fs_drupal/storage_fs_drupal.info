@@ -1,7 +1,0 @@
-; $Id$
-name = Filesystem / Drupal
-description = "Filesystem storage service serving via Drupal."
-package = Storage services
-dependencies[] = storage_api
-core = 7.x
-files[] = storage_fs_drupal.module
