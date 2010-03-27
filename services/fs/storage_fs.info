@@ -1,7 +1,7 @@
 ; $Id$
 name = Filesystem
 description = "Filesystem storage service serving via any HTTP or FTP service."
-package = Storage
+package = Storage services
 dependencies[] = storage_api
 core = 7.x
 files[] = storage_fs.module

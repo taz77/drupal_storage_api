@@ -11,7 +11,6 @@ function storage_rackspace_storage_service_info() {
   
   $info = array(
     'name' => t('Rackspace Cloud Files'),
-    'dynamic' => FALSE,
     'local' => FALSE,
     'direct' => FALSE,
     'can_copy' => FALSE,
@@ -252,8 +251,13 @@ function storage_rackspace_storage_container_destroy($container) {
 }
 
 
-function _storage_rackspace_instance_create($container, $file, $name) {
+/**
+ * Implement hook_storage_instance_create() .
+ */
+function storage_rackspace_storage_instance_create($container, $file) {
 
+  $name = $file['file_id'] . '/' . $file['filename'];
+  
   $rscf_container = _storage_rackspace_container($container);
   
   if(!$rscf_container)
@@ -288,7 +292,12 @@ function _storage_rackspace_instance_create($container, $file, $name) {
 }
 
 
-function _storage_rackspace_instance_destroy($container, $name) {
+/**
+ * Implement hook_storage_instance_destroy() .
+ */
+function storage_rackspace_storage_instance_destroy($container, $file) {
+
+  $name = $file['file_id'] . '/' . $file['filename'];
 
   $rscf_container = _storage_rackspace_container($container);
   
@@ -307,7 +316,12 @@ function _storage_rackspace_instance_destroy($container, $name) {
 }
 
 
-function _storage_rackspace_instance_get_filepath($container, $name) {
+/**
+ * Implement hook_storage_instance_get_filepath() .
+ */
+function storage_rackspace_storage_instance_get_filepath($container, $file) {
+
+  $name = $file['file_id'] . '/' . $file['filename'];
 
   $rscf_container = _storage_rackspace_container($container);
 
@@ -331,75 +345,10 @@ function _storage_rackspace_instance_get_filepath($container, $name) {
 
 
 /**
- * Implement hook_storage_object_instance_create() .
+ * Implement hook_storage_instance_serve() .
  */
-function storage_rackspace_storage_object_instance_create($container, $file) {
+function storage_rackspace_storage_instance_serve($container, $file) {
 
-  return _storage_rackspace_instance_create($container, $file, 'object-'. $file['object_id']);
-}
-
-
-/**
- * Implement hook_storage_object_instance_destroy() .
- */
-function storage_rackspace_storage_object_instance_destroy($container, $file) {
-
-  return _storage_rackspace_instance_destroy($container, 'object-'. $file['object_id']);
-}
-
-
-/**
- * Implement hook_storage_object_instance_get_filepath() .
- */
-function storage_rackspace_storage_object_instance_get_filepath($container, $file) {
-
-  return _storage_rackspace_instance_get_filepath($container, 'object-'. $file['object_id']);
-}
-
-
-/**
- * Implement hook_storage_object_instance_serve() .
- */
-function storage_rackspace_storage_object_instance_serve($container, $file) {
-
-  return $container['settings']['cdn_uri'] . '/object-' . $file['object_id'];
-}
-
-
-/**
- * Implement hook_storage_file_instance_create() .
- */
-function storage_rackspace_storage_file_instance_create($container, $file) {
-
-  return _storage_rackspace_instance_create($container, $file, 
-    'file-' . $file['file_id'] . '/' . $file['filename']);
-}
-
-
-/**
- * Implement hook_storage_file_instance_destroy() .
- */
-function storage_rackspace_storage_file_instance_destroy($container, $file) {
-
-  return _storage_rackspace_instance_destroy($container, 'file-'. $file['file_id'] . '/' . $file['filename']);
-}
-
-
-/**
- * Implement hook_storage_file_instance_get_filepath() .
- */
-function storage_rackspace_storage_file_instance_get_filepath($container, $file) {
-
-  return _storage_rackspace_instance_get_filepath($container, 
-    'file-'. $file['file_id'] . '/' . $file['filename']);
-}
-
-
-/**
- * Implement hook_storage_file_instance_serve() .
- */
-function storage_rackspace_storage_file_instance_serve($container, $file) {
-
-  return $container['settings']['cdn_uri'] . '/file-'. $file['file_id'] . '/' . $file['filename'];
+  return $container['settings']['cdn_uri'] . '/'. $file['file_id'] . '/' . $file['filename'];
 }
 

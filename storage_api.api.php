@@ -17,12 +17,12 @@
 /**
  * Generate a file.
  *
- * @param $file
+ * @param $storage
  *   The file to be generated.
  * @return
  *   Filepath to the generated file. It will be deleted.
  */
-function hook_storage_file_generate($file) {
+function hook_storage_generate($storage) {
 }
 
 
@@ -36,15 +36,15 @@ function hook_storage_file_generate($file) {
  *
  * @param $type
  *   Module-specific file type identifier.
- * @param $file_id
- *   file_id of the file.
+ * @param $storage_id
+ *   storage_id of the file.
  * @return
  *   Whether access is permitted or not.
  *   - TRUE for permitted.
  *   - FALSE for denied.
  *   - NULL for check node_access() .
  */
-function hook_storage_access($type, $file_id) {
+function hook_storage_access($type, $storage_id) {
 }
 
 
@@ -55,15 +55,15 @@ function hook_storage_access($type, $file_id) {
  *  Module that owns the file.
  * @param $type
  *  Module-specific file type identifier.
- * @param $file_id
- *  file_id of the file.
+ * @param $storage_id
+ *  storage_id of the file.
  * @return
  *   Access alteration.
  *   - TRUE for permitted.
  *   - FALSE for denied.
  *   - NULL for don't alter.
  */
-function hook_storage_access_alter($module, $type, $file_id) {
+function hook_storage_access_alter($module, $type, $storage_id) {
 }
 
 
@@ -79,9 +79,6 @@ function hook_storage_access_alter($module, $type, $file_id) {
  *   An associative array, with the following keys:
  *     - 'name'
  *       Translated name of the storage service.
- *     - 'dynamic'
- *       Whether the service can serve an object instance with a dynamically set filename.
- *       If TRUE, hook_storage_file_*() should not be implemented.
  *     - 'local'
  *       If TRUE, files returned by *_get_filepath() will not be deleted after use.
  *     - 'direct'
@@ -187,101 +184,7 @@ function hook_storage_container_destroy($container) {
 
 
 /**
- * Create an object instance in a container.
- *
- * @param $container
- *   Container that is to hold the object instance.
- * @param $file
- *   File representing the object to have an instance created.
- * @return
- *   Success boolean value.
- */
-function hook_storage_object_instance_create($container, $file) {
-}
-
-
-/**
- * Create an object instance in a container by copying it from another.
- *
- * @param $container
- *   Container that is to hold the object instance.
- * @param $file
- *   File representing the object to have an instance created.
- * @param $source_container
- *   Container that the object instance should be copied from.
- * @return
- *   Success boolean value.
- */
-function hook_storage_object_instance_copy($container, $file, $source_container) {
-}
-
-
-/**
- * Destroy an object instance.
- *
- * @param $container
- *   Container that holds the object instance.
- * @param $file
- *   File representing the object to have an instance destroyed.
- * @return
- *   Success boolean value.
- */
-function hook_storage_object_instance_destroy($container, $file) {
-}
-
-
-/**
- * Get a local filepath of an object instance.
- *
- * @param $container
- *   Container that holds the object instance.
- * @param $file
- *   File representing the object to have local access.
- * @return
- *   Filepath or FALSE for failure.
- */
-function hook_storage_object_instance_get_filepath($container, $file) {
-}
-
-
-/**
- * Serve an object instance.
- *
- * If serving directly, output the HTTP headers, followed by the file contents and then exit() .
- *
- * Otherwise, just return a URL.
- *
- * @param $container
- *   Container that holds the object instance.
- * @param $file
- *   File representing the object to be served.
- * @return
- *   An absolute URL.
- */
-function hook_storage_object_instance_serve($container, $file) {
-}
-
-
-/**
- * Returns information required to stream an object instance with RTMP.
- *
- * @param $container
- *   Container that holds the object instance.
- * @param $file
- *   File representing the object to be served.
- * @return
- *   An associative array of information to stream the file with RTMP:
- *     - 'streamer'
- *     - 'file'
- */
-function hook_storage_object_instance_serve_rtmp($container, $file) {
-}
-
-
-/**
- * Create a file instance in a container.
- *
- * Don't implement for dynamic services.
+ * Create an instance in a container.
  *
  * @param $container
  *   Container that is to hold the file instance.
@@ -290,12 +193,12 @@ function hook_storage_object_instance_serve_rtmp($container, $file) {
  * @return
  *   Success boolean value.
  */
-function hook_storage_file_instance_create($container, $file) {
+function hook_storage_instance_create($container, $file) {
 }
 
 
 /**
- * Create a file instance in a container by copying it from another.
+ * Create an instance in a container by copying it from another.
  *
  * @param $container
  *   Container that is to hold the file instance.
@@ -306,14 +209,12 @@ function hook_storage_file_instance_create($container, $file) {
  * @return
  *   Success boolean value.
  */
-function hook_storage_file_instance_copy($container, $file, $source_container) {
+function hook_storage_instance_copy($container, $file, $source_container) {
 }
 
 
 /**
- * Destroy a file instance.
- *
- * Don't implement for dynamic services.
+ * Destroy an instance.
  *
  * @param $container
  *   Container that holds the file instance.
@@ -322,14 +223,12 @@ function hook_storage_file_instance_copy($container, $file, $source_container) {
  * @return
  *   Success boolean value.
  */
-function hook_storage_file_instance_destroy($container, $file) {
+function hook_storage_instance_destroy($container, $file) {
 }
 
 
 /**
- * Get a local filepath of a file instance.
- *
- * Don't implement for dynamic services.
+ * Get a local filepath of an instance.
  *
  * @param $container
  *   Container that holds the file instance.
@@ -338,14 +237,12 @@ function hook_storage_file_instance_destroy($container, $file) {
  * @return
  *   Filepath or FALSE for failure.
  */
-function hook_storage_file_instance_get_filepath($container, $file) {
+function hook_storage_instance_get_filepath($container, $file) {
 }
 
 
 /**
- * Serve a file instance.
- *
- * Don't implement for dynamic services.
+ * Serve an instance.
  *
  * @param $container
  *   Container that holds the file instance.
@@ -354,15 +251,15 @@ function hook_storage_file_instance_get_filepath($container, $file) {
  * @return
  *   An absolute URL.
  */
-function hook_storage_file_instance_serve($container, $file) {
+function hook_storage_instance_serve($container, $file) {
 }
 
 
 /**
- * Returns information required to stream a file instance with RTMP.
+ * Returns information required to stream an instance with RTMP.
  *
  * @param $container
- *   Container that holds the object instance.
+ *   Container that holds the instance.
  * @param $file
  *   File representing the object to be served.
  * @return
@@ -370,6 +267,6 @@ function hook_storage_file_instance_serve($container, $file) {
  *     - 'streamer'
  *     - 'file'
  */
-function hook_storage_file_instance_serve_rtmp($container, $file) {
+function hook_storage_instance_serve_rtmp($container, $file) {
 }
 

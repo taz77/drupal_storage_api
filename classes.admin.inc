@@ -4,14 +4,14 @@
 // Copyright 2008-2009 Jonathan Brown
 
 
-function _storage_api_trash_icon() {
+function _storage_trash_icon() {
 
   return '<img src="' . base_path() . drupal_get_path('module', 'storage_api') . '/trash.png' . 
     '" style="vertical-align: middle;" />';
 }
 
 
-function _storage_api_class_name($class_id) {
+function _storage_class_name($class_id) {
 
   return db_select('storage_class')
     ->fields('storage_class', array('name'))
@@ -21,28 +21,28 @@ function _storage_api_class_name($class_id) {
 }
 
 
-function _storage_api_classes_query() {
+function _storage_classes_query() {
 
   $query = db_select('storage_class', NULL, array('fetch' => PDO::FETCH_ASSOC));
   $query->leftJoin('storage_selector', NULL, 'storage_class.class_id = storage_selector.class_id');
-  $query->leftJoin('storage_file', NULL, 'storage_selector.selector_id = storage_file.selector_id');
-  $query->leftJoin('storage_object', NULL, 'storage_file.object_id = storage_object.object_id');
+  $query->leftJoin('storage', NULL, 'storage_selector.selector_id = storage.selector_id');
+  $query->leftJoin('storage_file', NULL, 'storage.file_id = storage_file.file_id');
   
   $query->fields('storage_class')
     ->groupBy('storage_class.class_id');
     
-  $query->addExpression('COUNT(storage_file.file_id)', 'files');
-  $query->addExpression('SUM(storage_object.size)', 'size');
+  $query->addExpression('COUNT(storage.storage_id)', 'files');
+  $query->addExpression('SUM(storage_file.size)', 'size');
   
   return $query;
 }
 
 
-function storage_api_classes_list() {
+function storage_classes_list() {
 
   drupal_set_title(t('Storage classes'), PASS_THROUGH);
 
-  $result = _storage_api_classes_query()
+  $result = _storage_classes_query()
     ->orderBy('storage_class.name')
     ->orderBy('storage_class.class_id')
     ->execute();
@@ -54,9 +54,9 @@ function storage_api_classes_list() {
   foreach($result as $class) {
     unset($row);
     
-    $row[] = l($class['name'], 'admin/config/media/storage/classes/' . $class['class_id']);
+    $row[] = l($class['name'], 'admin/structure/storage/classes/' . $class['class_id']);
     $row[] = $class['files'];
-    $row[] = storage_api_format_size($class['size']);
+    $row[] = storage_format_size($class['size']);
     
     $rows[] = $row;
   }
@@ -73,7 +73,7 @@ function storage_api_classes_list() {
 }
 
 
-function _storage_api_class_form_elements($class = NULL) {
+function _storage_class_form_elements($class = NULL) {
 
   $form['name'] = array(
     '#title' => t('Name'),
@@ -110,13 +110,33 @@ function _storage_api_class_form_elements($class = NULL) {
  * FAPI definition for the create class form.
  *
  * @ingroup forms
- * @see storage_api_create_class_form_submit()
+ * @see storage_create_class_form_submit()
  */
-function storage_api_create_class_form($form, &$form_state) {
+function storage_create_class_form($form, &$form_state) {
 
   drupal_set_title(t('Storage classes'), PASS_THROUGH);
   
-  $form = _storage_api_class_form_elements(); 
+  $form = _storage_class_form_elements(); 
+
+  $result = db_select('storage_container', NULL, array('fetch' => PDO::FETCH_ASSOC))
+    ->fields('storage_container')
+    ->orderBy('name')
+    ->orderBy('container_id')
+    ->execute();
+    
+  $containers = array();
+ 
+  foreach($result as $container) {
+    $containers[$container['container_id']] = $container['name'];
+  }
+
+  $form['initial_container_id'] = array(
+    '#type' => 'select',
+    '#title' => t('Initial container'),
+    '#options' => $containers,
+    '#default_value' => $class['options']['initial_container_id'],
+    '#description' => t('Files added to the class will initially only have an instance in this container.<br />If the initial container is not in the class, then files\' instances in it will be destroyed once they have been fully propagated.<br />When it is not possible to serve from a container in the class, this container will be used (while instances still exist).<br />Typically this is used to quickly store files locally on the server, providing a faster experience for the user. This is especially important for images rendered in-request.'),
+  );
 
   $form['submit'] = array(
     '#type' => 'submit',
@@ -130,9 +150,11 @@ function storage_api_create_class_form($form, &$form_state) {
 /**
  * Submit handler for the create class form.
  *
- * @see storage_api_create_class_form()
+ * @see storage_create_class_form()
  */
-function storage_api_create_class_form_submit($form, &$form_state) {
+function storage_create_class_form_submit($form, &$form_state) {
+
+  $update['options']['initial_container_id'] = $form_state['values']['initial_container_id'];
 
   $class = array(
     'name' => $form_state['values']['name'],
@@ -142,7 +164,7 @@ function storage_api_create_class_form_submit($form, &$form_state) {
   drupal_write_record('storage_class', $class);
 
   $message = 'Storage class <i>' . $form_state['values']['name'] . '</i> has been created.';
-  $path = 'admin/config/media/storage/classes/' . $class['class_id'];
+  $path = 'admin/structure/storage/classes/' . $class['class_id'];
 
   drupal_set_message($message);
   watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));
@@ -151,79 +173,61 @@ function storage_api_create_class_form_submit($form, &$form_state) {
 }
 
 
-function storage_api_class($class) {
+function storage_class($class) {
 
   drupal_set_title(t('Storage class: ') . $class['name'], PASS_THROUGH);
   
-  $class_info = _storage_api_classes_query()
+  $class_info = _storage_classes_query()
     ->havingCondition('storage_class.class_id', $class['class_id'])
     ->execute()
     ->fetchAssoc();
 
   $info[t('Files')] = $class_info['files'];
-  $info[t('Size')] = storage_api_format_size($class_info['size']);
+  $info[t('Size')] = storage_format_size($class_info['size']);
   $info[t('Access control')] = $class['options']['access_control'] ? t('Yes') : t('No');
   $info[t('Redirection')] = $class['options']['redirect'] ? t('Yes') : t('No');
   $info[t('Serve source')] = $class['options']['serve_source_url'] ? t('Yes') : t('No');
-  $info[t('Initial container')] = _storage_api_container_link($class['initial_container']);
+  $info[t('Initial container')] = _storage_container_link($class['initial_container']);
 
-  $output = theme_storage_api_info_table($info);
+  $output = theme_storage_info_table($info);
 
-  $objects_subquery = db_select('storage_selector');
-  $objects_subquery->join('storage_file', NULL, 'storage_selector.selector_id = storage_file.selector_id');
-  $objects_subquery->join('storage_object', NULL, 'storage_file.object_id = storage_object.object_id');
-  $objects_subquery->join('storage_object_instance', NULL, 'storage_object.object_id = storage_object_instance.object_id');
+  $subquery = db_select('storage_selector');
+  $subquery->join('storage', NULL, 'storage_selector.selector_id = storage.selector_id');
+  $subquery->join('storage_file', NULL, 'storage.file_id = storage_file.file_id');
+  $subquery->join('storage_instance', NULL, 'storage.file_id = storage_instance.file_id');
   
-  $objects_subquery->fields('storage_object_instance', array('container_id'));
-  $objects_subquery->addExpression('COUNT(storage_file.file_id)', 'count');
-  $objects_subquery->addExpression('SUM(storage_object.size)', 'size');
-  
-  $objects_subquery->condition('storage_selector.class_id', $class['class_id'])
-    ->groupBy('storage_object_instance.container_id');
+  $subquery->fields('storage_instance', array('container_id'));
+  $subquery->addExpression('COUNT(storage.storage_id)', 'count');
+  $subquery->addExpression('SUM(storage_file.size)', 'size');
     
-    
-  $files_subquery = db_select('storage_selector');
-  $files_subquery->join('storage_file', NULL, 'storage_selector.selector_id = storage_file.selector_id');
-  $files_subquery->join('storage_object', NULL, 'storage_file.object_id = storage_object.object_id');
-  $files_subquery->join('storage_file_instance', NULL, 'storage_file.file_id = storage_file_instance.file_id');
-  
-  $files_subquery->fields('storage_file_instance', array('container_id'));
-  $files_subquery->addExpression('COUNT(storage_file.file_id)', 'count');
-  $files_subquery->addExpression('SUM(storage_object.size)', 'size');
-    
-  $files_subquery->condition('storage_selector.class_id', $class['class_id'])
-    ->groupBy('storage_file_instance.container_id');
+  $subquery->condition('storage_selector.class_id', $class['class_id'])
+    ->groupBy('storage_instance.container_id');
     
     
   $query = db_select('storage_class_container', NULL, array('fetch' => PDO::FETCH_ASSOC));
   $query->join('storage_container', NULL, 'storage_class_container.container_id = storage_container.container_id');
-  $query->leftJoin($objects_subquery, 'objects', 'storage_container.container_id = objects.container_id');
-  $query->leftJoin($files_subquery, 'files', 'storage_container.container_id = files.container_id');
+  $query->leftJoin($subquery, 'files', 'storage_container.container_id = files.container_id');
 
   $query->fields('storage_container')
     ->fields('storage_class_container', array('serving'));
     
-  $query->addField('objects', 'count', 'objects_count');
-  $query->addField('objects', 'size', 'objects_size');
-
-  $query->addField('files', 'count', 'files_count');
-  $query->addField('files', 'size', 'files_size');
+  $query->addField('files', 'count', 'count');
+  $query->addField('files', 'size', 'size');
 
   $result = $query->condition('storage_class_container.class_id', $class['class_id'])
     ->orderBy('storage_class_container.weight')
     ->orderBy('storage_container.container_id')
     ->execute();
 
-
   foreach($result as $container) {
     unset($row);
     
-    $row[] = _storage_api_container_link($container);
-    $row[] = l(_storage_api_get_service_name($container['service_id']), 
-        'admin/config/media/storage/services/' . $container['service_id']);
+    $row[] = _storage_container_link($container);
+    $row[] = l(_storage_get_service_name($container['service_id']), 
+        'admin/structure/storage/services/' . $container['service_id']);
     $row[] = $container['serving'] ? t('Yes') : t('No');
-    $row[] = $container['objects_count'] + $container['files_count'];
-    $row[] = storage_api_format_size($container['objects_size'] + $container['files_size']);
+    $row[] = (int)$container['count'];
+    $row[] = storage_format_size($container['size']);
     
     $rows[] = $row;
   }
@@ -248,13 +252,13 @@ function storage_api_class($class) {
  * FAPI definition for the class edit form.
  *
  * @ingroup forms
- * @see storage_api_class_edit_form_submit()
+ * @see storage_class_edit_form_submit()
  */
-function storage_api_class_edit_form($form, &$form_state, $class) {
+function storage_class_edit_form($form, &$form_state, $class) {
 
   drupal_set_title(t('Storage class: ') . $class['name'], PASS_THROUGH);
 
-  $form = _storage_api_class_form_elements($class);
+  $form = _storage_class_form_elements($class);
   $form['#class'] = $class;
   
   $query = db_select('storage_class_container', NULL, array('fetch' => PDO::FETCH_ASSOC));
@@ -267,7 +271,7 @@ function storage_api_class_edit_form($form, &$form_state, $class) {
     ->orderBy('storage_container.container_id')
     ->execute();
 
-  $trash = _storage_api_trash_icon();
+  $trash = _storage_trash_icon();
 
   $form['#container_ids'] = array();
   $form['#tree'] = TRUE;
@@ -277,7 +281,7 @@ function storage_api_class_edit_form($form, &$form_state, $class) {
     $form['#container_ids'][] = $container['container_id'];
 
     $form['names'][$container['container_id']] = array(
-      '#markup' => _storage_api_container_link($container)
+      '#markup' => _storage_container_link($container)
     );
     
     $form['weights'][$container['container_id']] = array(
@@ -287,8 +291,8 @@ function storage_api_class_edit_form($form, &$form_state, $class) {
     );
 
     $form['services'][$container['container_id']] = array(
-      '#markup' => l(_storage_api_get_service_name($container['service_id']), 
-        'admin/config/media/storage/services/' . $container['service_id'])
+      '#markup' => l(_storage_get_service_name($container['service_id']), 
+        'admin/structure/storage/services/' . $container['service_id'])
     );
     
     $form['servings'][$container['container_id']] = array(
@@ -302,7 +306,7 @@ function storage_api_class_edit_form($form, &$form_state, $class) {
 
     $form['deletes'][$container['container_id']] = array(
       '#markup' => 
-        l($trash, 'admin/config/media/storage/classes/' . $class['class_id'] . '/remove/' . $container['container_id'], 
+        l($trash, 'admin/structure/storage/classes/' . $class['class_id'] . '/remove/' . $container['container_id'], 
           array('html' => TRUE))
     );
   }
@@ -341,7 +345,7 @@ function storage_api_class_edit_form($form, &$form_state, $class) {
   $form['destroy'] = array(
     '#type' => 'submit',
     '#value' => t('Destroy'),
-    '#submit' => array('storage_api_class_edit_form_destroy')
+    '#submit' => array('storage_class_edit_form_destroy')
   );
   
   return $form;
@@ -352,9 +356,9 @@ function storage_api_class_edit_form($form, &$form_state, $class) {
  * Themes the class edit form.
  *
  * @ingroup themeable
- * @see storage_api_class_edit_form()
+ * @see storage_class_edit_form()
  */
-function theme_storage_api_class_edit_form($elements) {
+function theme_storage_class_edit_form($elements) {
   
   $form = $elements['form'];
 
@@ -380,14 +384,14 @@ function theme_storage_api_class_edit_form($elements) {
         'class' => array('draggable'),
       );
     }
-  }
 
-  $form['containers']['table'] = array(
-    '#markup' => theme('table', array(
-      'header' => $header, 
-      'rows' => $rows, 
-      'attributes' => array('id' => 'my-module-table', 'style' => 'width: auto;')
-  )));
+    $form['containers']['table'] = array(
+      '#markup' => theme('table', array(
+        'header' => $header, 
+        'rows' => $rows, 
+        'attributes' => array('id' => 'my-module-table', 'style' => 'width: auto;')
+    )));
+  }
 
   $output .= drupal_render($form['containers']);
 
@@ -401,9 +405,9 @@ function theme_storage_api_class_edit_form($elements) {
 /**
  * Submit handler for the class edit form.
  *
- * @see storage_api_class_edit_form()
+ * @see storage_class_edit_form()
  */
-function storage_api_class_edit_form_submit($form, &$form_state) {
+function storage_class_edit_form_submit($form, &$form_state) {
   $class = $form['#class'];
   
   $update = array(
@@ -432,7 +436,7 @@ function storage_api_class_edit_form_submit($form, &$form_state) {
     ->fields('storage_selector', array('selector_id'))
     ->condition('class_id', $class['class_id']);
 
-  db_update('storage_file')
+  db_update('storage')
     ->expression('serving_container', 'NULL')
     ->condition('selector_id', $selector_subquery, 'IN')
     ->execute();
@@ -440,7 +444,7 @@ function storage_api_class_edit_form_submit($form, &$form_state) {
   cache_clear_all();
   
   $message = 'Storage class <i>' . $class['name'] . '</i> has been updated.';
-  $path = 'admin/config/media/storage/classes/' . $class['class_id'];
+  $path = 'admin/structure/storage/classes/' . $class['class_id'];
 
   drupal_set_message($message);
   watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));
@@ -452,12 +456,12 @@ function storage_api_class_edit_form_submit($form, &$form_state) {
 /**
  * Submit handler (destroy) for the class edit form.
  *
- * @see storage_api_class_edit_form()
+ * @see storage_class_edit_form()
  */
-function storage_api_class_edit_form_destroy($form, &$form_state) {
+function storage_class_edit_form_destroy($form, &$form_state) {
   $class = $form['#class'];
 
-  $form_state['redirect'] = 'admin/config/media/storage/classes/' . $class['class_id'] . '/destroy';
+  $form_state['redirect'] = 'admin/structure/storage/classes/' . $class['class_id'] . '/destroy';
 }
 
 
@@ -465,34 +469,34 @@ function storage_api_class_edit_form_destroy($form, &$form_state) {
  * FAPI definition for the class destroy form.
  *
  * @ingroup forms
- * @see storage_api_class_destroy_form_submit()
+ * @see storage_class_destroy_form_submit()
  */
-function storage_api_class_destroy_form($form, &$form_state, $class) {
+function storage_class_destroy_form($form, &$form_state, $class) {
   $form['#class'] = $class;
 
   return confirm_form($form, 'Are you sure you want to destroy storage class <i>' . 
-    $class['name'] . '</i> ?', 'admin/config/media/storage/classes/' . $class['class_id'], t(''));
+    $class['name'] . '</i> ?', 'admin/structure/storage/classes/' . $class['class_id'], t(''));
 }
 
 
 /**
  * Submit handler for the class destroy form.
  *
- * @see storage_api_class_destroy_form()
+ * @see storage_class_destroy_form()
  */
-function storage_api_class_destroy_form_submit($form, &$form_state) {
+function storage_class_destroy_form_submit($form, &$form_state) {
   $class = $form['#class'];
   
   db_delete('storage_class')
     ->condition('class_id', $class['class_id'])
     ->execute();
 
-  $message = 'Storage class <i>' . _storage_api_class_name($class['class_id']) . '</i> has been destroyed.';
+  $message = 'Storage class <i>' . _storage_class_name($class['class_id']) . '</i> has been destroyed.';
 
   drupal_set_message($message);
   watchdog('storage_api', $message, NULL);
 
-  $form_state['redirect'] = 'admin/config/media/storage/classes';
+  $form_state['redirect'] = 'admin/structure/storage/classes';
 }
 
 
@@ -500,9 +504,9 @@ function storage_api_class_destroy_form_submit($form, &$form_state) {
  * FAPI definition for the class add container form.
  *
  * @ingroup forms
- * @see storage_api_class_add_container_form_submit()
+ * @see storage_class_add_container_form_submit()
  */
-function storage_api_class_add_container_form($form, &$form_state, $class) {
+function storage_class_add_container_form($form, &$form_state, $class) {
   $form['#class'] = $class;
   
 
@@ -553,15 +557,15 @@ function storage_api_class_add_container_form($form, &$form_state, $class) {
 /**
  * Submit handler for the class add container form.
  *
- * @see storage_api_class_add_container_form()
+ * @see storage_class_add_container_form()
  */
-function storage_api_class_add_container_form_submit($form, &$form_state) {
+function storage_class_add_container_form_submit($form, &$form_state) {
   $class = $form['#class'];
-  $container = storage_api_container_load($form_state['values']['container_id']);
+  $container = storage_container_load($form_state['values']['container_id']);
   
-  storage_api_class_add_container($class, $container);
+  storage_class_add_container($class, $container);
   
-  $form_state['redirect'] = 'admin/config/media/storage/classes/' . $class['class_id'] . '/edit';
+  $form_state['redirect'] = 'admin/structure/storage/classes/' . $class['class_id'] . '/edit';
 }
 
 
@@ -569,24 +573,24 @@ function storage_api_class_add_container_form_submit($form, &$form_state) {
  * FAPI definition for the class remove container form.
  *
  * @ingroup forms
- * @see storage_api_class_remove_container_form_submit()
+ * @see storage_class_remove_container_form_submit()
  */
-function storage_api_class_remove_container_form($form, $form_state, $class, $container) {
+function storage_class_remove_container_form($form, $form_state, $class, $container) {
   $form['#class'] = $class;
   $form['#container'] = $container;
 
   return confirm_form($form, 'Are you sure you want to remove storage container <i>' . $container['name'] . 
     '</i> from class <i>' . $class['name'] . '</i>?', 
-    'admin/config/media/storage/classes/' . $class['class_id'] . '/edit', t(''));
+    'admin/structure/storage/classes/' . $class['class_id'] . '/edit', t(''));
 }
 
 
 /**
  * Submit handler for the class remove container form.
  *
- * @see storage_api_class_remove_container_form()
+ * @see storage_class_remove_container_form()
  */
-function storage_api_class_remove_container_form_submit($form, &$form_state) {
+function storage_class_remove_container_form_submit($form, &$form_state) {
   $class = $form['#class'];
   $container = $form['#container'];
 
@@ -599,7 +603,7 @@ function storage_api_class_remove_container_form_submit($form, &$form_state) {
     ->fields('storage_selector', array('selector_id'))
     ->condition('class_id', $class['class_id']);
 
-  db_update('storage_file')
+  db_update('storage')
     ->fields(array('check_me' => 1))
     ->expression('serving_container', 'NULL')
     ->condition('selector_id', $selector_subquery, 'IN')
@@ -607,8 +611,8 @@ function storage_api_class_remove_container_form_submit($form, &$form_state) {
 
   cache_clear_all();
 
-  $container = storage_api_container_load($container['container_id']);
-  $path = 'admin/config/media/storage/classes/' . $class['class_id'];
+  $container = storage_container_load($container['container_id']);
+  $path = 'admin/structure/storage/classes/' . $class['class_id'];
   
   $message = 'Storage container <i>' . $container['name'] . 
     '</i> has been removed from class <i>' . $class['name'] .'</i>.';

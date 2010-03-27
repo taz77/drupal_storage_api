@@ -1,7 +1,7 @@
 ; $Id$
 name = Rackspace Cloud Files
 description = "Rackspace Cloud Files storage service."
-package = Storage
+package = Storage services
 dependencies[] = storage_api
 core = 7.x
 files[] = storage_rackspace.install

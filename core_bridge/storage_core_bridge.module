@@ -1,0 +1,282 @@
+<?php
+// $Id$
+
+// Copyright 2010 Jonathan Brown
+
+
+/**
+ * Implement hook_stream_wrappers() .
+ */
+function storage_core_bridge_stream_wrappers() {
+  $wrappers = array();
+
+  $items = explode('/', $_GET['q']);
+  
+  if (strpos($_GET['q'], 'admin/structure/types/manage/') === 0 &&
+    isset($items[5]) && $items[5] == 'fields' &&
+    isset($items[6]))
+  {
+    $field = $items[6];
+    $field_selectors = variable_get('storage_field_selectors', array());
+    
+    if (!isset($field_selectors[$field])) {
+    
+      $field_selectors[$field] = storage_new_selector_id();
+      variable_set('storage_field_selectors', $field_selectors);
+    }
+  
+    $field_selector_id = $field_selectors[$field];
+  }
+  else {
+    $field_selector_id = NULL;
+  }
+  
+  
+  $result = db_select('storage_selector', NULL, array('fetch' => PDO::FETCH_ASSOC))
+    ->fields('storage_selector', array('selector_id'))
+    ->condition('migrating', 0)
+    ->execute();
+  
+  foreach ($result as $selector) {
+  
+    $type = ($field_selector_id == $selector['selector_id']) ? STREAM_WRAPPERS_NORMAL : STREAM_WRAPPERS_HIDDEN;
+    
+    $wrappers['storage-' . $selector['selector_id']] = array(
+      'name' => t('Storage class (select below)'),
+      'class' => 'DrupalStorageStreamWrapper',
+      'description' => t('Files managed by Storage API.'),
+      'type' => $type,
+    );
+  }
+  
+  return $wrappers;
+}
+
+
+/**
+ * Implement hook_form_FORM_ID_alter() .
+ */
+function storage_core_bridge_form_field_ui_field_settings_form_alter(&$form, &$form_state) {
+
+  if($form['field']['type']['#value'] != 'file')
+    return;
+    
+  $field_selectors = variable_get('storage_field_selectors', array());
+  $selector_id = $field_selectors[$form['field']['field_name']['#value']];
+  
+  $form['field']['settings']['storage_class'] = storage_selector_item($selector_id, t('Storage class'), $description = NULL);
+  
+  $form['#submit'][] = 'storage_core_bridge_file_field_form_submit';
+}
+
+
+/**
+ * Implement hook_form_FORM_ID_alter() .
+ */
+function storage_core_bridge_form_field_ui_field_edit_form_alter(&$form, &$form_state) {
+
+  if($form['#field']['type'] != 'file')
+    return;
+    
+  $field_selectors = variable_get('storage_field_selectors', array());
+  $selector_id = $field_selectors[$form['#field']['field_name']];
+  
+  $form['field']['settings']['storage_class'] = storage_selector_item($selector_id, t('Storage class'), $description = NULL);
+  
+  $form['#submit'][] = 'storage_core_bridge_file_field_form_submit';
+}
+
+
+function storage_core_bridge_file_field_form_submit($form, &$form_state) {
+
+  storage_selector_submit($form_state['values']['field']['settings']['storage_class']);
+}
+
+
+function _storage_core_bridge_load($uri) {
+
+  $storage_id = db_select('storage')
+    ->fields('storage', array('storage_id'))
+    ->condition('storage.uri', $uri)
+    ->execute()
+    ->fetchField();
+    
+  return storage_load($storage_id);
+}
+
+
+
+class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
+
+  protected $uri;
+  protected $filepath;
+  protected $fp;
+
+  protected function selectorId() {
+  
+    return substr(file_uri_scheme($this->uri), 8);
+  }
+
+  public function url_stat($uri, $flags) {
+    global $storage_core_bridge_filename;
+    $filename = file_uri_target($uri);
+
+    if($filename == '') {
+      unset($storage_core_bridge_filename);
+      return array('mode' => 0040666);
+    }
+    
+    if(!isset($storage_core_bridge_filename))
+      $storage_core_bridge_filename = $filename;
+
+    $storage = _storage_core_bridge_load($uri);
+    
+    if(!$storage)
+      return FALSE;
+      
+    $stat = array(
+      'mode' => 0100666,
+      'size' => $storage['size'],
+      'atime' => $storage['last_touched'],
+      'mtime' => $storage['obtained'],
+      'ctime' => $storage['obtained'],
+    );
+
+    return $stat;
+  }
+  
+  public function mkdir($uri, $mode, $options) {    // dont define?
+    return TRUE;
+  }
+  
+  function setUri($uri) {
+    $this->uri = $uri;
+  }
+  
+  public function chmod($mode) {    // dont define?
+    return TRUE;
+  }
+  
+  public function stream_open($uri, $mode, $options, &$opened_url) {
+    $this->uri = $uri;
+    $this->filepath = drupal_tempnam('temporary://', 'storage');
+    $this->fp = fopen($this->filepath, "w");
+    return TRUE;
+  }
+  
+  public function stream_write($data) {
+    return fwrite($this->fp, $data);
+  }
+  
+  public function stream_flush() {
+    return fflush($this->fp);
+  }
+  
+  public function stream_close() {
+    global $storage_core_bridge_filename;
+    fclose($this->fp);
+    $selector_id = $this->selectorId();
+    
+    $options = array(
+      'filepath' => $this->filepath,
+      'filename' => $storage_core_bridge_filename,
+      'module' => 'storage_core_bridge',
+      'uri' => $this->uri,
+    );
+    
+    storage_add($selector_id, $options);
+  }
+  
+  public function realpath() {
+    return $this->uri;
+  }
+
+  public function unlink($uri) {
+    $storage = _storage_core_bridge_load($uri);
+    storage_remove($storage);
+    return TRUE;
+  }
+  
+  public function getExternalUrl() {
+    $storage = _storage_core_bridge_load($this->uri);
+    return storage_serve_url($storage, TRUE);
+  }
+  
+  
+  public static function getMimeType($uri, $mapping = NULL) {
+    dsm(__FUNCTION__);
+    dsm(func_get_args());
+
+    $storage = _storage_core_bridge_load($this->uri);
+    return $storage['mimetype'];
+  }
+
+  public function getUri() {
+    dsm(__FUNCTION__);
+    dsm(func_get_args());
+    
+    return $this->uri;
+  }
+  
+  
+  public function stream_lock($operation) {
+    dsm(__FUNCTION__);
+    dsm(func_get_args());
+  }
+  
+  public function stream_read($count) {
+    dsm(__FUNCTION__);
+    dsm(func_get_args());
+  }
+  
+  public function stream_eof() {
+    dsm(__FUNCTION__);
+    dsm(func_get_args());
+  }
+  
+  public function stream_seek($offset, $whence) {
+    dsm(__FUNCTION__);
+    dsm(func_get_args());
+  }
+  
+  public function stream_tell() {
+    dsm(__FUNCTION__);
+    dsm(func_get_args());
+  }
+  
+  public function stream_stat() {
+    dsm(__FUNCTION__);
+    dsm(func_get_args());
+  }
+  
+  public function rename($from_uri, $to_uri) {
+    dsm(__FUNCTION__);
+    dsm(func_get_args());
+  }
+  
+  public function rmdir($uri, $options) {
+    dsm(__FUNCTION__);
+    dsm(func_get_args());
+  }
+  
+  public function dir_opendir($uri, $options) {
+    dsm(__FUNCTION__);
+    dsm(func_get_args());
+  }
+  
+  public function dir_readdir() {
+    dsm(__FUNCTION__);
+    dsm(func_get_args());
+  }
+  
+  public function dir_rewinddir() {
+    dsm(__FUNCTION__);
+    dsm(func_get_args());
+  }
+  
+  public function dir_closedir() {
+    dsm(__FUNCTION__);
+    dsm(func_get_args());
+  }
+}
+

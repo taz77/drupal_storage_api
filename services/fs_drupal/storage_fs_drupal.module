@@ -11,7 +11,6 @@ function storage_fs_drupal_storage_service_info() {
   
   $info = array(
     'name' => t('Filesystem / Drupal'),
-    'dynamic' => TRUE,
     'local' => TRUE,
     'direct' => TRUE,
     'can_copy' => FALSE,
@@ -97,9 +96,9 @@ function storage_fs_drupal_storage_container_destroy($container) {
 
 
 /**
- * Implement hook_storage_object_instance_create() .
+ * Implement hook_storage_instance_create() .
  */
-function storage_fs_drupal_storage_object_instance_create($container, $file) {
+function storage_fs_drupal_storage_instance_create($container, $file) {
   
   if(!$file['keep_me'])
     $success = @rename($file['filepath'], $container['settings']['path'] . '/' . $file['object_id']);
@@ -111,9 +110,9 @@ function storage_fs_drupal_storage_object_instance_create($container, $file) {
 
 
 /**
- * Implement hook_storage_object_instance_destroy() .
+ * Implement hook_storage_instance_destroy() .
  */
-function storage_fs_drupal_storage_object_instance_destroy($container, $file) {
+function storage_fs_drupal_storage_instance_destroy($container, $file) {
   
   @unlink($container['settings']['path'] . '/' . $file['object_id']);
   
@@ -122,18 +121,18 @@ function storage_fs_drupal_storage_object_instance_destroy($container, $file) {
 
 
 /**
- * Implement hook_storage_object_instance_get_filepath() .
+ * Implement hook_storage_instance_get_filepath() .
  */
-function storage_fs_drupal_storage_object_instance_get_filepath($container, $file) {
+function storage_fs_drupal_storage_instance_get_filepath($container, $file) {
   
   return $container['settings']['path'] . '/' . $file['object_id'];
 }
 
 
 /**
- * Implement hook_storage_object_instance_serve() .
+ * Implement hook_storage_instance_serve() .
  */
-function storage_fs_drupal_storage_object_instance_serve($container, $file) {
+function storage_fs_drupal_storage_instance_serve($container, $file) {
   storage_api_set_http_headers($file);
 
   @readfile($container['settings']['path'] . '/' . $file['object_id']);

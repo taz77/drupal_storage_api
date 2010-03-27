@@ -4,68 +4,53 @@
 // Copyright 2008-2009 Jonathan Brown
 
 
-_storage_api_update_services();
+_storage_update_services();
 
 
-function _storage_api_services_query() {
+function _storage_services_query() {
 
-  $objects_subquery = db_select('storage_container');
-  $objects_subquery->join('storage_object_instance', NULL, 'storage_container.container_id = storage_object_instance.container_id');
-  $objects_subquery->join('storage_object', NULL, 'storage_object_instance.object_id = storage_object.object_id');
+  $subquery = db_select('storage_container');
+  $subquery->join('storage_instance', NULL, 'storage_container.container_id = storage_instance.container_id');
+  $subquery->join('storage', NULL, 'storage_instance.file_id = storage.file_id');
+  $subquery->join('storage_file', NULL, 'storage.file_id = storage_file.file_id');
   
-  $objects_subquery->fields('storage_container', array('service_id'));
-  $objects_subquery->addExpression('COUNT(storage_object.object_id)', 'count');
-  $objects_subquery->addExpression('SUM(storage_object.size)', 'size');
+  $subquery->fields('storage_container', array('service_id'));
+  $subquery->addExpression('COUNT(storage.storage_id)', 'count');
+  $subquery->addExpression('SUM(storage_file.size)', 'size');
   
-  $objects_subquery->groupBy('storage_container.service_id');
-
-
-  $files_subquery = db_select('storage_container');
-  $files_subquery->join('storage_file_instance', NULL, 'storage_container.container_id = storage_file_instance.container_id');
-  $files_subquery->join('storage_file', NULL, 'storage_file_instance.file_id = storage_file.file_id');
-  $files_subquery->join('storage_object', NULL, 'storage_file.object_id = storage_object.object_id');
-  
-  $files_subquery->fields('storage_container', array('service_id'));
-  $files_subquery->addExpression('COUNT(storage_file.file_id)', 'count');
-  $files_subquery->addExpression('SUM(storage_object.size)', 'size');
-  
-  $files_subquery->groupBy('storage_container.service_id');
+  $subquery->groupBy('storage_container.service_id');
 
 
   $query = db_select('storage_service', NULL, array('fetch' => PDO::FETCH_ASSOC));
-  $query->leftJoin($objects_subquery, 'objects', 'storage_service.service_id = objects.service_id');
-  $query->leftJoin($files_subquery, 'files', 'storage_service.service_id = files.service_id');
+  $query->leftJoin($subquery, 'files', 'storage_service.service_id = files.service_id');
   
   $query->fields('storage_service');
 
-  $query->addField('objects', 'count', 'objects_count');
-  $query->addField('objects', 'size', 'objects_size');
-
-  $query->addField('files', 'count', 'files_count');
-  $query->addField('files', 'size', 'files_size');
+  $query->addField('files', 'count', 'count');
+  $query->addField('files', 'size', 'size');
 
   return $query;
 }
 
 
-function storage_api_services() {
+function storage_services() {
 
   drupal_set_title(t('Storage services'), PASS_THROUGH);
 
   $header = array(t('Service'), t('Suspended'), t('Instances'), t('Size'));
 
-  $result = _storage_api_services_query()
+  $result = _storage_services_query()
     ->execute();
 
   foreach($result as $service) {
     unset($row);
   
-    $name = _storage_api_get_service_name($service['service_id']);
+    $name = _storage_get_service_name($service['service_id']);
   
-    $row[] = l($name, 'admin/config/media/storage/services/' . $service['service_id']);
+    $row[] = l($name, 'admin/structure/storage/services/' . $service['service_id']);
     $row[] = $service['suspended'] ? t('Yes') : t('No');
-    $row[] = $service['objects_count'] + $service['files_count'];
-    $row[] = storage_api_format_size($service['objects_size'] + $service['files_size']);
+    $row[] = (int)$service['count'];
+    $row[] = storage_format_size($service['size']);
     
     $rows[$name] = $row;
   }
@@ -84,7 +69,7 @@ function storage_api_services() {
 }
 
 
-function _storage_api_service_flush_serving_container($service_id) {
+function _storage_service_flush_serving_container($service_id) {
 
   $selector_subquery = db_select('storage_container');
   $selector_subquery->join('storage_class_container', NULL, 'storage_container.container_id = storage_class_container.container_id');
@@ -93,7 +78,7 @@ function _storage_api_service_flush_serving_container($service_id) {
   $selector_subquery->fields('storage_selector', array('selector_id'))
     ->condition('storage_container.service_id', $service_id);
     
-  db_update('storage_file')
+  db_update('storage')
     ->expression('serving_container', 'NULL')
     ->condition('selector_id', $selector_subquery, 'IN')
     ->execute();
@@ -106,26 +91,26 @@ function _storage_api_service_flush_serving_container($service_id) {
  * FAPI definition for the service form.
  *
  * @ingroup forms
- * @see storage_api_service_form_suspend()
- * @see storage_api_service_form_unsuspend()
+ * @see storage_service_form_suspend()
+ * @see storage_service_form_unsuspend()
  */
-function storage_api_service_form($form, &$form_state, $service) {
+function storage_service_form($form, &$form_state, $service) {
   $form['#service'] = $service;
 
 
   drupal_set_title(t('Storage service: ') . $service['name'], PASS_THROUGH);
 
-  $data = _storage_api_services_query()
+  $data = _storage_services_query()
     ->condition('storage_service.service_id', $service['service_id'])
     ->execute()
     ->fetchAssoc();
 
-  $info[t('Instances')] = $data['objects_count'] + $data['files_count'];
-  $info[t('Size')] = storage_api_format_size($data['objects_size'] + $data['files_size']);
+  $info[t('Instances')] = (int)$data['count'];
+  $info[t('Size')] = storage_format_size($data['size']);
   $info[t('Suspended')] = $service['suspended'] ? t('Yes') : t('No');
 
   $form['status'] = array(
-    '#markup' => theme_storage_api_info_table($info)
+    '#markup' => theme_storage_info_table($info)
   );
 
   if(!$service['suspended']) {
@@ -133,14 +118,14 @@ function storage_api_service_form($form, &$form_state, $service) {
     $form['suspend'] = array(
       '#type' => 'submit',
       '#value' => t('Suspend'),
-      '#submit' => array('storage_api_service_form_suspend')
+      '#submit' => array('storage_service_form_suspend')
     );
   }
   else {
     $form['unsuspend'] = array(
       '#type' => 'submit',
       '#value' => t('Unsuspend'),
-      '#submit' => array('storage_api_service_form_unsuspend')
+      '#submit' => array('storage_service_form_unsuspend')
     );
   }
   
@@ -151,26 +136,26 @@ function storage_api_service_form($form, &$form_state, $service) {
 /**
  * Submit handler (suspend) for the service form.
  *
- * @see storage_api_service_form()
- * @see storage_api_service_form_unsuspend()
+ * @see storage_service_form()
+ * @see storage_service_form_unsuspend()
  */
-function storage_api_service_form_suspend($form, &$form_state) {
+function storage_service_form_suspend($form, &$form_state) {
   $service = $form['#service'];
 
-  $form_state['redirect'] = 'admin/config/media/storage/services/' . $service['service_id'] . '/suspend';
+  $form_state['redirect'] = 'admin/structure/storage/services/' . $service['service_id'] . '/suspend';
 }
 
 
 /**
  * Submit handler (unsuspend) for the service form.
  *
- * @see storage_api_service_form()
- * @see storage_api_service_form_suspend()
+ * @see storage_service_form()
+ * @see storage_service_form_suspend()
  */
-function storage_api_service_form_unsuspend($form, &$form_state) {
+function storage_service_form_unsuspend($form, &$form_state) {
   $service = $form['#service'];
 
-  $form_state['redirect'] = 'admin/config/media/storage/services/' . $service['service_id'] . '/unsuspend';
+  $form_state['redirect'] = 'admin/structure/storage/services/' . $service['service_id'] . '/unsuspend';
 }
 
 
@@ -178,22 +163,22 @@ function storage_api_service_form_unsuspend($form, &$form_state) {
  * FAPI definition for the service suspend form.
  *
  * @ingroup forms
- * @see storage_api_service_suspend_form_submit()
+ * @see storage_service_suspend_form_submit()
  */
-function storage_api_service_suspend_form($form, &$form_state, $service) {
+function storage_service_suspend_form($form, &$form_state, $service) {
   $form['#service'] = $service;
 
   return confirm_form($form, 'Are you sure you want to suspend storage service <i>' . $service['name'] . '</i> ?', 
-    'admin/config/media/storage/services/' . $service['service_id'], t(''));
+    'admin/structure/storage/services/' . $service['service_id'], t(''));
 }
 
 
 /**
  * Submit handler for the service suspend form.
  *
- * @see storage_api_service_suspend_form()
+ * @see storage_service_suspend_form()
  */
-function storage_api_service_suspend_form_submit($form, &$form_state) {
+function storage_service_suspend_form_submit($form, &$form_state) {
   $service = $form['#service'];
   
   $update = array(
@@ -202,10 +187,10 @@ function storage_api_service_suspend_form_submit($form, &$form_state) {
   );
   
   drupal_write_record('storage_service', $update, 'service_id');
-  _storage_api_service_flush_serving_container($service['service_id']);
+  _storage_service_flush_serving_container($service['service_id']);
 
   $message = 'Storage service <i>' . $service['name'] . '</i> has been suspended.';
-  $path = 'admin/config/media/storage/services/' . $service['service_id']; 
+  $path = 'admin/structure/storage/services/' . $service['service_id']; 
 
   drupal_set_message($message);
   watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));
@@ -218,22 +203,22 @@ function storage_api_service_suspend_form_submit($form, &$form_state) {
  * FAPI definition for the service unsuspend form.
  *
  * @ingroup forms
- * @see storage_api_service_unsuspend_form_submit()
+ * @see storage_service_unsuspend_form_submit()
  */
-function storage_api_service_unsuspend_form($form, &$form_state, $service) {
+function storage_service_unsuspend_form($form, &$form_state, $service) {
   $form['#service'] = $service;
 
   return confirm_form($form, 'Are you sure you want to unsuspend storage service <i>' . $service['name'] . '</i> ?', 
-    'admin/config/media/storage/services/' . $service['service_id'], t(''));
+    'admin/structure/storage/services/' . $service['service_id'], t(''));
 }
 
 
 /**
  * Submit handler for the service unsuspend form.
  *
- * @see storage_api_service_unsuspend_form()
+ * @see storage_service_unsuspend_form()
  */
-function storage_api_service_unsuspend_form_submit($form, &$form_state) {
+function storage_service_unsuspend_form_submit($form, &$form_state) {
   $service = $form['#service'];
   
   $update = array(
@@ -242,10 +227,10 @@ function storage_api_service_unsuspend_form_submit($form, &$form_state) {
   );
   
   drupal_write_record('storage_service', $update, 'service_id');
-  _storage_api_service_flush_serving_container($service['service_id']);
+  _storage_service_flush_serving_container($service['service_id']);
 
   $message = 'Storage service <i>' . $service['name'] . '</i> has been unsuspended.';
-  $path = 'admin/config/media/storage/services/' . $service['service_id']; 
+  $path = 'admin/structure/storage/services/' . $service['service_id']; 
 
   drupal_set_message($message);
   watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));

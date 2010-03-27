@@ -9,13 +9,13 @@
  * @return
  *   A string containing a filename extension or NULL .
  */
-function _storage_api_mime_extension($mimetype) {
+function _storage_mime_extension($mimetype) {
 
-  return strtok(array_search($mimetype, _storage_api_mime_extension_mapping()), '|');
+  return strtok(array_search($mimetype, _storage_mime_extension_mapping()), '|');
 }
 
 
-function _storage_api_mime_extension_mapping() {
+function _storage_mime_extension_mapping() {
 
   // variables in drupal are very stupid
 

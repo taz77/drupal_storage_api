@@ -75,44 +75,42 @@ function storage_api_schema() {
     'fields' => array(
       'selector_id' => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
       'class_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
-      'migrating' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE)
+      'migrating' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0)
     ),
     'primary key' => array('selector_id', 'class_id')
   );
 
-  $schema['storage_object'] = array(
-    'fields' => array(
-      'object_id' => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
-      'size' => array('type' => 'int', 'unsigned' => TRUE, 'size' => 'big', 'not null' => TRUE),
-/*      'md5' => array('type' => 'binary', 'length' => 16, 'not null' => TRUE),
-      'whirlpool' => array('type' => 'binary', 'length' => 64, 'not null' => TRUE),
-*/      'mimetype' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE)
-    ),
-    'primary key' => array('object_id'),
-/*    'unique keys' => array(
-      'unique_key' => array('size', 'md5', 'whirlpool')
-    )
-*/  );
-  
   $schema['storage_file'] = array(
     'fields' => array(
       'file_id' => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
-      'selector_id' => array('type' => 'int', 'unsigned' => TRUE),
-      'object_id' => array('type' => 'int', 'unsigned' => TRUE),
-      'source_url' => array('type' => 'varchar', 'length' => 4095, 'not null' => TRUE),
-      'obtained' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
-      'filename' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
-      'force_download' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE),
-      'module' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
-      'type' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
-      'nid' => array('type' => 'int', 'unsigned' => TRUE),
-      'check_me' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE),
-      'data' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'serialize' => TRUE),
-      'serving_container' => array('type' => 'varchar', 'length' => '16383', 'not null' => FALSE),
-      'servings' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
-      'last_touched' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE)
+      'filename' => array('type' => 'varchar', 'length' => 255, 'not null' => FALSE),
+      'size' => array('type' => 'int', 'unsigned' => TRUE, 'size' => 'big', 'not null' => TRUE),
+      'md5' => array('type' => 'blob', 'mysql_type' => 'BINARY(16)', 'length' => 16, 'not null' => TRUE),
+      'mimetype' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE)
     ),
     'primary key' => array('file_id'),
+    'unique keys' => array(
+      'unique_key' => array('filename', 'size', 'md5')
+    )
+  );
+  
+  $schema['storage'] = array(
+    'fields' => array(
+      'storage_id' => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
+      'selector_id' => array('type' => 'int', 'unsigned' => TRUE),
+      'file_id' => array('type' => 'int', 'unsigned' => TRUE),
+      'source_url' => array('type' => 'varchar', 'length' => 4095, 'not null' => TRUE, 'default' => ''),
+      'obtained' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
+      'module' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'default' => ''),
+      'type' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'default' => ''),
+      'nid' => array('type' => 'int', 'unsigned' => TRUE),
+      'check_me' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE),
+      'data' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'serialize' => TRUE, 'default' => ''),
+      'serving_container' => array('type' => 'varchar', 'length' => '16383', 'not null' => FALSE),
+      'servings' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+      'last_touched' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+    ),
+    'primary key' => array('storage_id'),
     'indexes' => array(
       'check_me' => array('check_me'),
       'selector_id' => array('selector_id'),
@@ -120,16 +118,7 @@ function storage_api_schema() {
     )
   );
 
-  $schema['storage_object_instance'] = array(
-    'fields' => array(
-      'object_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
-      'container_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
-      'reference' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE)
-    ),
-    'primary key' => array('object_id', 'container_id')
-  );
-  
-  $schema['storage_file_instance'] = array(
+  $schema['storage_instance'] = array(
     'fields' => array(
       'file_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
       'container_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
@@ -141,7 +130,7 @@ function storage_api_schema() {
   $schema['storage_serving'] = array(
     'fields' => array(
       'timestamp' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
-      'file_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
+      'storage_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
       'container_id' => array('type' => 'int', 'unsigned' => TRUE),
       'size' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
       'uid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
@@ -151,28 +140,12 @@ function storage_api_schema() {
     ),
     'indexes' => array(
       'container_id' => array('container_id'),
-      'file_id' => array('file_id'),
+      'storage_id' => array('storage_id'),
       'timestamp' => array('timestamp'),
       'uid' => array('uid')
     )
   );
   
   return $schema;
-}
-
-
-/**
- * Implement hook_install() .
- */
-function storage_api_install() {
-
-  drupal_install_schema('storage_api');
-
-  db_query("
-    ALTER TABLE {storage_object}
-    ADD md5 BINARY(16) NOT NULL AFTER size,
-    ADD whirlpool BINARY(64) NOT NULL AFTER md5,
-    ADD UNIQUE(size, md5, whirlpool)
-  ");
 }
 

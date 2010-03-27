@@ -11,7 +11,6 @@ function storage_fs_storage_service_info() {
   
   $info = array(
     'name' => t('Filesystem'),
-    'dynamic' => FALSE,
     'local' => TRUE,
     'direct' => FALSE,
     'can_copy' => FALSE,
@@ -94,7 +93,8 @@ function storage_fs_storage_container_create($container) {
     form_set_error('settings');
     return $container;
   }
-  
+
+/*  
   $path = $container['settings']['path'] . '/objects';
   
   if(!file_prepare_directory($path, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS)) {
@@ -112,6 +112,7 @@ function storage_fs_storage_container_create($container) {
   }
 
   copy($storage_api_path . '/files.htaccess', $path . '/.htaccess');
+*/
 
   return $container;
 }
@@ -122,7 +123,7 @@ function storage_fs_storage_container_create($container) {
  */
 function storage_fs_storage_container_info($container) {
 
-  $info['Free space'] = storage_api_format_size(@disk_free_space($container['settings']['path']));
+  $info['Free space'] = storage_format_size(@disk_free_space($container['settings']['path']));
   $info['Directory'] = realpath($container['settings']['path']);
 
   if($container['serving'])
@@ -142,65 +143,9 @@ function storage_fs_storage_container_destroy($container) {
 
 
 /**
- * Implement hook_storage_object_instance_create() .
+ * Implement hook_storage_instance_create() .
  */
-function storage_fs_storage_object_instance_create($container, $file) {
-  
-  $filename = $file['object_id'];
-
-  
-  // We need the filename to have an extension that matches its mime type
-  // so the webserver serves the file with the correct mime type.
-
-  $extension = storage_api_mime_extension($file['mimetype']);
-
-  if($extension)
-    $filename .= '.' . $extension;
-    
-  $path = $container['settings']['path'] . '/objects/' . $filename;
-
-  if(!$file['keep_me'])
-    $success = @rename($file['filepath'], $path);
-  else
-    $success = @copy($file['filepath'], $path);
-  
-  return $filename;
-}
-
-
-/**
- * Implement hook_storage_object_instance_destroy() .
- */
-function storage_fs_storage_object_instance_destroy($container, $file) {
-  
-  @unlink($container['settings']['path'] . '/objects/' . $container['reference']);
-  
-  return TRUE;
-}
-
-
-/**
- * Implement hook_storage_object_instance_get_filepath() .
- */
-function storage_fs_storage_object_instance_get_filepath($container, $file) {
-  
-  return $container['settings']['path'] . '/objects/' . $container['reference'];
-}
-
-
-/**
- * Implement hook_storage_object_instance_serve() .
- */
-function storage_fs_storage_object_instance_serve($container, $file) {
-
-  return $container['settings']['base_url'] . '/objects/' . $container['reference'];
-}
-
-
-/**
- * Implement hook_storage_file_instance_create() .
- */
-function storage_fs_storage_file_instance_create($container, $file) {
+function storage_fs_storage_instance_create($container, $file) {
 
   // File instances need to use the actual filename so the webserver serves them
   // with their filename in the Content-Disposition http header.
@@ -208,9 +153,9 @@ function storage_fs_storage_file_instance_create($container, $file) {
   // This means we cannot use the Cache-control max-age http header
   // as URLs may be reused.
   
-  $filename = storage_api_unique_filename($container, $file['filename']);
+  $filename = storage_unique_filename($container, $file['filename']);
   
-  $path = $container['settings']['path'] . '/files/' . $filename;
+  $path = $container['settings']['path'] . '/' . $filename;
 
   if(!$file['keep_me'])
     $success = @rename($file['filepath'], $path);
@@ -223,30 +168,30 @@ function storage_fs_storage_file_instance_create($container, $file) {
 
 
 /**
- * Implement hook_storage_file_instance_destroy() .
+ * Implement hook_storage_instance_destroy() .
  */
-function storage_fs_storage_file_instance_destroy($container, $file) {
+function storage_fs_storage_instance_destroy($container, $file) {
     
-  @unlink($container['settings']['path'] . '/files/' . $container['reference']);
+  @unlink($container['settings']['path'] . '/' . $container['reference']);
   
   return TRUE;
 }
 
 
 /**
- * Implement hook_storage_file_instance_get_filepath() .
+ * Implement hook_storage_instance_get_filepath() .
  */
-function storage_fs_storage_file_instance_get_filepath($container, $file) {
+function storage_fs_storage_instance_get_filepath($container, $file) {
 
-  return $container['settings']['path'] . '/files/' . $container['reference'];
+  return $container['settings']['path'] . '/' . $container['reference'];
 }
 
 
 /**
- * Implement hook_storage_file_instance_serve() .
+ * Implement hook_storage_instance_serve() .
  */
-function storage_fs_storage_file_instance_serve($container, $file) {
+function storage_fs_storage_instance_serve($container, $file) {
 
-  return $container['settings']['base_url'] . '/files/' . $container['reference'];
+  return $container['settings']['base_url'] . '/' . $container['reference'];
 }
 

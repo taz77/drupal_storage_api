@@ -1,0 +1,8 @@
+; $Id$
+name = Core bridge
+description = "Allows files managed by Drupal core to be stored and served by Storage API."
+package = Storage
+dependencies[] = storage_api
+core = 7.x
+files[] = storage_core_bridge.install
+files[] = storage_core_bridge.module

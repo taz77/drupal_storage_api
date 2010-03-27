@@ -11,7 +11,6 @@ function storage_s3_storage_service_info() {
   
   $info = array(
     'name' => t('Amazon S3 / CloudFront'),
-    'dynamic' => FALSE,
     'local' => FALSE,
     'direct' => FALSE,
     'can_copy' => TRUE,
@@ -54,7 +53,7 @@ function _storage_s3_request($container, $method, $bucket = NULL, $object_name =
           $components[] = 'x-amz-acl:public-read';
         }
         
-        if($file['copy_source']) {
+        if(isset($file['copy_source']) && $file['copy_source']) {
           $headers[] = 'x-amz-copy-source: ' . $file['copy_source'];
           $components[] = 'x-amz-copy-source:' . $file['copy_source'];
         }
@@ -66,7 +65,7 @@ function _storage_s3_request($container, $method, $bucket = NULL, $object_name =
         $components[1] = base64_encode($file['md5']);
         $components[2] = $file['mimetype'];
         
-        $headers = array_merge($headers, storage_api_http_headers($file));
+        $headers = array_merge($headers, storage_http_headers($file));
         
         $curl_options[CURLOPT_INFILE] = $fp;
         $curl_options[CURLOPT_INFILESIZE] = $file['size'];
@@ -119,7 +118,7 @@ function _storage_s3_request($container, $method, $bucket = NULL, $object_name =
   
   if($bucket)  
     $bucket .= '.';
-  
+
   $ch = curl_init('http://' . $bucket . 's3.amazonaws.com' . $object_name);
   curl_setopt_array($ch, $curl_options);
   $transfer = curl_exec($ch);
@@ -140,7 +139,7 @@ function _storage_s3_request($container, $method, $bucket = NULL, $object_name =
 
     if($result['simplexml']) {
       if($result['simplexml']->getName() == 'Error') {
-      
+
         $msg = (string)$result['simplexml']->Message;
 
         watchdog('storage_s3', 'Amazon S3 error: @msg', array('@msg' => $msg), WATCHDOG_ERROR);
@@ -156,7 +155,7 @@ function _storage_s3_request($container, $method, $bucket = NULL, $object_name =
 
 
 function _storage_s3_url($container, $s3_object) {
-  
+
   if($container['settings']['cloudfront'] && 
     $container['settings']['cloudfront_status'] == 'Deployed')
   {
@@ -186,7 +185,7 @@ function _storage_s3_url($container, $s3_object) {
 
 
 function _storage_s3_rtmp($container, $s3_object) {
-  
+
   if($container['settings']['cloudfront_streaming'] && 
     $container['settings']['cloudfront_streaming_status'] == 'Deployed')
   {
@@ -216,7 +215,7 @@ function _storage_s3_cloudfront_request($container, $method, $streaming = FALSE,
 
   if($streaming) {
     $path = '/2009-12-01/streaming-distribution';
-    $id = $container['settings']['cloudfront_steaming_id'];
+    $id = $container['settings']['cloudfront_streaming_id'];
   }
   else {
     $path = '/2009-12-01/distribution';
@@ -426,12 +425,20 @@ function storage_s3_storage_container_validate($container, $edit) {
 }
 
 
+function _storage_s3_cloudfront_caller_reference() {
+  static $id;
+
+  // make sure we can create multiple distributions at the same time
+  return $_SERVER['REQUEST_TIME'] . '-' . ++$id;
+}
+
+
 function _storage_s3_cloudfront_distribution_create(&$container) {
 
   $xml = '<?xml version="1.0" encoding="UTF-8"?>';
   $xml .= '<DistributionConfig xmlns="http://cloudfront.amazonaws.com/doc/2009-12-01/">';
   $xml .= '<Origin>' . $container['settings']['bucket'] . '.s3.amazonaws.com</Origin>';
-  $xml .= '<CallerReference>' . $_SERVER['REQUEST_TIME'] . '</CallerReference>';
+  $xml .= '<CallerReference>' . _storage_s3_cloudfront_caller_reference() . '</CallerReference>';
   $xml .= '<Enabled>true</Enabled>';
   $xml .= '</DistributionConfig>';
 
@@ -459,7 +466,7 @@ function _storage_s3_cloudfront_streaming_distribution_create(&$container) {
   $xml = '<?xml version="1.0" encoding="UTF-8"?>';
   $xml .= '<StreamingDistributionConfig xmlns="http://cloudfront.amazonaws.com/doc/2009-12-01/">';
   $xml .= '<Origin>' . $container['settings']['bucket'] . '.s3.amazonaws.com</Origin>';
-  $xml .= '<CallerReference>' . $_SERVER['REQUEST_TIME'] . '</CallerReference>';
+  $xml .= '<CallerReference>' . _storage_s3_cloudfront_caller_reference() . '</CallerReference>';
   $xml .= '<Enabled>true</Enabled>';
   $xml .= '</StreamingDistributionConfig>';
 
@@ -662,8 +669,7 @@ function _storage_s3_cloudfront_streaming_deploy() {
         $container['name'] . '</i>.';
     }
     else {
-      $container['settings']['cloudfront_streaming_status'] = 
-        (string)$result['simplexml']->StreamingDistributionSummary->Status;
+      $container['settings']['cloudfront_streaming_status'] = (string)$result['simplexml']->Status;
       
       if($container['settings']['cloudfront_streaming_status'] != 'Deployed')
         continue;
@@ -830,7 +836,9 @@ function storage_s3_storage_container_info($container) {
   
     $info[t('Serving with CloudFront')] = $status;
     
-    if($container['settings']['cloudfront_status'] == 'Deployed') {
+    if(isset($container['settings']['cloudfront_status']) && 
+      $container['settings']['cloudfront_status'] == 'Deployed')
+    {
       $info[t('CloudFront domain name')] = $container['settings']['cloudfront_domain'];
     }
 
@@ -847,7 +855,9 @@ function storage_s3_storage_container_info($container) {
   
     $info[t('Streaming with CloudFront')] = $status;
     
-    if($container['settings']['cloudfront_streaming_status'] == 'Deployed') {
+    if(isset($container['settings']['cloudfront_streaming_status']) &&
+      $container['settings']['cloudfront_streaming_status'] == 'Deployed')
+    {
       $info[t('CloudFront streaming domain name')] = $container['settings']['cloudfront_streaming_domain'];
     }
   }
@@ -860,100 +870,26 @@ function storage_s3_storage_container_info($container) {
 
 
 /**
- * Implement hook_storage_object_instance_create() .
+ * Implement hook_storage_instance_create() .
  */
-function storage_s3_storage_object_instance_create($container, $file) {
-
+function storage_s3_storage_instance_create($container, $file) {
+  
   $result = _storage_s3_request($container, 'PUT', $container['settings']['bucket'], 
-    'object-' . $file['object_id'], $file);
+    $file['file_id'], $file);
   
   return $result['http_code'] == 200;
 }
 
 
 /**
- * Implement hook_storage_object_instance_copy() .
+ * Implement hook_storage_instance_copy() .
  */
-function storage_s3_storage_object_instance_copy($container, $file, $source_container) {
-
-  $file['copy_source'] = '/' . $source_container['settings']['bucket'] . '/object-' . $file['object_id'];
+function storage_s3_storage_instance_copy($container, $file, $source_container) {
+  
+  $source['copy_source'] = '/' . $source_container['settings']['bucket'] . '/file-' . $file['file_id'];
   
   $result = _storage_s3_request($container, 'PUT', $container['settings']['bucket'], 
-    'object-' . $file['object_id'], $file);
-    
-  if($result['http_code'] == 200 && $result['simplexml']) {
-
-    if($result['simplexml']->getName() == 'CopyObjectResult')
-      return TRUE;
-  }
-  
-  return FALSE;
-}
-
-
-/**
- * Implement hook_storage_object_instance_destroy() .
- */
-function storage_s3_storage_object_instance_destroy($container, $file) {
-  
-  $result = _storage_s3_request($container, 'DELETE', $container['settings']['bucket'], 
-    'object-' . $file['object_id']);
-  
-  return $result['http_code'] == 204;
-}
-
-
-/**
- * Implement hook_storage_object_instance_get_filepath() .
- */
-function storage_s3_storage_object_instance_get_filepath($container, $file) {
-  
-  $result = _storage_s3_request($container, 'GET', $container['settings']['bucket'], 
-    'object-' . $file['object_id']);
-
-  return $result['filepath'];
-}
-
-
-/**
- * Implement hook_storage_object_instance_serve() .
- */
-function storage_s3_storage_object_instance_serve($container, $file) {
-
-  return _storage_s3_url($container, 'object-' . $file['object_id']);
-}
-
-
-/**
- * Implement hook_storage_object_instance_serve_rmtp() .
- */
-function storage_s3_storage_object_instance_serve_rtmp($container, $file) {
-
-  return _storage_s3_rtmp($container, 'object-' . $file['object_id']);
-}
-
-
-/**
- * Implement hook_storage_file_instance_create() .
- */
-function storage_s3_storage_file_instance_create($container, $file) {
-  
-  $result = _storage_s3_request($container, 'PUT', $container['settings']['bucket'], 
-    'file-' . $file['file_id'], $file);
-  
-  return $result['http_code'] == 200;
-}
-
-
-/**
- * Implement hook_storage_file_instance_copy() .
- */
-function storage_s3_storage_file_instance_copy($container, $file, $source_container) {
-  
-  $file['copy_source'] = '/' . $source_container['settings']['bucket'] . '/file-' . $file['file_id'];
-  
-  $result = _storage_s3_request($container, 'PUT', $container['settings']['bucket'], 
-    'file-' . $file['file_id'], $file);
+    $file['file_id'], $source);
   
   if($result['http_code'] == 200 && $result['simplexml']) {
 
@@ -966,43 +902,43 @@ function storage_s3_storage_file_instance_copy($container, $file, $source_contai
 
 
 /**
- * Implement hook_storage_file_instance_destroy() .
+ * Implement hook_storage_instance_destroy() .
  */
-function storage_s3_storage_file_instance_destroy($container, $file) {
+function storage_s3_storage_instance_destroy($container, $file) {
   
   $result = _storage_s3_request($container, 'DELETE', $container['settings']['bucket'], 
-    'file-' . $file['file_id']);
+    $file['file_id']);
   
   return $result['http_code'] == 204;
 }
 
 
 /**
- * Implement hook_storage_file_instance_get_filepath() .
+ * Implement hook_storage_instance_get_filepath() .
  */
-function storage_s3_storage_file_instance_get_filepath($container, $file) {
+function storage_s3_storage_instance_get_filepath($container, $file) {
   
   $result = _storage_s3_request($container, 'GET', $container['settings']['bucket'], 
-    'file-' . $file['file_id']);
+    $file['file_id']);
 
   return $result['filepath'];
 }
 
 
 /**
- * Implement hook_storage_file_instance_serve() .
+ * Implement hook_storage_instance_serve() .
  */
-function storage_s3_storage_file_instance_serve($container, $file) {
+function storage_s3_storage_instance_serve($container, $file) {
 
-  return _storage_s3_url($container, 'file-' . $file['file_id']);
+  return _storage_s3_url($container, $file['file_id']);
 }
 
 
 /**
- * Implement hook_storage_file_instance_serve_rtmp() .
+ * Implement hook_storage_instance_serve_rtmp() .
  */
-function storage_s3_storage_file_instance_serve_rtmp($container, $file) {
+function storage_s3_storage_instance_serve_rtmp($container, $file) {
 
-  return _storage_s3_rtmp($container, 'file-' . $file['file_id']);
+  return _storage_s3_rtmp($container, $file['file_id']);
 }
 

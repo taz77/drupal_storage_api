@@ -1,0 +1,34 @@
+<?php
+// $Id$
+
+
+/**
+ * Implement hook_install() .
+ */
+function storage_core_bridge_install() {
+
+  $spec = array('type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'default' => '');
+  $keys = array('unique keys' => array('uri' => array('uri')));
+
+  db_add_field('storage', 'uri', $spec, $keys); 
+}
+
+
+/**
+ * Implement hook_uninstall() .
+ */
+function storage_core_bridge_uninstall() {
+
+  db_drop_field('storage', 'uri');
+}
+
+
+/**
+ * Implement hook_schema_alter() .
+ */
+function storage_core_bridge_schema_alter(&$schema) {
+
+  $schema['storage']['fields']['uri'] = array('type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'default' => '');
+  $schema['storage']['unique keys'] = array('uri' => array('uri'));
+}
+

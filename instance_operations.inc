@@ -4,10 +4,10 @@
 // Copyright 2008-2009 Jonathan Brown
 
 
-function _storage_api_create_object_instance(&$container, $file) {
+function __storage_create_instance(&$container, $storage) {
 
-  $success = _storage_api_service_invoke($container['service_id'], 'object_instance_create', 
-    $container, $file);
+  $success = _storage_service_invoke($container['service_id'], 'instance_create', 
+    $container, $storage);
   
   if(!$success)
     return FALSE;
@@ -16,49 +16,18 @@ function _storage_api_create_object_instance(&$container, $file) {
     $container['reference'] = $success;
   
   $instance = array(
-    'object_id' => $file['object_id'],
+    'file_id' => $storage['file_id'],
     'container_id' => $container['container_id'],
     'reference' => $container['reference'],
   );
 
-  drupal_write_record('storage_object_instance', $instance);
+  drupal_write_record('storage_instance', $instance);
   
-  _storage_api_flush_serving_container($file['file_id']);
+  _storage_flush_serving_container($storage['storage_id']);
   
-  $message = 'Object instance created. <br />';
-  $message .= _storage_api_container_log_info($container);
-  $message .= _storage_api_object_log_info($file);
-  
-  watchdog('storage_api', $message, NULL);
-
-  return TRUE;
-}
-
-
-function _storage_api_create_file_instance(&$container, $file) {
-
-  $success = _storage_api_service_invoke($container['service_id'], 'file_instance_create', 
-    $container, $file);
-  
-  if(!$success)
-    return FALSE;
-    
-  if($success !== TRUE)
-    $container['reference'] = $success;
-  
-  $instance = array(
-    'file_id' => $file['file_id'],
-    'container_id' => $container['container_id'],
-    'reference' => $container['reference'],
-  );
-
-  drupal_write_record('storage_file_instance', $instance);
-  
-  _storage_api_flush_serving_container($file['file_id']);
-  
-  $message = 'File instance created' . ($file['filename'] ? (': ' . $file['filename'] . ' ') : '') . '. <br />';
-  $message .= _storage_api_container_log_info($container);
-  $message .= _storage_api_file_log_info($file);
+  $message = 'File instance created' . ($storage['filename'] ? (': ' . $storage['filename'] . ' ') : '') . '. <br />';
+  $message .= _storage_container_log_info($container);
+  $message .= _storage_log_info($storage);
 
   watchdog('storage_api', $message, NULL);
 
@@ -66,81 +35,42 @@ function _storage_api_create_file_instance(&$container, $file) {
 }
 
 
-function _storage_api_create_instance(&$container, $file) {
+function _storage_create_instance(&$container, $storage) {
 
   // we need write access to the directory for it to be deleted
 
-  if(!$file['keep_me']) {
+  if(!isset($storage['keep_me']) || !$storage['keep_me']) {
   
-    if(!is_writable(dirname($file['filepath'])))
-      $file['keep_me'] = TRUE;
+    if(!is_writable(dirname($storage['filepath'])))
+      $storage['keep_me'] = TRUE;
   }
   
-  $service_info = _storage_api_service_invoke($container['service_id'], 'service_info');
+  // if the storage's file is already in the system, then the instance might already exist
 
-  if(!(!$service_info['dynamic'] && $container['serving'] && $file['force_download'])) {
-    $container['type'] = 'object';
-
-    // if the file's object is already in the system, then the instance might already exist
-
-    if(!$file['new_object']) {
-      $instance = _storage_api_object_instance_exists($file['object_id'], $container['container_id']);
-      
-      if($instance)
-        $container['reference'] = $instance['reference'];
-    }
+  if(!isset($storage['new_file']) || !$storage['new_file']) {
+    $instance = _storage_instance_exists($storage['file_id'], $container['container_id']);
     
-    if(!$instance) {
-      $failure = !_storage_api_create_object_instance($container, $file);
-    }
-  }
-  else {
-    $container['type'] = 'file';
-    $failure = !_storage_api_create_file_instance($container, $file);
+    if($instance)
+      $container['reference'] = $instance['reference'];
   }
   
-  if(!$file['keep_me'])
-    @unlink($file['filepath']);
+  $failure = FALSE;
+  
+  if(!isset($instance) || !$instance) {
+    $failure = !__storage_create_instance($container, $storage);
+  }
+  
+  if(!$storage['keep_me'])
+    @unlink($storage['filepath']);
     
   return !$failure;
 }
 
 
-function _storage_api_object_instance_copy(&$container, $file, $source_container) {
+function _storage_instance_copy(&$container, $storage, $source_container) {
 
-  $success = _storage_api_service_invoke($container['service_id'], 'object_instance_copy', 
-    $container, $file, $source_container);
-  
-  if(!$success)
-    return FALSE;
-  
-  if($success !== TRUE)
-    $container['reference'] = $success;
-  
-  $instance = array(
-    'object_id' => $file['object_id'],
-    'container_id' => $container['container_id'],
-    'reference' => $container['reference'],
-  );
-
-  drupal_write_record('storage_object_instance', $instance);
-  
-  _storage_api_flush_serving_container($file['file_id']);
-  
-  $message = 'Object instance copied. <br />';
-  $message .= _storage_api_container_log_info($container);
-  $message .= _storage_api_object_log_info($file);
-  
-  watchdog('storage_api', $message, NULL);
-
-  return TRUE;
-}
-
-
-function _storage_api_file_instance_copy(&$container, $file, $source_container) {
-
-  $success = _storage_api_service_invoke($container['service_id'], 'file_instance_copy', 
-    $container, $file, $source_container);
+  $success = _storage_service_invoke($container['service_id'], 'instance_copy', 
+    $container, $storage, $source_container);
   
   if(!$success)
     return FALSE;
@@ -149,18 +79,18 @@ function _storage_api_file_instance_copy(&$container, $file, $source_container) 
     $container['reference'] = $success;
   
   $instance = array(
-    'file_id' => $file['file_id'],
+    'file_id' => $storage['file_id'],
     'container_id' => $container['container_id'],
     'reference' => $container['reference'],
   );
 
-  drupal_write_record('storage_file_instance', $instance);
+  drupal_write_record('storage_instance', $instance);
   
-  _storage_api_flush_serving_container($file['file_id']);
+  _storage_flush_serving_container($storage['storage_id']);
   
-  $message = 'File instance copied' . ($file['filename'] ? (': ' . $file['filename'] . ' ') : '') . '. <br />';
-  $message .= _storage_api_container_log_info($container);
-  $message .= _storage_api_file_log_info($file);
+  $message = 'File instance copied' . ($storage['filename'] ? (': ' . $storage['filename'] . ' ') : '') . '. <br />';
+  $message .= _storage_container_log_info($container);
+  $message .= _storage_log_info($storage);
 
   watchdog('storage_api', $message, NULL);
 
@@ -168,7 +98,7 @@ function _storage_api_file_instance_copy(&$container, $file, $source_container) 
 }
 
 
-function _storage_api_object_instance_destroy($container, $file) {
+function _storage_instance_destroy($container, $storage) {
 
   if($container['suspended'] != 0 ||
     $container['service_suspended'] != 0)
@@ -176,49 +106,20 @@ function _storage_api_object_instance_destroy($container, $file) {
     return FALSE;
   }
 
-  $success = _storage_api_service_invoke($container['service_id'], 'object_instance_destroy', 
-    $container, $file);
-  
-  if(!$success)
-    return FALSE;
-
-  db_delete('storage_object_instance')
-    ->condition('object_id', $file['object_id'])
-    ->condition('container_id', $container['container_id'])
-    ->execute();
-  
-  $message = 'Object instance destroyed. <br />';
-  $message .= _storage_api_container_log_info($container);
-  $message .= _storage_api_object_log_info($file);
-  
-  watchdog('storage_api', $message, NULL);
-
-  return TRUE;
-}
-
-
-function _storage_api_file_instance_destroy($container, $file) {
-
-  if($container['suspended'] != 0 ||
-    $container['service_suspended'] != 0)
-  {
-    return FALSE;
-  }
-
-  $success = _storage_api_service_invoke($container['service_id'], 'file_instance_destroy', 
-    $container, $file);
+  $success = _storage_service_invoke($container['service_id'], 'instance_destroy', 
+    $container, $storage);
     
   if(!$success)
     return FALSE;
 
-  db_delete('storage_file_instance')
-    ->condition('file_id', $file['file_id'])
+  db_delete('storage_instance')
+    ->condition('file_id', $storage['file_id'])
     ->condition('container_id', $container['container_id'])
     ->execute();
   
-  $message = 'File instance destroyed' . ($file['filename'] ? (': ' . $file['filename'] . ' ') : '') . '. <br />';
-  $message .= _storage_api_container_log_info($container);
-  $message .= _storage_api_file_log_info($file);
+  $message = 'File instance destroyed' . ($storage['filename'] ? (': ' . $storage['filename'] . ' ') : '') . '. <br />';
+  $message .= _storage_container_log_info($container);
+  $message .= _storage_log_info($storage);
 
   watchdog('storage_api', $message, NULL);
 
