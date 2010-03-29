@@ -11,16 +11,6 @@ function _storage_trash_icon() {
 }
 
 
-function _storage_class_name($class_id) {
-
-  return db_select('storage_class')
-    ->fields('storage_class', array('name'))
-    ->condition('class_id', $class_id)
-    ->execute()
-    ->fetchField();
-}
-
-
 function _storage_classes_query() {
 
   $query = db_select('storage_class', NULL, array('fetch' => PDO::FETCH_ASSOC));
@@ -87,17 +77,17 @@ function _storage_class_form_elements($class = NULL) {
     'access_control' => array(
       '#title' => t('Enforce access control'),
       '#type' => 'checkbox',
-      '#default_value' => $class['options']['access_control']
+      '#default_value' => isset($class['options']['access_control']) ? $class['options']['access_control'] : FALSE,
     ),
     'redirect' => array(
       '#title' => t('Serve by redirection'),
       '#type' => 'checkbox',
-      '#default_value' => $class['options']['redirect']
+      '#default_value' => isset($class['options']['redirect']) ? $class['options']['redirect'] : FALSE,
     ),
     'serve_source_url' => array(
       '#title' => t('Serve source url'),
       '#type' => 'checkbox',
-      '#default_value' => $class['options']['serve_source_url'],
+      '#default_value' => isset($class['options']['serve_source_url']) ? $class['options']['serve_source_url'] : FALSE,
       '#description' => t('If no instances are available, serve the source url.')
     )
   );
@@ -160,15 +150,9 @@ function storage_create_class_form_submit($form, &$form_state) {
     'options' => $form_state['values']['options'],
   );
   
-  drupal_write_record('storage_class', $class);
+  storage_class_create($class);
 
-  $message = 'Storage class <i>' . $form_state['values']['name'] . '</i> has been created.';
-  $path = 'admin/structure/storage/classes/' . $class['class_id'];
-
-  drupal_set_message($message);
-  watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));
-
-  $form_state['redirect'] = $path . '/add';
+  $form_state['redirect'] = _storage_class_path($class) . '/add';
 }
 
 
@@ -183,10 +167,10 @@ function storage_class($class) {
 
   $info[t('Files')] = $class_info['files'];
   $info[t('Size')] = storage_format_size($class_info['size']);
-  $info[t('Access control')] = $class['options']['access_control'] ? t('Yes') : t('No');
-  $info[t('Redirection')] = $class['options']['redirect'] ? t('Yes') : t('No');
-  $info[t('Serve source')] = $class['options']['serve_source_url'] ? t('Yes') : t('No');
-  $info[t('Initial container')] = _storage_container_link($class['initial_container']);
+  $info[t('Access control')] = (isset($class['options']['access_control']) && $class['options']['access_control']) ? t('Yes') : t('No');
+  $info[t('Redirection')] = (isset($class['options']['redirect']) && $class['options']['redirect']) ? t('Yes') : t('No');
+  $info[t('Serve source')] = (isset($class['options']['serve_source_url']) && $class['options']['serve_source_url']) ? t('Yes') : t('No');
+  $info[t('Initial container')] = isset($class['initial_container']) ? _storage_container_link($class['initial_container']) : t('n/a');
 
   $output = theme_storage_info_table($info);
 
@@ -332,7 +316,7 @@ function storage_class_edit_form($form, &$form_state, $class) {
     '#type' => 'select',
     '#title' => t('Initial container'),
     '#options' => $containers,
-    '#default_value' => $class['options']['initial_container_id'],
+    '#default_value' => isset($class['options']['initial_container_id']) ? $class['options']['initial_container_id'] : FALSE,
     '#description' => t('Files added to the class will initially only have an instance in this container.<br />If the initial container is not in the class, then files\' instances in it will be destroyed once they have been fully propagated.<br />When it is not possible to serve from a container in the class, this container will be used (while instances still exist).<br />Typically this is used to quickly store files locally on the server, providing a faster experience for the user. This is especially important for images rendered in-request.'),
   );
 
@@ -490,7 +474,7 @@ function storage_class_destroy_form_submit($form, &$form_state) {
     ->condition('class_id', $class['class_id'])
     ->execute();
 
-  $message = 'Storage class <i>' . _storage_class_name($class['class_id']) . '</i> has been destroyed.';
+  $message = 'Storage class <i>' . $class['name'] . '</i> has been destroyed.';
 
   drupal_set_message($message);
   watchdog('storage_api', $message, NULL);

@@ -398,7 +398,9 @@ function storage_class_load($class_id) {
     return FALSE;
   
   $class['options'] = unserialize($class['options']);
-  $class['initial_container'] = storage_container_load($class['options']['initial_container_id']);
+  
+  if(isset($class['options']['initial_container_id']))
+    $class['initial_container'] = storage_container_load($class['options']['initial_container_id']);
   
   return $class;
 }
@@ -468,36 +470,6 @@ function _storage_service_invoke_all() {
   }
   
   return $results;
-}
-
-
-function _storage_get_service_names() {
-
-  $services = _storage_service_invoke_all('service_info');
-  
-  foreach($services as &$service)
-    $service = $service['name'];
-    
-  asort($services);
-  
-  return $services;
-}
-
-
-function _storage_get_service_name($service_id, $link = FALSE) {
-
-  $info = _storage_service_invoke($service_id, 'service_info');
-  
-  if($link)
-    return l($info['name'], 'admin/structure/storage/services/' . $service_id);
-  else
-    return $info['name'];
-}
-
-
-function _storage_container_link($container) {
-
-  return l($container['name'], 'admin/structure/storage/containers/' . $container['container_id']);
 }
 
 
@@ -1702,6 +1674,73 @@ function storage_mime_extension($mimetype) {
   require_once DRUPAL_ROOT . '/' . $path . '/mime_extension.inc';
 
   return _storage_mime_extension($mimetype);
+}
+
+
+function _storage_get_service_names() {
+
+  $services = _storage_service_invoke_all('service_info');
+  
+  foreach($services as &$service)
+    $service = $service['name'];
+    
+  asort($services);
+  
+  return $services;
+}
+
+
+function _storage_get_service_name($service_id, $link = FALSE) {
+
+  $info = _storage_service_invoke($service_id, 'service_info');
+  
+  if($link)
+    return l($info['name'], 'admin/structure/storage/services/' . $service_id);
+  else
+    return $info['name'];
+}
+
+
+function _storage_container_link($container) {
+
+  return l($container['name'], 'admin/structure/storage/containers/' . $container['container_id']);
+}
+
+
+function _storage_class_name($class) {
+
+  return check_plain($class['name']);
+}
+
+
+function _storage_class_path($class) {
+
+  return 'admin/structure/storage/classes/' . $class['class_id'];
+}
+
+
+function _storage_class_link($class) {
+
+  return l($class['name'], _storage_class_path($class));
+}
+
+
+/**
+ * Create a storage class.
+ *
+ * @param $class
+ *   Class to be created.
+ */
+function storage_class_create(&$class) {
+
+  drupal_write_record('storage_class', $class);
+  
+  $msg = 'Storage class !class has been created.';
+  
+  drupal_set_message(t($msg, array('!class' => _storage_class_link($class))));
+  
+  watchdog('storage_api', $msg, array('!class' => _storage_class_name($class)), WATCHDOG_NOTICE, 
+    l(t('view'), _storage_class_path($class)));
 }
 
 

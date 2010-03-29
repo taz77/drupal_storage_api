@@ -29,7 +29,7 @@ function storage_fs_storage_container_settings_form($settings, $serving, $edit) 
     '#type' => 'textfield',
     '#title' => t('Directory path'),
     '#description' => t("Can be absolute or relative."),
-    '#default_value' => isset($settings['path']) ? $settings['path'] : file_directory_path(),
+    '#default_value' => isset($settings['path']) ? $settings['path'] : 'sites/default/',
     '#required' => TRUE,
     '#validated' => TRUE,
   );
@@ -48,7 +48,7 @@ function storage_fs_storage_container_settings_form($settings, $serving, $edit) 
       '#type' => 'textfield',
       '#title' => t('Base URL path'),
       '#description' => t($description),
-      '#default_value' => isset($settings['base_url']) ? $settings['base_url'] : file_directory_path(),
+      '#default_value' => isset($settings['base_url']) ? $settings['base_url'] : 'sites/default/',
       '#required' => TRUE,
       '#validated' => TRUE,
     );
