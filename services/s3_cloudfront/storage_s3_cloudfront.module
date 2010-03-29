@@ -7,7 +7,7 @@
 /**
  * Implement hook_storage_service_info() .
  */
-function storage_s3_storage_service_info() {
+function storage_s3_cloudfront_storage_service_info() {
   
   $info = array(
     'name' => t('Amazon S3 / CloudFront'),
@@ -154,7 +154,7 @@ function _storage_s3_request($container, $method, $bucket = NULL, $object_name =
 }
 
 
-function _storage_s3_url($container, $s3_object) {
+function _storage_s3_cloudfront_url($container, $s3_object) {
   $query = array();
 
   if($container['settings']['cloudfront'] && 
@@ -185,7 +185,7 @@ function _storage_s3_url($container, $s3_object) {
 }
 
 
-function _storage_s3_rtmp($container, $s3_object) {
+function _storage_s3_cloudfront_rtmp($container, $s3_object) {
 
   if($container['settings']['cloudfront_streaming'] && 
     $container['settings']['cloudfront_streaming_status'] == 'Deployed')
@@ -200,7 +200,7 @@ function _storage_s3_rtmp($container, $s3_object) {
 }
 
 
-function _storage_s3_cloudfront_request($container, $method, $streaming = FALSE, $xml = NULL) {
+function _storage_cloudfront_request($container, $method, $streaming = FALSE, $xml = NULL) {
   $result = array();
   $date = date(DATE_RFC1123, time());   // we don't use $_SERVER['REQUEST_TIME'] in case it is too old
 
@@ -312,12 +312,12 @@ function _storage_s3_locations() {
 /**
  * Implement hook_storage_container_settings_form() .
  */
-function storage_s3_storage_container_settings_form($settings, $serving, $edit) {
+function storage_s3_cloudfront_storage_container_settings_form($settings, $serving, $edit) {
 
   $items['credentials_info'] = array(
     '#markup' => t('Get your credentials !link.', array('!link' => l(t('here'), 
       'http://aws-portal.amazon.com/gp/aws/developer/account/index.html?action=access-key', 
-        array('attributes' => array('target' => '_blank')))))
+      array('attributes' => array('target' => '_blank')))))
   );
 
   $items['access_key_id'] = array(
@@ -397,7 +397,7 @@ function storage_s3_storage_container_settings_form($settings, $serving, $edit) 
 /**
  * Implement hook_storage_container_validate() .
  */
-function storage_s3_storage_container_validate($container, $edit) {
+function storage_s3_cloudfront_storage_container_validate($container, $edit) {
 
   if(!$container['settings']['access_key_id']) {
     form_set_error('settings][access_key_id', t('Access Key ID field is required.'));
@@ -426,7 +426,7 @@ function storage_s3_storage_container_validate($container, $edit) {
 }
 
 
-function _storage_s3_cloudfront_caller_reference() {
+function _storage_cloudfront_caller_reference() {
   static $id;
 
   // make sure we can create multiple distributions at the same time
@@ -434,16 +434,16 @@ function _storage_s3_cloudfront_caller_reference() {
 }
 
 
-function _storage_s3_cloudfront_distribution_create(&$container) {
+function _storage_cloudfront_distribution_create(&$container) {
 
   $xml = '<?xml version="1.0" encoding="UTF-8"?>';
   $xml .= '<DistributionConfig xmlns="http://cloudfront.amazonaws.com/doc/2009-12-01/">';
   $xml .= '<Origin>' . $container['settings']['bucket'] . '.s3.amazonaws.com</Origin>';
-  $xml .= '<CallerReference>' . _storage_s3_cloudfront_caller_reference() . '</CallerReference>';
+  $xml .= '<CallerReference>' . _storage_cloudfront_caller_reference() . '</CallerReference>';
   $xml .= '<Enabled>true</Enabled>';
   $xml .= '</DistributionConfig>';
 
-  $result = _storage_s3_cloudfront_request($container, 'POST', FALSE, $xml);
+  $result = _storage_cloudfront_request($container, 'POST', FALSE, $xml);
   
   if($result['http_code'] != 201) {
     $container['settings']['cloudfront'] = FALSE;
@@ -462,16 +462,16 @@ function _storage_s3_cloudfront_distribution_create(&$container) {
 }
 
 
-function _storage_s3_cloudfront_streaming_distribution_create(&$container) {
+function _storage_cloudfront_streaming_distribution_create(&$container) {
 
   $xml = '<?xml version="1.0" encoding="UTF-8"?>';
   $xml .= '<StreamingDistributionConfig xmlns="http://cloudfront.amazonaws.com/doc/2009-12-01/">';
   $xml .= '<Origin>' . $container['settings']['bucket'] . '.s3.amazonaws.com</Origin>';
-  $xml .= '<CallerReference>' . _storage_s3_cloudfront_caller_reference() . '</CallerReference>';
+  $xml .= '<CallerReference>' . _storage_cloudfront_caller_reference() . '</CallerReference>';
   $xml .= '<Enabled>true</Enabled>';
   $xml .= '</StreamingDistributionConfig>';
 
-  $result = _storage_s3_cloudfront_request($container, 'POST', TRUE, $xml);
+  $result = _storage_cloudfront_request($container, 'POST', TRUE, $xml);
   
   if($result['http_code'] != 201) {
     $container['settings']['cloudfront_streaming'] = FALSE;
@@ -493,7 +493,7 @@ function _storage_s3_cloudfront_streaming_distribution_create(&$container) {
 /**
  * Implement hook_storage_container_create() .
  */
-function storage_s3_storage_container_create($container) {
+function storage_s3_cloudfront_storage_container_create($container) {
 
   // check if bucket is already owned by this account
 
@@ -525,11 +525,11 @@ function storage_s3_storage_container_create($container) {
   }
   
   if($container['settings']['cloudfront']) {
-    _storage_s3_cloudfront_distribution_create($container);
+    _storage_cloudfront_distribution_create($container);
   }
     
   if($container['settings']['cloudfront_streaming']) {
-    _storage_s3_cloudfront_streaming_distribution_create($container);
+    _storage_cloudfront_streaming_distribution_create($container);
   }
     
   return $container;
@@ -539,7 +539,7 @@ function storage_s3_storage_container_create($container) {
 /**
  * Implement hook_storage_container_postcreate() .
  */
-function storage_s3_storage_container_postcreate($container) {
+function storage_s3_cloudfront_storage_container_postcreate($container) {
 
   if($container['settings']['cloudfront']) {
     
@@ -560,12 +560,12 @@ function storage_s3_storage_container_postcreate($container) {
 /**
  * Implement hook_storage_container_update() .
  */
-function storage_s3_storage_container_update($container) {
+function storage_s3_cloudfront_storage_container_update($container) {
 
   if($container['settings']['cloudfront'] && 
     !$container['settings']['cloudfront_id'])
   {
-    _storage_s3_cloudfront_distribution_create($container);
+    _storage_cloudfront_distribution_create($container);
     
     if($container['settings']['cloudfront']) {
 
@@ -578,7 +578,7 @@ function storage_s3_storage_container_update($container) {
   if($container['settings']['cloudfront_streaming'] && 
     !$container['settings']['cloudfront_streaming_id'])
   {
-    _storage_s3_cloudfront_streaming_distribution_create($container);
+    _storage_cloudfront_streaming_distribution_create($container);
     
     if($container['settings']['cloudfront_streaming']) {
 
@@ -595,16 +595,16 @@ function storage_s3_storage_container_update($container) {
 /**
  * Implement hook_storage_container_destroy() .
  */
-function storage_s3_storage_container_destroy($container) {
+function storage_s3_cloudfront_storage_container_destroy($container) {
 
-  if($container['settings']['cloudfront_id']) {
+  if(isset($container['settings']['cloudfront_id'])) {
 
     $delete = variable_get('storage_s3_cloudfront_delete', array());
     $delete[$container['container_id']] = $container;
     variable_set('storage_s3_cloudfront_delete', $delete);
   }
 
-  if($container['settings']['cloudfront_streaming_id']) {
+  if(isset($container['settings']['cloudfront_streaming_id'])) {
 
     $delete = variable_get('storage_s3_cloudfront_streaming_delete', array());
     $delete[$container['container_id']] = $container;
@@ -613,7 +613,7 @@ function storage_s3_storage_container_destroy($container) {
 }
 
 
-function _storage_s3_cloudfront_deploy() {
+function _storage_cloudfront_deploy() {
 
   $deploy = variable_get('storage_s3_cloudfront_deploy', array());
   
@@ -621,7 +621,7 @@ function _storage_s3_cloudfront_deploy() {
   
     $container = storage_api_container_load($container_id);
     
-    $result = _storage_s3_cloudfront_request($container, 'GET');
+    $result = _storage_cloudfront_request($container, 'GET');
     
     if(!$result['http_code'])
       continue;
@@ -651,7 +651,7 @@ function _storage_s3_cloudfront_deploy() {
 }
 
 
-function _storage_s3_cloudfront_streaming_deploy() {
+function _storage_cloudfront_streaming_deploy() {
 
   $deploy = variable_get('storage_s3_cloudfront_streaming_deploy', array());
   
@@ -659,7 +659,7 @@ function _storage_s3_cloudfront_streaming_deploy() {
   
     $container = storage_api_container_load($container_id);
     
-    $result = _storage_s3_cloudfront_request($container, 'GET', TRUE);
+    $result = _storage_cloudfront_request($container, 'GET', TRUE);
     
     if(!$result['http_code'])
       continue;
@@ -690,13 +690,13 @@ function _storage_s3_cloudfront_streaming_deploy() {
 }
 
 
-function _storage_s3_cloudfront_delete() {
+function _storage_cloudfront_delete() {
 
   $delete = variable_get('storage_s3_cloudfront_delete', array());
   
   foreach($delete as $container) {
   
-    $result = _storage_s3_cloudfront_request($container, 'GET');
+    $result = _storage_cloudfront_request($container, 'GET');
     
     if(!$result['http_code'])
       continue;
@@ -714,7 +714,7 @@ function _storage_s3_cloudfront_delete() {
         $xml .= '<Enabled>false</Enabled>';
         $xml .= '</DistributionConfig>';
       
-        $result = _storage_s3_cloudfront_request($container, 'PUT', FALSE, $xml);
+        $result = _storage_cloudfront_request($container, 'PUT', FALSE, $xml);
 
         if($result['http_code'] == 200) {
 
@@ -728,7 +728,7 @@ function _storage_s3_cloudfront_delete() {
         if($result['simplexml']->Status == 'InProgress')
           continue;
       
-        $result = _storage_s3_cloudfront_request($container, 'DELETE');
+        $result = _storage_cloudfront_request($container, 'DELETE');
 
         if($result['http_code'] == 204) {
 
@@ -744,13 +744,13 @@ function _storage_s3_cloudfront_delete() {
 }
 
 
-function _storage_s3_cloudfront_streaming_delete() {
+function _storage_cloudfront_streaming_delete() {
 
   $delete = variable_get('storage_s3_cloudfront_streaming_delete', array());
   
   foreach($delete as $container) {
   
-    $result = _storage_s3_cloudfront_request($container, 'GET', TRUE);
+    $result = _storage_cloudfront_request($container, 'GET', TRUE);
     
     if(!$result['http_code'])
       continue;
@@ -768,7 +768,7 @@ function _storage_s3_cloudfront_streaming_delete() {
         $xml .= '<Enabled>false</Enabled>';
         $xml .= '</StreamingDistributionConfig>';
       
-        $result = _storage_s3_cloudfront_request($container, 'PUT', TRUE, $xml);
+        $result = _storage_cloudfront_request($container, 'PUT', TRUE, $xml);
 
         if($result['http_code'] == 200) {
 
@@ -782,7 +782,7 @@ function _storage_s3_cloudfront_streaming_delete() {
         if($result['simplexml']->Status == 'InProgress')
           continue;
       
-        $result = _storage_s3_cloudfront_request($container, 'DELETE', TRUE);
+        $result = _storage_cloudfront_request($container, 'DELETE', TRUE);
 
         if($result['http_code'] == 204) {
 
@@ -801,19 +801,19 @@ function _storage_s3_cloudfront_streaming_delete() {
 /**
  * Implement hook_cron() .
  */
-function storage_s3_cron() {
+function storage_s3_cloudfront_cron() {
 
-  _storage_s3_cloudfront_deploy();
-  _storage_s3_cloudfront_streaming_deploy();
-  _storage_s3_cloudfront_delete();
-  _storage_s3_cloudfront_streaming_delete();
+  _storage_cloudfront_deploy();
+  _storage_cloudfront_streaming_deploy();
+  _storage_cloudfront_delete();
+  _storage_cloudfront_streaming_delete();
 }
 
 
 /**
  * Implement hook_storage_container_info() .
  */
-function storage_s3_storage_container_info($container) {
+function storage_s3_cloudfront_storage_container_info($container) {
 
   $locations = _storage_s3_locations();
 
@@ -873,7 +873,7 @@ function storage_s3_storage_container_info($container) {
 /**
  * Implement hook_storage_instance_create() .
  */
-function storage_s3_storage_instance_create($container, $file) {
+function storage_s3_cloudfront_storage_instance_create($container, $file) {
   
   $result = _storage_s3_request($container, 'PUT', $container['settings']['bucket'], 
     $file['file_id'], $file);
@@ -885,7 +885,7 @@ function storage_s3_storage_instance_create($container, $file) {
 /**
  * Implement hook_storage_instance_copy() .
  */
-function storage_s3_storage_instance_copy($container, $file, $source_container) {
+function storage_s3_cloudfront_storage_instance_copy($container, $file, $source_container) {
   
   $source['copy_source'] = '/' . $source_container['settings']['bucket'] . '/file-' . $file['file_id'];
   
@@ -905,7 +905,7 @@ function storage_s3_storage_instance_copy($container, $file, $source_container) 
 /**
  * Implement hook_storage_instance_destroy() .
  */
-function storage_s3_storage_instance_destroy($container, $file) {
+function storage_s3_cloudfront_storage_instance_destroy($container, $file) {
   
   $result = _storage_s3_request($container, 'DELETE', $container['settings']['bucket'], 
     $file['file_id']);
@@ -917,7 +917,7 @@ function storage_s3_storage_instance_destroy($container, $file) {
 /**
  * Implement hook_storage_instance_get_filepath() .
  */
-function storage_s3_storage_instance_get_filepath($container, $file) {
+function storage_s3_cloudfront_storage_instance_get_filepath($container, $file) {
   
   $result = _storage_s3_request($container, 'GET', $container['settings']['bucket'], 
     $file['file_id']);
@@ -929,17 +929,17 @@ function storage_s3_storage_instance_get_filepath($container, $file) {
 /**
  * Implement hook_storage_instance_serve() .
  */
-function storage_s3_storage_instance_serve($container, $file) {
+function storage_s3_cloudfront_storage_instance_serve($container, $file) {
 
-  return _storage_s3_url($container, $file['file_id']);
+  return _storage_s3_cloudfront_url($container, $file['file_id']);
 }
 
 
 /**
  * Implement hook_storage_instance_serve_rtmp() .
  */
-function storage_s3_storage_instance_serve_rtmp($container, $file) {
+function storage_s3_cloudfront_storage_instance_serve_rtmp($container, $file) {
 
-  return _storage_s3_rtmp($container, $file['file_id']);
+  return _storage_s3_cloudfront_rtmp($container, $file['file_id']);
 }
 
