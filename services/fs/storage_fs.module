@@ -72,7 +72,7 @@ function storage_fs_storage_container_validate($container, $edit) {
       form_set_error('settings][path', t('Directory already exists.'));
     }
   }
-    
+  
   if($container['capability']) {
   
     if(!$container['settings']['base_url']) {
@@ -90,28 +90,11 @@ function storage_fs_storage_container_create($container) {
   $storage_api_path = drupal_get_path('module', 'storage_api');
 
   if(!file_prepare_directory($container['settings']['path'], FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS)) {
-    form_set_error('settings');
-    return $container;
+    throw new Exception();
   }
 
 /*  
-  $path = $container['settings']['path'] . '/objects';
-  
-  if(!file_prepare_directory($path, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS)) {
-    form_set_error('settings');
-    return $container;
-  }
-
-  copy($storage_api_path . '/objects.htaccess', $path . '/.htaccess');
-
-  $path = $container['settings']['path'] . '/files';
-
-  if(!file_prepare_directory($path, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS)) {
-    form_set_error('settings');
-    return $container;
-  }
-
-  copy($storage_api_path . '/files.htaccess', $path . '/.htaccess');
+  copy($storage_api_path . '/files.htaccess', $container['settings']['path'] . '/.htaccess');
 */
 
   return $container;

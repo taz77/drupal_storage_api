@@ -207,8 +207,7 @@ function storage_rackspace_storage_container_create($container) {
   }  
   catch(Exception $e) {
     _storage_rackspace_log_exception($e);
-    form_set_error('settings');
-    return $container;
+    throw new Exception();
   }
   
   return $container;

@@ -230,8 +230,13 @@ function storage_create_container_form_validate($form, &$form_state) {
         $form_state['storage'], FALSE);
 
       if(!form_get_errors()) {
-        $form_state['storage'] = _storage_service_invoke($form_state['storage']['service_id'], 'container_create', 
-          $form_state['storage']);
+      
+        try {
+          storage_container_create($form_state['storage']);
+        }
+        catch (Exception $e) {
+          form_set_error('settings');
+        }
       }
       
       break;
@@ -252,21 +257,9 @@ function storage_create_container_form_submit($form, &$form_state) {
     return;
   }
   
-  $container = $form_state['storage'];
-
-  drupal_write_record('storage_container', $container);
-
-  _storage_service_invoke($container['service_id'], 'container_postcreate', $container);
-
-  $message = 'Storage container <i>' . $form_state['storage']['name'] . '</i> has been created.';
-  $path = 'admin/structure/storage/containers/' . $container['container_id'];
-
-  drupal_set_message($message);
-  watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));
-
-  unset($form_state['storage']);
   $form_state['rebuild'] = FALSE;
-  $form_state['redirect'] = $path;
+  $form_state['redirect'] = _storage_container_path($form_state['storage']);
+  unset($form_state['storage']);
 }
 
 

@@ -160,27 +160,6 @@ function storage_ftp_storage_container_create($container) {
     $success = ftp_chdir($ftp, $container['settings']['directory']);
 
   if($success)
-    $success = ftp_mkdir($ftp, 'objects');
-    
-  if($success)
-    $success = ftp_chdir($ftp, 'objects');
-
-  if($success)
-    $success = ftp_put($ftp, '.htaccess', $path . '/objects.htaccess', FTP_BINARY);
-
-  if($success && $container['settings']['permissions'])
-    $success = ftp_site($ftp, 'chmod ' . $container['settings']['permissions'] . ' .htaccess');
-  
-  if($success)
-    $success = ftp_cdup($ftp);
-
-  if($success)
-    $success = ftp_mkdir($ftp, 'files');
-  
-  if($success)
-    $success = ftp_chdir($ftp, 'files');
-
-  if($success)
     $success = ftp_put($ftp, '.htaccess', $path . '/files.htaccess', FTP_BINARY);
 
   if($success && $container['settings']['permissions'])
@@ -189,7 +168,7 @@ function storage_ftp_storage_container_create($container) {
   @ftp_close($ftp);
 
   if(!$success) {
-    form_set_error('settings');
+    throw new Exception();
   }
   
   return $container;
@@ -255,73 +234,6 @@ function storage_ftp_storage_object_instance_create($container, $file) {
 
 
 /**
- * Implement hook_storage_object_instance_destroy() .
- */
-function storage_ftp_storage_object_instance_destroy($container, $file) {
-
-  $ftp = _storage_ftp_login($container);
-  
-  if(!$ftp)
-    return FALSE;
-    
-  $result = @ftp_delete($ftp, $container['settings']['directory'] . '/objects/' . $container['reference']);
-  
-  @ftp_close($ftp);
-  
-  return $result;
-}
-
-
-/**
- * Implement hook_storage_object_instance_get_filepath() .
- */
-function storage_ftp_storage_object_instance_get_filepath($container, $file) {
-
-  $ftp = _storage_ftp_login($container);
-  
-  if(!$ftp)
-    return FALSE;
-  
-  $filepath = tempnam(file_directory_temp(), '');
-  $result = @ftp_get($ftp, $filepath, $container['settings']['directory'] . '/objects/' . $container['reference'], FTP_BINARY);
-  
-  @ftp_close($ftp);
-  
-  if($result)
-    return $filepath;
-
-  @unlink($filepath);
-  return FALSE;
-}
-
-
-/**
- * Implement hook_storage_object_instance_serve() .
- */
-function storage_ftp_storage_object_instance_serve($container, $file) {
-
-  return $container['settings']['base_url'] . '/objects/' . $container['reference'];
-}
-
-
-/**
- * Implement hook_storage_object_instance_serve_rmtp() .
- */
-function storage_ftp_storage_object_instance_serve_rtmp($container, $file) {
-
-  if($container['settings']['base_url_rtmp']) {
-  
-    return array(
-      'streamer' => $container['settings']['base_url_rtmp'] . '/objects',
-      'file' => $container['reference'],
-    );
-  }
-
-  return FALSE;
-}
-
-
-/**
  * Implement hook_storage_instance_create() .
  */
 function storage_ftp_storage_instance_create($container, $file) {
@@ -340,7 +252,7 @@ function storage_ftp_storage_instance_create($container, $file) {
   
   $filename = storage_api_unique_filename($container, $file['filename']);
   
-  $success = @ftp_chdir($ftp, $container['settings']['directory'] . '/files');
+  $success = @ftp_chdir($ftp, $container['settings']['directory']);
   
   if($success)
     $success = @ftp_put($ftp, $filename, $file['filepath'], FTP_BINARY);
@@ -365,7 +277,7 @@ function storage_ftp_storage_instance_destroy($container, $file) {
   if(!$ftp)
     return FALSE;
     
-  $result = @ftp_delete($ftp, $container['settings']['directory'] . '/files/' . $container['reference']);
+  $result = @ftp_delete($ftp, $container['settings']['directory'] . $container['reference']);
   
   @ftp_close($ftp);
   
@@ -384,7 +296,7 @@ function storage_ftp_storage_instance_get_filepath($container, $file) {
     return FALSE;
   
   $filepath = tempnam(file_directory_temp(), '');
-  $result = @ftp_get($ftp, $filepath, $container['settings']['directory'] . '/files/' . $container['reference'], FTP_BINARY);
+  $result = @ftp_get($ftp, $filepath, $container['settings']['directory'] . $container['reference'], FTP_BINARY);
   
   @ftp_close($ftp);
   
@@ -401,7 +313,7 @@ function storage_ftp_storage_instance_get_filepath($container, $file) {
  */
 function storage_ftp_storage_instance_serve($container, $file) {
 
-  return $container['settings']['base_url'] . '/files/' . $container['reference'];
+  return $container['settings']['base_url'] . $container['reference'];
 }
 
 
@@ -413,7 +325,7 @@ function storage_ftp_storage_instance_serve_rtmp($container, $file) {
   if($container['settings']['base_url_rtmp']) {
   
     return array(
-      'streamer' => $container['settings']['base_url_rtmp'] . '/files',
+      'streamer' => $container['settings']['base_url_rtmp'],
       'file' => $container['reference'],
     );
   }

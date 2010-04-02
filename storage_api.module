@@ -1701,9 +1701,21 @@ function _storage_get_service_name($service_id, $link = FALSE) {
 }
 
 
+function _storage_container_name($container) {
+
+  return check_plain($container['name']);
+}
+
+
+function _storage_container_path($container) {
+
+  return 'admin/structure/storage/containers/' . $container['container_id'];
+}
+
+
 function _storage_container_link($container) {
 
-  return l($container['name'], 'admin/structure/storage/containers/' . $container['container_id']);
+  return l($container['name'], _storage_container_path($container));
 }
 
 
@@ -1731,14 +1743,40 @@ function _storage_class_link($class) {
  * @param $class
  *   Class to be created.
  */
+function storage_container_create(&$container) {
+
+  try {
+    $container = _storage_service_invoke($container['service_id'], 'container_create', $container);
+  }
+  catch (Exception $e) {
+    $msg = 'Failed to create storage container !container.';
+    drupal_set_message(t($msg, array('!container' => _storage_container_name($container))), 'error');
+    watchdog('storage_api', $msg, array('!container' => _storage_container_name($container)), WATCHDOG_ERROR);
+    throw new Exception();
+  }
+  
+  drupal_write_record('storage_container', $container);
+  _storage_service_invoke($container['service_id'], 'container_postcreate', $container);
+
+  $msg = 'Storage container !container has been created.';
+  drupal_set_message(t($msg, array('!container' => _storage_container_link($container))));
+  watchdog('storage_api', $msg, array('!container' => _storage_container_name($container)), WATCHDOG_NOTICE, 
+    l(t('view'), _storage_container_path($container)));
+}
+
+
+/**
+ * Create a storage class.
+ *
+ * @param $class
+ *   Class to be created.
+ */
 function storage_class_create(&$class) {
 
   drupal_write_record('storage_class', $class);
   
   $msg = 'Storage class !class has been created.';
-  
   drupal_set_message(t($msg, array('!class' => _storage_class_link($class))));
-  
   watchdog('storage_api', $msg, array('!class' => _storage_class_name($class)), WATCHDOG_NOTICE, 
     l(t('view'), _storage_class_path($class)));
 }
@@ -1761,6 +1799,11 @@ function storage_class_add_container($class, $container) {
     ))
     ->execute();  
   
+  if (empty($class['options']['initial_container_id'])) {
+    $class['options']['initial_container_id'] = $container['container_id'];
+    drupal_write_record('storage_class', $class, 'class_id');
+  }
+
   $selector_subquery = db_select('storage_selector')
     ->fields('storage_selector', array('selector_id'))
     ->condition('class_id', $class['class_id']);
@@ -1770,14 +1813,15 @@ function storage_class_add_container($class, $container) {
     ->expression('serving_container', 'NULL')
     ->condition('selector_id', $selector_subquery, 'IN')
     ->execute();
-
-  $message = 'Storage container <i>' . $container['name'] . 
-    '</i> has been added to class <i>' . $class['name'] .'</i>.';
-
-  $path = 'admin/structure/storage/classes/' . $class['class_id'];  
   
-  drupal_set_message($message);
-  watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));
+  $msg = 'Storage container !container has been added to class !class.';
+  $args = array(
+    '!container' => _storage_container_link($container), 
+    '!class' => _storage_class_link($class),
+  );
+  
+  drupal_set_message(t($msg, $args));
+  watchdog('storage_api', $msg, $args, WATCHDOG_NOTICE, l(t('view'), _storage_class_path($class)));
 }
 
 

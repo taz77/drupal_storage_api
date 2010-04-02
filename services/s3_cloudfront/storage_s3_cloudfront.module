@@ -508,15 +508,14 @@ function storage_s3_cloudfront_storage_container_create($container) {
       form_set_error('settings][bucket', t('Bucket %name is already owned by this account, but is not empty.', 
         array('%name' => $container['settings']['bucket'])));
         
-      return $container;
+      throw new Exception();
     }
   }
   else {
     $result = _storage_s3_request($container, 'PUT', $container['settings']['bucket']);
 
     if($result['http_code'] != 200) {
-      form_set_error('settings');
-      return $container;
+      throw new Exception();
     }
 
     $message = 'Acquired S3 bucket <i>' . $container['settings']['bucket'] . '</i>.';
