@@ -8,8 +8,18 @@
  * Implement hook_stream_wrappers() .
  */
 function storage_core_bridge_stream_wrappers() {
-  $wrappers = array();
 
+  $selectors = db_select('storage_selector', NULL, array('fetch' => PDO::FETCH_ASSOC))
+    ->fields('storage_selector', array('selector_id'))
+    ->condition('migrating', 0)
+    ->execute();
+  
+  $selector_ids = array();
+  foreach ($selectors as $selector) {
+    $selector_ids[] = $selector['selector_id'];
+  }
+  
+  
   $items = explode('/', $_GET['q']);
   
   if (strpos($_GET['q'], 'admin/structure/types/manage/') === 0 &&
@@ -19,12 +29,12 @@ function storage_core_bridge_stream_wrappers() {
     $field = $items[6];
     $field_selectors = variable_get('storage_field_selectors', array());
     
-    if (!isset($field_selectors[$field])) {
+    if (!isset($field_selectors[$field]) || !in_array($field_selectors[$field], $selector_ids)) {
     
-      $field_selectors[$field] = storage_new_selector_id();
+      $selector_ids[] = $field_selectors[$field] = storage_new_selector_id();
       variable_set('storage_field_selectors', $field_selectors);
     }
-  
+    
     $field_selector_id = $field_selectors[$field];
   }
   else {
@@ -32,16 +42,12 @@ function storage_core_bridge_stream_wrappers() {
   }
   
   
-  $result = db_select('storage_selector', NULL, array('fetch' => PDO::FETCH_ASSOC))
-    ->fields('storage_selector', array('selector_id'))
-    ->condition('migrating', 0)
-    ->execute();
-  
-  foreach ($result as $selector) {
-  
-    $type = ($field_selector_id == $selector['selector_id']) ? STREAM_WRAPPERS_NORMAL : STREAM_WRAPPERS_HIDDEN;
-    
-    $wrappers['storage-' . $selector['selector_id']] = array(
+  $wrappers = array();  
+  foreach ($selector_ids as $selector_id) {
+
+    $type = ($field_selector_id == $selector_id) ? STREAM_WRAPPERS_NORMAL : STREAM_WRAPPERS_HIDDEN;
+
+    $wrappers['storage-' . $selector_id] = array(
       'name' => t('Storage class (select below)'),
       'class' => 'DrupalStorageStreamWrapper',
       'description' => t('Files managed by Storage API.'),

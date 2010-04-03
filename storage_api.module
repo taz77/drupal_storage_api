@@ -1796,6 +1796,7 @@ function storage_class_add_container($class, $container) {
     ->fields(array(
       'class_id' => $class['class_id'],
       'container_id' => $container['container_id'],
+      'serving' => TRUE,
     ))
     ->execute();  
   
