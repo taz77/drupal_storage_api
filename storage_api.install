@@ -45,7 +45,7 @@ function storage_api_schema() {
       'container_id' => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
       'name' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
       'service_id' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
-      'settings' => array('type' => 'varchar', 'length' => 16383, 'not null' => TRUE, 'serialize' => TRUE),
+      'settings' => array('type' => 'blob', 'not null' => TRUE, 'serialize' => TRUE),
       'capability' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE),
       'suspended' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0)
     ),
@@ -56,7 +56,7 @@ function storage_api_schema() {
     'fields' => array(
       'class_id' => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
       'name' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
-      'options' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'serialize' => TRUE),
+      'options' => array('type' => 'blob', 'not null' => TRUE, 'serialize' => TRUE),
     ),
     'primary key' => array('class_id')
   );
@@ -105,7 +105,7 @@ function storage_api_schema() {
       'type' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'default' => ''),
       'nid' => array('type' => 'int', 'unsigned' => TRUE),
       'check_me' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE),
-      'data' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'serialize' => TRUE, 'default' => ''),
+      'data' => array('type' => 'blob', 'not null' => TRUE, 'serialize' => TRUE),
       'serving_container' => array('type' => 'varchar', 'length' => '16383', 'not null' => FALSE),
       'servings' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
       'last_touched' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),

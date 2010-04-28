@@ -1,4 +1,25 @@
 <?php
 // $Id$
 
+class StorageAPITestCase extends DrupalWebTestCase {
+  public static function getInfo() {
+    return array(
+      'name' => 'Storage API',
+      'description' => 'Test Storage API.',
+      'group' => 'Storage',
+    );
+  }
+
+  function setUp() {
+    parent::setUp('storage_api');
+
+    $web_user = $this->drupalCreateUser(array('administer storage'));
+    $this->drupalLogin($web_user);
+  }
+
+  function testEverthingClassExists() {
+    $this->drupalGet('admin/structure/storage/classes/1');
+    $this->assertResponse(200, t('Everything class is created.'));
+  }
+}
 

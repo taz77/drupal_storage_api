@@ -6,6 +6,7 @@ dependencies[] = mimedetect
 core = 7.x
 files[] = storage_api.install
 files[] = storage_api.module
+files[] = storage_api.test
 files[] = instance_operations.inc
 files[] = mime_extension.inc
 files[] = services.admin.inc
