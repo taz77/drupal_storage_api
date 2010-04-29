@@ -406,47 +406,6 @@ function storage_class_load($class_id) {
 }
 
 
-function _storage_update_services() {
-
-  $modules = module_implements('storage_service_info');
-
-  $code_service_ids = array();
-
-  foreach($modules as $module)
-    $code_service_ids[] = substr($module, 8);
-
-
-  $result = db_select('storage_service', NULL, array('fetch' => PDO::FETCH_ASSOC))
-    ->fields('storage_service', array('service_id'))
-    ->execute();
-
-  $db_service_ids = array();
-
-  foreach($result as $service) {
-
-    if(!in_array($service['service_id'], $code_service_ids)) {
-
-      db_delete('storage_service')
-        ->condition('service_id', $service['service_id'])
-        ->execute();
-    }
-    else {
-      $db_service_ids[] = $service['service_id'];
-    }
-  }
-  
-  
-  foreach($code_service_ids as $service_id) {
-  
-    if(!in_array($service_id, $db_service_ids)) {
-    
-      $service = array('service_id' => $service_id);
-      drupal_write_record('storage_service', $service);
-    }
-  }
-}  
-
-
 function _storage_service_invoke() {
   $args = func_get_args();
   
@@ -577,15 +536,12 @@ function _storage_service_unavailable() {
 
 function _storage_initial_container_instance($storage) {
 
-  $container = _storage_get_initial_container($storage['selector_id']);
-
+  $container = storage_container_load($storage['data']['initial_container_id']);
 
   $query = db_select('storage_instance');
-  
   $query->condition('storage_instance.file_id', $storage['file_id'])
     ->condition('storage_instance.container_id', $container['container_id'])
     ->fields('storage_instance', array('reference'));
-    
 
   $instance = $query
     ->range(0, 1)
@@ -595,9 +551,7 @@ function _storage_initial_container_instance($storage) {
   if(!$instance)
     return FALSE;
 
-  $container += $instance;
-
-  return $container;
+  return $container + $instance;
 }
 
 
@@ -652,7 +606,7 @@ function _storage_serving_container($storage) {
   
   
   // we couldn't serve the file from any of the containers it is supposed to be in
-  // lets see if the file is in the class's initial container
+  // lets see if the file is in the storage's initial container
 
   return _storage_initial_container_instance($storage);
 }
@@ -699,7 +653,7 @@ function _storage_container_flush_serving_container($container_id) {
 
 function _storage_generate(&$storage) {
 
-  $container = _storage_get_initial_container($storage['selector_id']);
+  $container = _storage_get_selector_initial_container($storage['selector_id']);
   
   if(!$container)
     return FALSE;
@@ -724,6 +678,9 @@ function _storage_generate(&$storage) {
     return FALSE;
   }
   
+  $storage['data']['initial_container_id'] = $container['container_id'];
+  drupal_write_record('storage', $storage, 'storage_id');
+
   $message = 'Generated file' . ($storage['filename'] ? (' ' . $storage['filename']) : '');
   $message .= '<br />' . _storage_log_info($storage);
   watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, $link);
@@ -755,9 +712,9 @@ function storage_serve($storage) {
   if($container) {
     _storage_log_serving($storage, $container['container_id']);
     
-      // this may not definitely return
-      $url = _storage_service_invoke($container['service_id'], 'file_serve',
-        $container, $storage);
+    // this may not return
+    $url = _storage_service_invoke($container['service_id'], 'file_serve',
+      $container, $storage);
   }
   else if($storage['options']['serve_source_url'] && $storage['source_url']) {
 
@@ -1042,7 +999,7 @@ function storage_selector_delete($selector_id) {
 }
 
 
-function _storage_get_initial_container($selector_id) {
+function _storage_get_selector_initial_container($selector_id) {
 
   $class_id = db_select('storage_selector')
     ->fields('storage_selector', array('class_id'))
@@ -1159,11 +1116,11 @@ function storage_unique_filename($container, $filename) {
 }
 
 
-function _storage_instance_exists($storage_id, $container_id) {
+function _storage_instance_exists($file_id, $container_id) {
 
   return db_select('storage_instance')
     ->fields('storage_instance', array('reference'))
-    ->condition('file_id', $storage_id)
+    ->condition('file_id', $file_id)
     ->condition('container_id', $container_id)
     ->execute()
     ->fetchAssoc();
@@ -1251,14 +1208,15 @@ function storage_add($selector_id, $options = array()) {
   }
 
   if(isset($options['filepath'])) {
-    $container = _storage_get_initial_container($selector_id);
+    $container = _storage_get_selector_initial_container($selector_id);
     
     if(!$container)
       return FALSE;
-
+      
+    $options['data']['initial_container_id'] = $container['container_id'];
     $options['file_id'] = _storage_file_id($options['filepath'], $options['filename'], $new_file);
   }
-
+  
   $options['check_me'] = TRUE;
   drupal_write_record('storage', $options);
   $storage = storage_load($options['storage_id']);
@@ -1955,30 +1913,67 @@ function theme_storage_info_table($info) {
 }
 
 
-/**
- * Implement hook_form_alter() .
- */
-function storage_api_form_alter(&$form, $form_state, $form_id) {
+function _storage_update_services() {
 
-  switch($form_id) {
-  
-    case 'system_modules':
+  $modules = module_implements('storage_service_info');
 
-      $form['#submit'][] = '_storage_update_services';
-      break;
+  $code_service_ids = array();
+
+  foreach($modules as $module)
+    $code_service_ids[] = substr($module, 8);
+
+
+  $result = db_select('storage_service', NULL, array('fetch' => PDO::FETCH_ASSOC))
+    ->fields('storage_service', array('service_id'))
+    ->execute();
+
+  $db_service_ids = array();
+
+  foreach($result as $service) {
+
+    if(!in_array($service['service_id'], $code_service_ids)) {
+
+      db_delete('storage_service')
+        ->condition('service_id', $service['service_id'])
+        ->execute();
+    }
+    else {
+      $db_service_ids[] = $service['service_id'];
+    }
   }
-}
+  
+  
+  foreach($code_service_ids as $service_id) {
+  
+    if(!in_array($service_id, $db_service_ids)) {
+    
+      db_insert('storage_service')
+        ->fields(array(
+          'service_id' => $service_id,
+        ))
+        ->execute();  
+    }
+  }
+}  
 
 
 /**
- * Implement hook_enable() .
+ * Implement hook_modules_enabled() .
  */
-function storage_api_enable() {
-
-  // in case the service modules are enabled simultaneously as the form_alter above wont have taken affect
+function storage_api_modules_enabled($modules) {
 
   _storage_update_services();
 }
+
+
+/**
+ * Implement hook_modules_disabled() .
+ */
+function storage_api_modules_disabled($modules) {
+
+  _storage_update_services();
+}
+
 
 /**
  * Implement hook_cron() .

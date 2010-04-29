@@ -8,29 +8,14 @@ function storage_fs_install() {
 
   // Try to setup a container.
 
-  $path = file_create_filename('storage', file_directory_path());
+  $container = storage_fs_default_container_create();
 
-  $container = array(
-    'name' => t('Local'),
-    'service_id' => 'fs',
-    'capability' => STORAGE_API_SERVING,
-    'settings' => array(
-      'path' => $path,
-      'base_url' => $path,
-    ),
-  );
-
-  try {
-    storage_container_create($container);
-  }
-  catch (Exception $e) {
-    return;
-  }
-
-  $class = storage_class_load(variable_get('storage_api_initial_class'));
-  
-  if($class) {
-    storage_class_add_container($class, $container);
+  if($container) {
+    $class = storage_class_load(variable_get('storage_api_initial_class'));
+    
+    if($class) {
+      storage_class_add_container($class, $container);
+    }
   }
 }
 

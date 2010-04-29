@@ -101,6 +101,31 @@ function storage_fs_storage_container_create($container) {
 }
 
 
+function storage_fs_default_container_create() {
+
+  $path = file_create_filename('storage', file_directory_path());
+
+  $container = array(
+    'name' => t('Local'),
+    'service_id' => 'fs',
+    'capability' => STORAGE_API_SERVING,
+    'settings' => array(
+      'path' => $path,
+      'base_url' => $path,
+    ),
+  );
+
+  try {
+    storage_container_create($container);
+  }
+  catch (Exception $e) {
+    return FALSE;
+  }
+  
+  return $container;
+}
+
+
 /**
  * Implement hook_storage_container_info() .
  */
