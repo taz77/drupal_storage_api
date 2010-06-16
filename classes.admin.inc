@@ -69,7 +69,7 @@ function _storage_class_form_elements($class = NULL) {
     '#title' => t('Name'),
     '#type' => 'textfield',
     '#required' => TRUE,
-    '#default_value' => $class['name']
+    '#default_value' => $class->name,
   );
   
   $form['options'] = array(
@@ -77,17 +77,17 @@ function _storage_class_form_elements($class = NULL) {
     'access_control' => array(
       '#title' => t('Enforce access control'),
       '#type' => 'checkbox',
-      '#default_value' => isset($class['options']['access_control']) ? $class['options']['access_control'] : FALSE,
+      '#default_value' => isset($class->options['access_control']) ? $class->options['access_control'] : FALSE,
     ),
     'redirect' => array(
       '#title' => t('Serve by redirection'),
       '#type' => 'checkbox',
-      '#default_value' => isset($class['options']['redirect']) ? $class['options']['redirect'] : FALSE,
+      '#default_value' => isset($class->options['redirect']) ? $class->options['redirect'] : FALSE,
     ),
     'serve_source_url' => array(
       '#title' => t('Serve source url'),
       '#type' => 'checkbox',
-      '#default_value' => isset($class['options']['serve_source_url']) ? $class['options']['serve_source_url'] : FALSE,
+      '#default_value' => isset($class->options['serve_source_url']) ? $class->options['serve_source_url'] : FALSE,
       '#description' => t('If no instances are available, serve the source url.')
     )
   );
@@ -144,33 +144,26 @@ function storage_create_class_form($form, &$form_state) {
 function storage_create_class_form_submit($form, &$form_state) {
 
   $update['options']['initial_container_id'] = $form_state['values']['initial_container_id'];
-
-  $class = array(
-    'name' => $form_state['values']['name'],
-    'options' => $form_state['values']['options'],
-  );
-  
-  storage_class_create($class);
-
-  $form_state['redirect'] = _storage_class_path($class) . '/add';
+  $class = storage_class_create($form_state['values']['name'], $form_state['values']['options']);
+  $form_state['redirect'] = $class->path() . '/add';
 }
 
 
 function storage_class($class) {
 
-  drupal_set_title(t('Storage class: ') . $class['name'], PASS_THROUGH);
+  drupal_set_title(t('Storage class: ') . $class->name(), PASS_THROUGH);
   
   $class_info = _storage_classes_query()
-    ->havingCondition('storage_class.class_id', $class['class_id'])
+    ->havingCondition('storage_class.class_id', $class->class_id)
     ->execute()
     ->fetchAssoc();
 
   $info[t('Files')] = $class_info['files'];
   $info[t('Size')] = storage_format_size($class_info['size']);
-  $info[t('Access control')] = (isset($class['options']['access_control']) && $class['options']['access_control']) ? t('Yes') : t('No');
-  $info[t('Redirection')] = (isset($class['options']['redirect']) && $class['options']['redirect']) ? t('Yes') : t('No');
-  $info[t('Serve source')] = (isset($class['options']['serve_source_url']) && $class['options']['serve_source_url']) ? t('Yes') : t('No');
-  $info[t('Initial container')] = isset($class['initial_container']) ? _storage_container_link($class['initial_container']) : t('n/a');
+  $info[t('Access control')] = (isset($class->options['access_control']) && $class->options['access_control']) ? t('Yes') : t('No');
+  $info[t('Redirection')] = (isset($class->options['redirect']) && $class->options['redirect']) ? t('Yes') : t('No');
+  $info[t('Serve source')] = (isset($class->options['serve_source_url']) && $class->options['serve_source_url']) ? t('Yes') : t('No');
+  $info[t('Initial container')] = isset($class->initial_container) ? $class->initial_container->link() : t('n/a');
 
   $output = theme_storage_info_table($info);
 
@@ -183,7 +176,7 @@ function storage_class($class) {
   $subquery->addExpression('COUNT(storage.storage_id)', 'count');
   $subquery->addExpression('SUM(storage_file.size)', 'size');
     
-  $subquery->condition('storage_selector.class_id', $class['class_id'])
+  $subquery->condition('storage_selector.class_id', $class->class_id)
     ->groupBy('storage_instance.container_id');
     
     
@@ -197,20 +190,22 @@ function storage_class($class) {
   $query->addField('files', 'count', 'count');
   $query->addField('files', 'size', 'size');
 
-  $result = $query->condition('storage_class_container.class_id', $class['class_id'])
+  $result = $query->condition('storage_class_container.class_id', $class->class_id)
     ->orderBy('storage_class_container.weight')
     ->orderBy('storage_container.container_id')
     ->execute();
 
-  foreach($result as $container) {
+  foreach($result as $container_info) {
     unset($row);
     
-    $row[] = _storage_container_link($container);
-    $row[] = l(_storage_get_service_name($container['service_id']), 
-        'admin/structure/storage/services/' . $container['service_id']);
-    $row[] = $container['serving'] ? t('Yes') : t('No');
-    $row[] = (int)$container['count'];
-    $row[] = storage_format_size($container['size']);
+    $container = storage_container_load($container_info['container_id']);
+    
+    $row[] = $container->link();
+    $row[] = l(_storage_get_service_name($container->service_id), 
+        'admin/structure/storage/services/' . $container->service_id);
+    $row[] = $container->capability ? t('Yes') : t('No');
+    $row[] = (int)$container_info['count'];
+    $row[] = storage_format_size($container_info['size']);
     
     $rows[] = $row;
   }
@@ -239,7 +234,7 @@ function storage_class($class) {
  */
 function storage_class_edit_form($form, &$form_state, $class) {
 
-  drupal_set_title(t('Storage class: ') . $class['name'], PASS_THROUGH);
+  drupal_set_title(t('Storage class: ') . $class->name(), PASS_THROUGH);
 
   $form = _storage_class_form_elements($class);
   $form['#class'] = $class;
@@ -249,7 +244,7 @@ function storage_class_edit_form($form, &$form_state, $class) {
 
   $result = $query->fields('storage_container', array('container_id', 'name', 'service_id'))
     ->fields('storage_class_container', array('weight', 'serving'))
-    ->condition('storage_class_container.class_id', $class['class_id'])
+    ->condition('storage_class_container.class_id', $class->class_id)
     ->orderBy('storage_class_container.weight')
     ->orderBy('storage_container.container_id')
     ->execute();
@@ -259,37 +254,39 @@ function storage_class_edit_form($form, &$form_state, $class) {
   $form['#container_ids'] = array();
   $form['#tree'] = TRUE;
   
-  foreach($result as $container) {
+  foreach($result as $container_info) {
   
-    $form['#container_ids'][] = $container['container_id'];
+    $container = storage_container_load($container_info['container_id']);
+  
+    $form['#container_ids'][] = $container->container_id;
 
-    $form['names'][$container['container_id']] = array(
-      '#markup' => _storage_container_link($container)
+    $form['names'][$container->container_id] = array(
+      '#markup' => $container->link(),
     );
     
-    $form['weights'][$container['container_id']] = array(
+    $form['weights'][$container->container_id] = array(
       '#type' => 'weight', 
-      '#default_value' => $container['weight'],
-      '#attributes' => array('class' => array('my-elements-weight'))
+      '#default_value' => $container_info['weight'],
+      '#attributes' => array('class' => array('my-elements-weight')),
     );
 
-    $form['services'][$container['container_id']] = array(
-      '#markup' => l(_storage_get_service_name($container['service_id']), 
-        'admin/structure/storage/services/' . $container['service_id'])
+    $form['services'][$container->container_id] = array(
+      '#markup' => l(_storage_get_service_name($container->service_id), 
+        'admin/structure/storage/services/' . $container->service_id)
     );
     
-    $form['servings'][$container['container_id']] = array(
+    $form['servings'][$container->container_id] = array(
       '#type' => 'select',
       '#options' => array(
         0 => t('No'),
         1 => t('Yes'),
       ),
-      '#default_value' => $container['serving'] ? 1 : 0
+      '#default_value' => $container->capability ? 1 : 0
     );
 
-    $form['deletes'][$container['container_id']] = array(
+    $form['deletes'][$container->container_id] = array(
       '#markup' => 
-        l($trash, 'admin/structure/storage/classes/' . $class['class_id'] . '/remove/' . $container['container_id'], 
+        l($trash, $class->path() . '/remove/' . $container->container_id, 
           array('html' => TRUE))
     );
   }
@@ -316,7 +313,7 @@ function storage_class_edit_form($form, &$form_state, $class) {
     '#type' => 'select',
     '#title' => t('Initial container'),
     '#options' => $containers,
-    '#default_value' => isset($class['options']['initial_container_id']) ? $class['options']['initial_container_id'] : FALSE,
+    '#default_value' => isset($class->options['initial_container_id']) ? $class->options['initial_container_id'] : FALSE,
     '#description' => t('Files added to the class will initially only have an instance in this container.<br />If the initial container is not in the class, then files\' instances in it will be destroyed once they have been fully propagated.<br />When it is not possible to serve from a container in the class, this container will be used (while instances still exist).<br />Typically this is used to quickly store files locally on the server, providing a faster experience for the user. This is especially important for images rendered in-request.'),
   );
 
@@ -392,21 +389,16 @@ function theme_storage_class_edit_form($elements) {
  */
 function storage_class_edit_form_submit($form, &$form_state) {
   $class = $form['#class'];
-  
-  $update = array(
-    'class_id' => $class['class_id'],
-    'name' => $form_state['values']['name'],
-    'options' => $form_state['values']['options'],
-  );
-  
-  $update['options']['initial_container_id'] = $form_state['values']['initial_container_id'];
 
-  drupal_write_record('storage_class', $update, 'class_id');
-  
+  $class->name = $form_state['values']['name'];
+  $class->options = $form_state['values']['options'];
+  $class->options['initial_container_id'] = $form_state['values']['initial_container_id'];
+  $class->update();
+
   foreach($form['#container_ids'] as $container_id) {
 
     $update = array(
-      'class_id' => $class['class_id'],
+      'class_id' => $class->class_id,
       'container_id' => $container_id,
       'weight' => $form_state['values']['weights'][$container_id],
       'serving' => $form_state['values']['servings'][$container_id],
@@ -417,7 +409,7 @@ function storage_class_edit_form_submit($form, &$form_state) {
   
   $selector_subquery = db_select('storage_selector')
     ->fields('storage_selector', array('selector_id'))
-    ->condition('class_id', $class['class_id']);
+    ->condition('class_id', $class->class_id);
 
   db_update('storage')
     ->expression('serving_container', 'NULL')
@@ -426,13 +418,12 @@ function storage_class_edit_form_submit($form, &$form_state) {
   
   cache_clear_all();
   
-  $message = 'Storage class <i>' . $class['name'] . '</i> has been updated.';
-  $path = 'admin/structure/storage/classes/' . $class['class_id'];
+  $message = 'Storage class <i>' . $class->name() . '</i> has been updated.';
 
   drupal_set_message($message);
-  watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));
+  watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $class->path()));
 
-  $form_state['redirect'] = $path;
+  $form_state['redirect'] = $class->path();
 }
 
 
@@ -444,7 +435,7 @@ function storage_class_edit_form_submit($form, &$form_state) {
 function storage_class_edit_form_destroy($form, &$form_state) {
   $class = $form['#class'];
 
-  $form_state['redirect'] = 'admin/structure/storage/classes/' . $class['class_id'] . '/destroy';
+  $form_state['redirect'] = $class->path() . '/destroy';
 }
 
 
@@ -458,7 +449,7 @@ function storage_class_destroy_form($form, &$form_state, $class) {
   $form['#class'] = $class;
 
   return confirm_form($form, 'Are you sure you want to destroy storage class <i>' . 
-    $class['name'] . '</i> ?', 'admin/structure/storage/classes/' . $class['class_id'], t(''));
+    $class->name . '</i> ?', $class->path(), t(''));
 }
 
 
@@ -469,16 +460,7 @@ function storage_class_destroy_form($form, &$form_state, $class) {
  */
 function storage_class_destroy_form_submit($form, &$form_state) {
   $class = $form['#class'];
-  
-  db_delete('storage_class')
-    ->condition('class_id', $class['class_id'])
-    ->execute();
-
-  $message = 'Storage class <i>' . $class['name'] . '</i> has been destroyed.';
-
-  drupal_set_message($message);
-  watchdog('storage_api', $message, NULL);
-
+  $class->destroy();
   $form_state['redirect'] = 'admin/structure/storage/classes';
 }
 
@@ -493,11 +475,11 @@ function storage_class_add_container_form($form, &$form_state, $class) {
   $form['#class'] = $class;
   
 
-  drupal_set_title(t('Storage class: ') . $class['name'], PASS_THROUGH);
+  drupal_set_title(t('Storage class: ') . $class->name(), PASS_THROUGH);
 
   $selector_subquery = db_select('storage_class_container')
     ->fields('storage_class_container', array('container_id'))
-    ->condition('class_id', $class['class_id']);
+    ->condition('class_id', $class->class_id);
 
   $result = db_select('storage_container', NULL, array('fetch' => PDO::FETCH_ASSOC))
     ->fields('storage_container')
@@ -546,9 +528,8 @@ function storage_class_add_container_form_submit($form, &$form_state) {
   $class = $form['#class'];
   $container = storage_container_load($form_state['values']['container_id']);
   
-  storage_class_add_container($class, $container);
-  
-  $form_state['redirect'] = 'admin/structure/storage/classes/' . $class['class_id'] . '/edit';
+  $class->addContainer($container);
+  $form_state['redirect'] = $class->path();
 }
 
 
@@ -562,9 +543,8 @@ function storage_class_remove_container_form($form, $form_state, $class, $contai
   $form['#class'] = $class;
   $form['#container'] = $container;
 
-  return confirm_form($form, 'Are you sure you want to remove storage container <i>' . $container['name'] . 
-    '</i> from class <i>' . $class['name'] . '</i>?', 
-    'admin/structure/storage/classes/' . $class['class_id'] . '/edit', t(''));
+  return confirm_form($form, 'Are you sure you want to remove storage container <i>' . $container->name() . 
+    '</i> from class <i>' . $class->name() . '</i>?', $class->path() . '/edit', t(''));
 }
 
 
@@ -576,33 +556,8 @@ function storage_class_remove_container_form($form, $form_state, $class, $contai
 function storage_class_remove_container_form_submit($form, &$form_state) {
   $class = $form['#class'];
   $container = $form['#container'];
-
-  db_delete('storage_class_container')
-    ->condition('class_id', $class['class_id'])
-    ->condition('container_id', $container['container_id'])
-    ->execute();
   
-  $selector_subquery = db_select('storage_selector')
-    ->fields('storage_selector', array('selector_id'))
-    ->condition('class_id', $class['class_id']);
-
-  db_update('storage')
-    ->fields(array('check_me' => 1))
-    ->expression('serving_container', 'NULL')
-    ->condition('selector_id', $selector_subquery, 'IN')
-    ->execute();
-
-  cache_clear_all();
-
-  $container = storage_container_load($container['container_id']);
-  $path = 'admin/structure/storage/classes/' . $class['class_id'];
-  
-  $message = 'Storage container <i>' . $container['name'] . 
-    '</i> has been removed from class <i>' . $class['name'] .'</i>.';
-    
-  drupal_set_message($message);
-  watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));
-  
-  $form_state['redirect'] = $path;
+  $class->removeContainer($container);
+  $form_state['redirect'] = $class->path();
 }
 

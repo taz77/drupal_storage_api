@@ -24,13 +24,13 @@ class StorageAPITestCase extends DrupalWebTestCase {
     
     $class = storage_class_load(1);
     $this->assertNotNull($class, t('Everything class created.'));
-    $this->assertEqual($class['options']['initial_container_id'], 1, t('Initial container set.'));
+    $this->assertEqual($class->options['initial_container_id'], 1, t('Initial container set.'));
     
     $container = storage_fs_default_container_create();
-    $class['options']['initial_container_id'] = $container['container_id'];
+    $class->options['initial_container_id'] = $container->container_id;
     drupal_write_record('storage_class', $class, 'class_id');
     $class = storage_class_load(1);
-    $this->assertEqual($class['options']['initial_container_id'], $container['container_id'], t('Initial container changed.'));
+    $this->assertEqual($class->options['initial_container_id'], $container->container_id, t('Initial container changed.'));
     
     $selector_id = storage_new_selector_id();
     
@@ -44,8 +44,8 @@ class StorageAPITestCase extends DrupalWebTestCase {
     $this->assertNotNull($storage, t('Store file.'));
     
     $exists = db_select('storage_instance')
-      ->condition('file_id', $storage['file_id'])
-      ->condition('container_id', $container['container_id'])
+      ->condition('file_id', $storage->file_id)
+      ->condition('container_id', $container->container_id)
       ->countQuery()
       ->execute()
       ->fetchField();
@@ -55,7 +55,7 @@ class StorageAPITestCase extends DrupalWebTestCase {
     $this->cronRun();
 
     $exists = db_select('storage_instance')
-      ->condition('file_id', $storage['file_id'])
+      ->condition('file_id', $storage->file_id)
       ->condition('container_id', 1)
       ->countQuery()
       ->execute()
@@ -64,8 +64,8 @@ class StorageAPITestCase extends DrupalWebTestCase {
     $this->assertTrue($exists, t('Final instance exists.'));
 
     $exists = db_select('storage_instance')
-      ->condition('file_id', $storage['file_id'])
-      ->condition('container_id', $container['container_id'])
+      ->condition('file_id', $storage->file_id)
+      ->condition('container_id', $container->container_id)
       ->countQuery()
       ->execute()
       ->fetchField();

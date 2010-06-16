@@ -120,8 +120,8 @@ function storage_api_schema() {
 
   $schema['storage_instance'] = array(
     'fields' => array(
-      'file_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
       'container_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
+      'file_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
       'reference' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE)
     ),
     'primary key' => array('file_id', 'container_id')
@@ -153,13 +153,7 @@ function storage_api_schema() {
 function storage_api_install() {
 
   // Create a class.
-
-  $class = array(
-    'name' => t('Everything'),
-    'options' => array(),
-  );
-
-  storage_class_create($class);
-  variable_set('storage_api_initial_class', $class['class_id']);
+  $class = storage_class_create(t('Everything'));
+  variable_set('storage_api_initial_class', $class->class_id);
 }
 

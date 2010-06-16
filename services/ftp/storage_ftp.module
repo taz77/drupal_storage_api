@@ -20,15 +20,15 @@ function storage_ftp_storage_service_info() {
 }
 
 
-function _storage_ftp_login($container) {
+function _storage_ftp_login($settings) {
 
-  $ftp = @ftp_connect($container['settings']['host'], 
-    $container['settings']['port'] ? $container['settings']['port'] : NULL);
+  $ftp = @ftp_connect($settings['host'], 
+    $settings['port'] ? $settings['port'] : NULL);
   
   if(!$ftp)
     return FALSE;
   
-  if(!@ftp_login($ftp, $container['settings']['username'], $container['settings']['password'])) {
+  if(!@ftp_login($ftp, $settings['username'], $settings['password'])) {
     @ftp_close($ftp);
     return FALSE;
   }
@@ -42,7 +42,7 @@ function _storage_ftp_login($container) {
 /**
  * Implement hook_storage_container_settings_form() .
  */
-function storage_ftp_storage_container_settings_form($settings, $serving, $edit) {
+function storage_ftp_storage_container_settings_form($container, $edit) {
 
   $items['host'] = array(
     '#type' => 'textfield',
@@ -50,7 +50,7 @@ function storage_ftp_storage_container_settings_form($settings, $serving, $edit)
     '#description' => t('The FTP server address. This parameter shouldn\'t have any trailing slashes and shouldn\'t be prefixed with ftp:// .'),
     '#required' => TRUE,
     '#validated' => TRUE,
-    '#default_value' => isset($settings['host']) ? $settings['host'] : NULL,
+    '#default_value' => isset($container->settings['host']) ? $container->settings['host'] : NULL,
   );
   
   $items['port'] = array(
@@ -59,7 +59,7 @@ function storage_ftp_storage_container_settings_form($settings, $serving, $edit)
     '#description' => t('If omitted, the default FTP port (21) will be used.'),
     '#maxlength' => 5,
     '#size' => 5,
-    '#default_value' => isset($settings['port']) ? $settings['port'] : NULL,
+    '#default_value' => isset($container->settings['port']) ? $container->settings['port'] : NULL,
   );
   
   $items['username'] = array(
@@ -68,7 +68,7 @@ function storage_ftp_storage_container_settings_form($settings, $serving, $edit)
     '#description' => t(''),
     '#required' => TRUE,
     '#validated' => TRUE,
-    '#default_value' => isset($settings['username']) ? $settings['username'] : NULL,
+    '#default_value' => isset($container->settings['username']) ? $container->settings['username'] : NULL,
   );
 
   $items['password'] = array(
@@ -82,7 +82,7 @@ function storage_ftp_storage_container_settings_form($settings, $serving, $edit)
     '#description' => t('The directory to be created on the FTP server.'),
     '#required' => TRUE,
     '#validated' => TRUE,
-    '#default_value' => isset($settings['directory']) ? $settings['directory'] : NULL,
+    '#default_value' => isset($container->settings['directory']) ? $container->settings['directory'] : NULL,
   );
   
   $items['permissions'] = array(
@@ -91,23 +91,23 @@ function storage_ftp_storage_container_settings_form($settings, $serving, $edit)
     '#description' => t('Octal format, e.g. 644.<br />For serving, ensure the files are readable by the web server.<br />If omitted, the FTP server\'s default permissions will be used.'),
     '#maxlength' => 4,
     '#size' => 5,
-    '#default_value' => isset($settings['permissions']) ? $settings['permissions'] : NULL,
+    '#default_value' => isset($container->settings['permissions']) ? $container->settings['permissions'] : NULL,
   );
   
-  if($serving) {
+  if($container->capability) {
 
     $items['base_url'] = array(
       '#type' => 'textfield',
       '#title' => t('Base URL'),
       '#description' => t('The URL of the directory specified above.'),
-      '#default_value' => isset($settings['base_url']) ? $settings['base_url'] : NULL,
+      '#default_value' => isset($container->settings['base_url']) ? $container->settings['base_url'] : NULL,
     );
 
     $items['base_url_rtmp'] = array(
       '#type' => 'textfield',
       '#title' => t('Base RTMP URL'),
       '#description' => t('The RTMP URL of the directory specified above.<br />This is for Flash media streaming.'),
-      '#default_value' => isset($settings['base_url_rtmp']) ? $settings['base_url_rtmp'] : NULL,
+      '#default_value' => isset($container->settings['base_url_rtmp']) ? $container->settings['base_url_rtmp'] : NULL,
     );
   }
 
@@ -120,24 +120,24 @@ function storage_ftp_storage_container_settings_form($settings, $serving, $edit)
  */
 function storage_ftp_storage_container_validate($container, $edit) {
 
-  if(!$container['settings']['host']) {
+  if (!$container->settings['host']) {
     form_set_error('settings][host', t('Host field is required.'));
   }
 
-  if(!$container['settings']['username']) {
+  if (!$container->settings['username']) {
     form_set_error('settings][username', t('Username field is required.'));
   }
   
-  if(!$container['settings']['directory']) {
+  if (!$container->settings['directory']) {
     form_set_error('settings][directory', t('Password field is required.'));
   }
 
-  if(form_get_errors())
+  if (form_get_errors())
     return;
 
-  $ftp = _storage_ftp_login($container);
+  $ftp = _storage_ftp_login($container->settings);
   
-  if(!$ftp)
+  if (!$ftp)
     form_set_error('settings', t('Failed to authenticate.'));
 }
 
@@ -147,31 +147,29 @@ function storage_ftp_storage_container_validate($container, $edit) {
  */
 function storage_ftp_storage_container_create($container) {
 
-  $ftp = _storage_ftp_login($container);
+  $ftp = _storage_ftp_login($container->settings);
   
   if(!$ftp)
     return FALSE;
     
   $path = drupal_get_path('module', 'storage_api');
 
-  $success = ftp_mkdir($ftp, $container['settings']['directory']);
+  $success = ftp_mkdir($ftp, $container->settings['directory']);
   
   if($success)
-    $success = ftp_chdir($ftp, $container['settings']['directory']);
+    $success = ftp_chdir($ftp, $container->settings['directory']);
 
   if($success)
     $success = ftp_put($ftp, '.htaccess', $path . '/files.htaccess', FTP_BINARY);
 
-  if($success && $container['settings']['permissions'])
-    $success = ftp_site($ftp, 'chmod ' . $container['settings']['permissions'] . ' .htaccess');
+  if($success && $container->settings['permissions'])
+    $success = ftp_site($ftp, 'chmod ' . $container->settings['permissions'] . ' .htaccess');
 
   @ftp_close($ftp);
 
   if(!$success) {
     throw new Exception();
   }
-  
-  return $container;
 }
 
 
@@ -181,17 +179,17 @@ function storage_ftp_storage_container_create($container) {
 function storage_ftp_storage_container_info($container) {
 
   $info = array(
-    t('Host') => $container['settings']['host'],
-    t('Port') => $container['settings']['port'] ? $container['settings']['port'] : 21,
-    t('Username') => $container['settings']['username'],
-    t('Directory') => $container['settings']['directory']
+    t('Host') => $container->settings['host'],
+    t('Port') => $container->settings['port'] ? $container->settings['port'] : 21,
+    t('Username') => $container->settings['username'],
+    t('Directory') => $container->settings['directory'],
   );
   
-  if($container['settings']['permissions'])
-    $info[t('File permissions')] = $container['settings']['permissions'];
+  if($container->settings['permissions'])
+    $info[t('File permissions')] = $container->settings['permissions'];
 
-  if($container['capability'])
-    $info[t('Base URL')] = url($container['settings']['base_url'], array('absolute' => TRUE));
+  if($container->capability)
+    $info[t('Base URL')] = url($container->settings['base_url'], array('absolute' => TRUE));
 
   return $info;
 }
@@ -200,31 +198,31 @@ function storage_ftp_storage_container_info($container) {
 /**
  * Implement hook_storage_object_instance_create() .
  */
-function storage_ftp_storage_object_instance_create($container, $file) {
+function storage_ftp_storage_object_instance_create($container, $storage) {
   
-  $ftp = _storage_ftp_login($container);
+  $ftp = _storage_ftp_login($container->settings);
   
   if(!$ftp)
     return FALSE;
     
-  $filename = $file['object_id'];
+  $filename = $storage->object_id;
 
   
   // We need the filename to have an extension that matches its mime type
   // so the webserver serves the file with the correct mime type.
 
-  $extension = storage_api_mime_extension($file['mimetype']);
+  $extension = storage_api_mime_extension($storage->mimetype);
   
   if($extension)
     $filename .= '.' . $extension;
   
-  $success = @ftp_chdir($ftp, $container['settings']['directory'] . '/objects');
+  $success = @ftp_chdir($ftp, $container->settings['directory'] . '/objects');
   
   if($success)
-   $success = @ftp_put($ftp, $filename, $file['filepath'], FTP_BINARY);
+   $success = @ftp_put($ftp, $filename, $storage->filepath, FTP_BINARY);
    
-  if($success && $container['settings']['permissions'])
-    $success = @ftp_site($ftp, 'chmod ' . $container['settings']['permissions'] . ' ' . $filename);
+  if($success && $container->settings['permissions'])
+    $success = @ftp_site($ftp, 'chmod ' . $container->settings['permissions'] . ' ' . $filename);
   
   @ftp_close($ftp);
   
@@ -236,9 +234,9 @@ function storage_ftp_storage_object_instance_create($container, $file) {
 /**
  * Implement hook_storage_instance_create() .
  */
-function storage_ftp_storage_instance_create($container, $file) {
+function storage_ftp_storage_instance_create($container, $storage) {
 
-  $ftp = _storage_ftp_login($container);
+  $ftp = _storage_ftp_login($container->settings);
   
   if(!$ftp)
     return FALSE;
@@ -250,15 +248,15 @@ function storage_ftp_storage_instance_create($container, $file) {
   // This means we cannot use the Cache-control max-age http header
   // as URLs may be reused.
   
-  $filename = storage_api_unique_filename($container, $file['filename']);
+  $filename = $container->unique_filename($storage->filename);
   
-  $success = @ftp_chdir($ftp, $container['settings']['directory']);
+  $success = @ftp_chdir($ftp, $container->settings['directory']);
   
   if($success)
-    $success = @ftp_put($ftp, $filename, $file['filepath'], FTP_BINARY);
+    $success = @ftp_put($ftp, $filename, $storage->filepath, FTP_BINARY);
   
-  if($success && $container['settings']['permissions'])
-    $success = @ftp_site($ftp, 'chmod ' . $container['settings']['permissions'] . ' ' . $filename);
+  if($success && $container->settings['permissions'])
+    $success = @ftp_site($ftp, 'chmod ' . $container->settings['permissions'] . ' ' . $filename);
 
   @ftp_close($ftp);
   
@@ -270,14 +268,14 @@ function storage_ftp_storage_instance_create($container, $file) {
 /**
  * Implement hook_storage_instance_destroy() .
  */
-function storage_ftp_storage_instance_destroy($container, $file) {
+function storage_ftp_storage_instance_destroy($container, $storage, $reference) {
 
-  $ftp = _storage_ftp_login($container);
+  $ftp = _storage_ftp_login($container->settings);
   
   if(!$ftp)
     return FALSE;
     
-  $result = @ftp_delete($ftp, $container['settings']['directory'] . $container['reference']);
+  $result = @ftp_delete($ftp, $container->settings['directory'] . $reference);
   
   @ftp_close($ftp);
   
@@ -288,15 +286,15 @@ function storage_ftp_storage_instance_destroy($container, $file) {
 /**
  * Implement hook_storage_instance_get_filepath() .
  */
-function storage_ftp_storage_instance_get_filepath($container, $file) {
+function storage_ftp_storage_instance_get_filepath($container, $storage, $reference) {
 
-  $ftp = _storage_ftp_login($container);
+  $ftp = _storage_ftp_login($container->settings);
   
   if(!$ftp)
     return FALSE;
   
   $filepath = tempnam(file_directory_temp(), '');
-  $result = @ftp_get($ftp, $filepath, $container['settings']['directory'] . $container['reference'], FTP_BINARY);
+  $result = @ftp_get($ftp, $filepath, $container->settings['directory'] . $reference, FTP_BINARY);
   
   @ftp_close($ftp);
   
@@ -311,22 +309,22 @@ function storage_ftp_storage_instance_get_filepath($container, $file) {
 /**
  * Implement hook_storage_instance_serve() .
  */
-function storage_ftp_storage_instance_serve($container, $file) {
+function storage_ftp_storage_instance_serve($container, $storage, $reference) {
 
-  return $container['settings']['base_url'] . $container['reference'];
+  return $container->settings['base_url'] . $reference;
 }
 
 
 /**
  * Implement hook_storage_instance_serve_rtmp() .
  */
-function storage_ftp_storage_instance_serve_rtmp($container, $file) {
+function storage_ftp_storage_instance_serve_rtmp($container, $storage, $reference) {
 
-  if($container['settings']['base_url_rtmp']) {
+  if($container->settings['base_url_rtmp']) {
   
     return array(
-      'streamer' => $container['settings']['base_url_rtmp'],
-      'file' => $container['reference'],
+      'streamer' => $container->settings['base_url_rtmp'],
+      'file' => $reference,
     );
   }
 

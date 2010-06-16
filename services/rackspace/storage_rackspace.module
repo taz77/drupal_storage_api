@@ -29,11 +29,7 @@ function _storage_rackspace_log_exception($e, $dsm = TRUE) {
 }
 
 
-function _storage_rackspace_init($container) {
-  $conn = &drupal_static(__FUNCTION__);
-  
-  if($conn)
-    return $conn;
+function _storage_rackspace_init($settings) {
 
   $path = drupal_get_path('module', 'storage_rackspace');
   require_once DRUPAL_ROOT . '/' . $path . '/php-cloudfiles/cloudfiles.php';
@@ -49,7 +45,7 @@ function _storage_rackspace_init($container) {
     return FALSE;
   }
 
-  $auth = new CF_Authentication($container['settings']['username'], $container['settings']['api_key']);
+  $auth = new CF_Authentication($settings['username'], $settings['api_key']);
   $auth->ssl_use_cabundle();
 
   try {
@@ -79,23 +75,23 @@ function _storage_rackspace_container($container) {
   $rscf_containers = &drupal_static(__FUNCTION__);
   $rscf_containers = array();
   
-  if($rscf_containers[$container['container_id']])
-    return $rscf_containers[$container['container_id']];
+  if($rscf_containers[$container->container_id])
+    return $rscf_containers[$container->container_id];
 
-  $conn = _storage_rackspace_init($container);
+  $conn = _storage_rackspace_init($container->settings);
   
   if(!$conn)
     return FALSE;
   
   try {
-    $rscf_container = $conn->get_container($container['settings']['rscf_container']);
+    $rscf_container = $conn->get_container($container->settings['rscf_container']);
   }
   catch(Exception $e) {
     _storage_rackspace_log_exception($e);
     return FALSE;
   }
 
-  $rscf_containers[$container['container_id']] = $rscf_container;
+  $rscf_containers[$container->container_id] = $rscf_container;
 
   return $rscf_container;
 }
@@ -104,7 +100,7 @@ function _storage_rackspace_container($container) {
 /**
  * Implement hook_storage_container_settings_form() .
  */
-function storage_rackspace_storage_container_settings_form($settings, $serving, $edit) {
+function storage_rackspace_storage_container_settings_form($container, $edit) {
 
   $items['credentials_info'] = array(
     '#markup' => t('Get your credentials !link.', array('!link' => l(t('here'), 
@@ -117,7 +113,7 @@ function storage_rackspace_storage_container_settings_form($settings, $serving, 
     '#title' => t('Username'),
     '#required' => TRUE,
     '#validated' => TRUE,
-    '#default_value' => isset($settings['username']) ? $settings['username'] : NULL,
+    '#default_value' => isset($container->settings['username']) ? $container->settings['username'] : NULL,
   );
   
   $items['api_key'] = array(
@@ -134,7 +130,7 @@ function storage_rackspace_storage_container_settings_form($settings, $serving, 
       '#title' => t('Cloud Files container'),
       '#required' => TRUE,
       '#validated' => TRUE,
-      '#default_value' => isset($settings['rscf_container']) ? $settings['rscf_container'] : NULL,
+      '#default_value' => isset($container->settings['rscf_container']) ? $container->settings['rscf_container'] : NULL,
     );
   }
   
@@ -147,24 +143,24 @@ function storage_rackspace_storage_container_settings_form($settings, $serving, 
  */
 function storage_rackspace_storage_container_validate($container, $edit) {
 
-  if(!$container['settings']['username']) {
+  if (!$container['settings']['username']) {
     form_set_error('settings][username', t('Username field is required.'));
   }
 
-  if(!$container['settings']['api_key']) {
+  if (!$container['settings']['api_key']) {
     form_set_error('settings][api_key', t('API key field is required.'));
   }
   
-  if(!$container['settings']['rscf_container']) {
+  if (!$container['settings']['rscf_container']) {
     form_set_error('settings][rscf_container', t('Cloud Files container name field is required.'));
   }
   
-  if(form_get_errors())
+  if (form_get_errors())
     return;
   
-  $conn = _storage_rackspace_init($container);
+  $conn = _storage_rackspace_init($container['settings']);
   
-  if(!$conn) {
+  if (!$conn) {
     form_set_error('settings');
   }
 }
@@ -175,7 +171,7 @@ function storage_rackspace_storage_container_validate($container, $edit) {
  */
 function storage_rackspace_storage_container_create($container) {
 
-  $conn = _storage_rackspace_init($container);    // cached
+  $conn = _storage_rackspace_init($container->settings);
   
   try {
     $rscf_container = $conn->get_container($container['settings']['rscf_container']);
@@ -209,8 +205,6 @@ function storage_rackspace_storage_container_create($container) {
     _storage_rackspace_log_exception($e);
     throw new Exception();
   }
-  
-  return $container;
 }
 
 
@@ -220,8 +214,8 @@ function storage_rackspace_storage_container_create($container) {
 function storage_rackspace_storage_container_info($container) {
 
   $info = array(
-    t('Username') => $container['settings']['username'],
-    t('Container') => $container['settings']['rscf_container'],
+    t('Username') => $container->settings['username'],
+    t('Container') => $container->settings['rscf_container'],
   );
 
   return $info;
@@ -233,13 +227,13 @@ function storage_rackspace_storage_container_info($container) {
  */
 function storage_rackspace_storage_container_destroy($container) {
   
-  $conn = _storage_rackspace_init($container);
+  $conn = _storage_rackspace_init($container->settings);
   
   if(!$conn)
     return FALSE;
   
   try {
-    $conn->delete_container($container['settings']['rscf_container']);
+    $conn->delete_container($container->settings['rscf_container']);
   }
   catch(Exception $e) {
     _storage_rackspace_log_exception($e);
@@ -253,9 +247,9 @@ function storage_rackspace_storage_container_destroy($container) {
 /**
  * Implement hook_storage_instance_create() .
  */
-function storage_rackspace_storage_instance_create($container, $file) {
+function storage_rackspace_storage_instance_create($container, $storage) {
 
-  $name = $file['file_id'] . '/' . $file['filename'];
+  $name = $storage->file_id . '/' . $storage->filename;
   
   $rscf_container = _storage_rackspace_container($container);
   
@@ -264,14 +258,14 @@ function storage_rackspace_storage_instance_create($container, $file) {
 
   try {
     $object = $rscf_container->create_object($name);
-    $object->content_type = $file['mimetype'];
-    $object->set_etag(base64_encode($file['md5']));
-    $object->load_from_filename($file['filepath'], FALSE);
+    $object->content_type = $storage->mimetype;
+    $object->set_etag(base64_encode($storage->md5));
+    $object->load_from_filename($storage->filepath, FALSE);
 
     $object->metadata = array(
-      'file_id' => $file['file_id'],
-      'object_id' => $file['object_id'],
-      'filename' => $file['filename'],
+      'file_id' => $storage->file_id,
+      'object_id' => $storage->object_id,
+      'filename' => $storage->filename,
     );
 
     $object->sync_metadata();
@@ -294,9 +288,9 @@ function storage_rackspace_storage_instance_create($container, $file) {
 /**
  * Implement hook_storage_instance_destroy() .
  */
-function storage_rackspace_storage_instance_destroy($container, $file) {
+function storage_rackspace_storage_instance_destroy($container, $storage, $reference) {
 
-  $name = $file['file_id'] . '/' . $file['filename'];
+  $name = $storage->file_id . '/' . $reference;
 
   $rscf_container = _storage_rackspace_container($container);
   
@@ -318,9 +312,9 @@ function storage_rackspace_storage_instance_destroy($container, $file) {
 /**
  * Implement hook_storage_instance_get_filepath() .
  */
-function storage_rackspace_storage_instance_get_filepath($container, $file) {
+function storage_rackspace_storage_instance_get_filepath($container, $storage, $reference) {
 
-  $name = $file['file_id'] . '/' . $file['filename'];
+  $name = $storage->file_id . '/' . $reference;
 
   $rscf_container = _storage_rackspace_container($container);
 
@@ -346,8 +340,8 @@ function storage_rackspace_storage_instance_get_filepath($container, $file) {
 /**
  * Implement hook_storage_instance_serve() .
  */
-function storage_rackspace_storage_instance_serve($container, $file) {
+function storage_rackspace_storage_instance_serve($container, $storage, $reference) {
 
-  return $container['settings']['cdn_uri'] . '/'. $file['file_id'] . '/' . $file['filename'];
+  return $container->settings['cdn_uri'] . '/'. $storage->file_id . '/' . $reference;
 }
 

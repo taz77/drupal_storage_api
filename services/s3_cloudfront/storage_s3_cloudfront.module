@@ -26,7 +26,7 @@ function _storage_s3_signature($components, $secret_access_key) {
 }
 
 
-function _storage_s3_request($container, $method, $bucket = NULL, $object_name = NULL, $file = NULL) {
+function _storage_s3_request($container, $method, $bucket = NULL, $object_name = NULL, $storage = NULL, $source = NULL) {
   $result = array();
   $date = date(DATE_RFC1123, time());   // we don't use REQUEST_TIME in case it is too old
 
@@ -46,34 +46,34 @@ function _storage_s3_request($container, $method, $bucket = NULL, $object_name =
     case 'PUT':
       $curl_options[CURLOPT_PUT] = TRUE;
       
-      if($file) {
+      if($storage) {
 
-        if($container['capability'] == STORAGE_API_SERVING) {
+        if($container->capability == STORAGE_API_SERVING) {
           $headers[] = 'x-amz-acl: public-read';
           $components[] = 'x-amz-acl:public-read';
         }
         
-        if(isset($file['copy_source']) && $file['copy_source']) {
-          $headers[] = 'x-amz-copy-source: ' . $file['copy_source'];
-          $components[] = 'x-amz-copy-source:' . $file['copy_source'];
+        if(!empty($source['copy_source'])) {
+          $headers[] = 'x-amz-copy-source: ' . $source['copy_source'];
+          $components[] = 'x-amz-copy-source:' . $source['copy_source'];
         }
       }
 
-      if($file['filepath']) {
-        $fp = fopen($file['filepath'], 'r');
+      if($source['filepath']) {
+        $fp = fopen($source['filepath'], 'r');
         
-        $components[1] = base64_encode($file['md5']);
-        $components[2] = $file['mimetype'];
+        $components[1] = base64_encode($storage->md5);
+        $components[2] = $storage->mimetype;
         
-        $headers = array_merge($headers, storage_http_headers($file));
+        $headers = array_merge($headers, $storage->http_headers());
         
         $curl_options[CURLOPT_INFILE] = $fp;
-        $curl_options[CURLOPT_INFILESIZE] = $file['size'];
+        $curl_options[CURLOPT_INFILESIZE] = $storage->size;
       }
-      else if(!$object_name && $container['settings']['location']) {
+      else if(!$object_name && $container->settings['location']) {
 
         $str = '<CreateBucketConfiguration><LocationConstraint>';
-        $str .= $container['settings']['location'];
+        $str .= $container->settings['location'];
         $str .= '</LocationConstraint></CreateBucketConfiguration>';
         
         $fp = fopen('data:text/plain,' . $str, 'r');
@@ -111,8 +111,8 @@ function _storage_s3_request($container, $method, $bucket = NULL, $object_name =
   
   $components[] = '/' . $bucket . $object_name;
   
-  $signature = _storage_s3_signature($components, $container['settings']['secret_access_key']);
-  $headers[] = 'Authorization: AWS ' . $container['settings']['access_key_id'] . ':' . $signature;
+  $signature = _storage_s3_signature($components, $container->settings['secret_access_key']);
+  $headers[] = 'Authorization: AWS ' . $container->settings['access_key_id'] . ':' . $signature;
 
   $curl_options[CURLOPT_HTTPHEADER] = $headers;
   
@@ -157,27 +157,27 @@ function _storage_s3_request($container, $method, $bucket = NULL, $object_name =
 function _storage_s3_cloudfront_url($container, $s3_object) {
   $query = array();
 
-  if($container['settings']['cloudfront'] && 
-    $container['settings']['cloudfront_status'] == 'Deployed')
+  if($container->settings['cloudfront'] && 
+    $container->settings['cloudfront_status'] == 'Deployed')
   {
-    $path = 'http://' . $container['settings']['cloudfront_domain'] . '/' . $s3_object;
+    $path = 'http://' . $container->settings['cloudfront_domain'] . '/' . $s3_object;
   }
   else {
-    $path = 'http://' . $container['settings']['bucket'] . '.s3.amazonaws.com/' . $s3_object;
+    $path = 'http://' . $container->settings['bucket'] . '.s3.amazonaws.com/' . $s3_object;
 
-    if($container['capability'] == STORAGE_API_ACCESS_CONTROL) {
-      $query['AWSAccessKeyId'] = $container['settings']['access_key_id'];
-      $query['Expires'] = $_SERVER['REQUEST_TIME'] + $container['settings']['url_lifetime'];
+    if($container->capability == STORAGE_API_ACCESS_CONTROL) {
+      $query['AWSAccessKeyId'] = $container->settings['access_key_id'];
+      $query['Expires'] = $_SERVER['REQUEST_TIME'] + $container->settings['url_lifetime'];
       
       $components = array(
         'GET',
         '',
         '',
         $query['Expires'],
-        '/' . $container['settings']['bucket'] . '/' . $s3_object
+        '/' . $container->settings['bucket'] . '/' . $s3_object
       );
       
-      $query['Signature'] = _storage_s3_signature($components, $container['settings']['secret_access_key']);
+      $query['Signature'] = _storage_s3_signature($components, $container->settings['secret_access_key']);
     }
   }
 
@@ -187,11 +187,11 @@ function _storage_s3_cloudfront_url($container, $s3_object) {
 
 function _storage_s3_cloudfront_rtmp($container, $s3_object) {
 
-  if($container['settings']['cloudfront_streaming'] && 
-    $container['settings']['cloudfront_streaming_status'] == 'Deployed')
+  if($container->settings['cloudfront_streaming'] && 
+    $container->settings['cloudfront_streaming_status'] == 'Deployed')
   {
     return array(
-      'streamer' => 'rtmp://' . $container['settings']['cloudfront_streaming_domain'] . '/cfx/st',
+      'streamer' => 'rtmp://' . $container->settings['cloudfront_streaming_domain'] . '/cfx/st',
       'file' => $s3_object,
     );
   }
@@ -216,11 +216,11 @@ function _storage_cloudfront_request($container, $method, $streaming = FALSE, $x
 
   if($streaming) {
     $path = '/2009-12-01/streaming-distribution';
-    $id = $container['settings']['cloudfront_streaming_id'];
+    $id = $container->settings['cloudfront_streaming_id'];
   }
   else {
     $path = '/2009-12-01/distribution';
-    $id = $container['settings']['cloudfront_id'];
+    $id = $container->settings['cloudfront_id'];
   }
 
   switch($method) {
@@ -239,7 +239,7 @@ function _storage_cloudfront_request($container, $method, $streaming = FALSE, $x
       $curl_options[CURLOPT_INFILE] = $fp;
       $curl_options[CURLOPT_INFILESIZE] = strlen($xml);
       $headers[] = 'Expect:';
-      $headers[] = 'If-Match: ' . $container['settings']['etag'];
+      $headers[] = 'If-Match: ' . $container->settings['etag'];
       
       $path .= '/' . $id . '/config';
       break;
@@ -250,13 +250,13 @@ function _storage_cloudfront_request($container, $method, $streaming = FALSE, $x
       
     case 'DELETE':
       $curl_options[CURLOPT_CUSTOMREQUEST] = 'DELETE';
-      $headers[] = 'If-Match: ' . $container['settings']['etag'];
+      $headers[] = 'If-Match: ' . $container->settings['etag'];
       $path .= '/' . $id;
       break;
   }
   
-  $signature = base64_encode(hash_hmac('sha1', utf8_encode($date), $container['settings']['secret_access_key'], TRUE));
-  $headers[] = 'Authorization: AWS ' . $container['settings']['access_key_id'] . ':' . $signature;
+  $signature = base64_encode(hash_hmac('sha1', utf8_encode($date), $container->settings['secret_access_key'], TRUE));
+  $headers[] = 'Authorization: AWS ' . $container->settings['access_key_id'] . ':' . $signature;
 
   $curl_options[CURLOPT_HTTPHEADER] = $headers;
   
@@ -312,7 +312,7 @@ function _storage_s3_locations() {
 /**
  * Implement hook_storage_container_settings_form() .
  */
-function storage_s3_cloudfront_storage_container_settings_form($settings, $serving, $edit) {
+function storage_s3_cloudfront_storage_container_settings_form($container, $edit) {
 
   $items['credentials_info'] = array(
     '#markup' => t('Get your credentials !link.', array('!link' => l(t('here'), 
@@ -325,7 +325,7 @@ function storage_s3_cloudfront_storage_container_settings_form($settings, $servi
     '#title' => t('Access key ID'),
     '#required' => TRUE,
     '#validated' => TRUE,
-    '#default_value' => isset($settings['access_key_id']) ? $settings['access_key_id'] : NULL,
+    '#default_value' => isset($container->settings['access_key_id']) ? $container->settings['access_key_id'] : NULL,
   );
   
   $items['secret_access_key'] = array(
@@ -342,7 +342,7 @@ function storage_s3_cloudfront_storage_container_settings_form($settings, $servi
       '#title' => t('Bucket name'),
       '#required' => TRUE,
       '#validated' => TRUE,
-      '#default_value' => isset($settings['bucket']) ? $settings['bucket'] : NULL,
+      '#default_value' => isset($container->settings['bucket']) ? $container->settings['bucket'] : NULL,
       '#maxlength' => 63,
       '#description' => t('The bucket namespace is shared by all users of Amazon S3.'),
     );
@@ -351,30 +351,30 @@ function storage_s3_cloudfront_storage_container_settings_form($settings, $servi
       '#type' => 'select',
       '#title' => t('Location'),
       '#options' => _storage_s3_locations(),
-      '#default_value' => isset($settings['location']) ? $settings['location'] : NULL,
+      '#default_value' => isset($container->settings['location']) ? $container->settings['location'] : NULL,
     );
   }
   
-  if($serving == STORAGE_API_SERVING) {
+  if($container->capability == STORAGE_API_SERVING) {
   
 //    $description = t('(seconds)<br />This container will produce cryptographically signed URLs that will cease to function once their lifetime is over.');
   
     $items['cloudfront'] = array(
       '#type' => 'checkbox',
       '#title' => t('Serve with CloudFront'),
-      '#default_value' => isset($settings['cloudfront']) ? $settings['cloudfront'] : NULL,
+      '#default_value' => isset($container->settings['cloudfront']) ? $container->settings['cloudfront'] : NULL,
 //      '#description' => $description,
     );
 
     $items['cloudfront_streaming'] = array(
       '#type' => 'checkbox',
       '#title' => t('Stream with CloudFront'),
-      '#default_value' => isset($settings['cloudfront_streaming']) ? $settings['cloudfront_streaming'] : NULL,
+      '#default_value' => isset($container->settings['cloudfront_streaming']) ? $container->settings['cloudfront_streaming'] : NULL,
 //      '#description' => $description,
     );
   }
 
-  if($serving == STORAGE_API_ACCESS_CONTROL) {
+  if($container->capability == STORAGE_API_ACCESS_CONTROL) {
   
     $description = t('(seconds)<br />This container will produce cryptographically signed URLs that will cease to function once their lifetime is over.');
   
@@ -383,7 +383,7 @@ function storage_s3_cloudfront_storage_container_settings_form($settings, $servi
       '#title' => t('URL lifetime'),
       '#required' => TRUE,
       '#validated' => TRUE,
-      '#default_value' => isset($settings['url_lifetime']) ? $settings['url_lifetime'] : 60 * 60,
+      '#default_value' => isset($container->settings['url_lifetime']) ? $container->settings['url_lifetime'] : 60 * 60,
       '#description' => $description,
       '#size' => 8,
       '#maxlength' => 8,
@@ -399,15 +399,15 @@ function storage_s3_cloudfront_storage_container_settings_form($settings, $servi
  */
 function storage_s3_cloudfront_storage_container_validate($container, $edit) {
 
-  if(!$container['settings']['access_key_id']) {
+  if (!$container->settings['access_key_id']) {
     form_set_error('settings][access_key_id', t('Access Key ID field is required.'));
   }
 
-  if(!$container['settings']['secret_access_key']) {
+  if (!$container->settings['secret_access_key']) {
     form_set_error('settings][secret_access_key', t('Secret Access Key field is required.'));
   }
   
-  if(!$container['settings']['bucket']) {
+  if (!$container->settings['bucket']) {
     form_set_error('settings][bucket', t('Bucket name field is required.'));
   }
   
@@ -415,8 +415,7 @@ function storage_s3_cloudfront_storage_container_validate($container, $edit) {
     return;
     
   
-  // test account credentials
-
+  // Test account credentials.
   $result = _storage_s3_request($container, 'GET');   // HEAD doesn't work
     
   if($result['http_code'] != 200) {
@@ -438,7 +437,7 @@ function _storage_cloudfront_distribution_create(&$container) {
 
   $xml = '<?xml version="1.0" encoding="UTF-8"?>';
   $xml .= '<DistributionConfig xmlns="http://cloudfront.amazonaws.com/doc/2009-12-01/">';
-  $xml .= '<Origin>' . $container['settings']['bucket'] . '.s3.amazonaws.com</Origin>';
+  $xml .= '<Origin>' . $container->settings['bucket'] . '.s3.amazonaws.com</Origin>';
   $xml .= '<CallerReference>' . _storage_cloudfront_caller_reference() . '</CallerReference>';
   $xml .= '<Enabled>true</Enabled>';
   $xml .= '</DistributionConfig>';
@@ -446,19 +445,18 @@ function _storage_cloudfront_distribution_create(&$container) {
   $result = _storage_cloudfront_request($container, 'POST', FALSE, $xml);
   
   if($result['http_code'] != 201) {
-    $container['settings']['cloudfront'] = FALSE;
+    $container->settings['cloudfront'] = FALSE;
     return;
   }
 
-  $container['settings']['cloudfront_id'] = (string)$result['simplexml']->Id;
-  $container['settings']['cloudfront_status'] = (string)$result['simplexml']->Status;
-  $container['settings']['cloudfront_domain'] = (string)$result['simplexml']->DomainName;
+  $container->settings['cloudfront_id'] = (string)$result['simplexml']->Id;
+  $container->settings['cloudfront_status'] = (string)$result['simplexml']->Status;
+  $container->settings['cloudfront_domain'] = (string)$result['simplexml']->DomainName;
 
-  $message = 'Added CloudFront distribution to storage container <i>' . $container['name'] . '</i>.';
-  $path = 'admin/build/storage/containers/' . $container['container_id'];
+  $message = 'Added CloudFront distribution to storage container <i>' . $container->name() . '</i>.';
 
   drupal_set_message($message);
-  watchdog('storage_s3', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));
+  watchdog('storage_s3', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $container->path()));
 }
 
 
@@ -466,7 +464,7 @@ function _storage_cloudfront_streaming_distribution_create(&$container) {
 
   $xml = '<?xml version="1.0" encoding="UTF-8"?>';
   $xml .= '<StreamingDistributionConfig xmlns="http://cloudfront.amazonaws.com/doc/2009-12-01/">';
-  $xml .= '<Origin>' . $container['settings']['bucket'] . '.s3.amazonaws.com</Origin>';
+  $xml .= '<Origin>' . $container->settings['bucket'] . '.s3.amazonaws.com</Origin>';
   $xml .= '<CallerReference>' . _storage_cloudfront_caller_reference() . '</CallerReference>';
   $xml .= '<Enabled>true</Enabled>';
   $xml .= '</StreamingDistributionConfig>';
@@ -474,19 +472,18 @@ function _storage_cloudfront_streaming_distribution_create(&$container) {
   $result = _storage_cloudfront_request($container, 'POST', TRUE, $xml);
   
   if($result['http_code'] != 201) {
-    $container['settings']['cloudfront_streaming'] = FALSE;
+    $container->settings['cloudfront_streaming'] = FALSE;
     return;
   }
 
-  $container['settings']['cloudfront_streaming_id'] = (string)$result['simplexml']->Id;
-  $container['settings']['cloudfront_streaming_status'] = (string)$result['simplexml']->Status;
-  $container['settings']['cloudfront_streaming_domain'] = (string)$result['simplexml']->DomainName;
+  $container->settings['cloudfront_streaming_id'] = (string)$result['simplexml']->Id;
+  $container->settings['cloudfront_streaming_status'] = (string)$result['simplexml']->Status;
+  $container->settings['cloudfront_streaming_domain'] = (string)$result['simplexml']->DomainName;
 
-  $message = 'Added CloudFront streaming distribution to storage container <i>' . $container['name'] . '</i>.';
-  $path = 'admin/build/storage/containers/' . $container['container_id'];
+  $message = 'Added CloudFront streaming distribution to storage container <i>' . $container->name() . '</i>.';
 
   drupal_set_message($message);
-  watchdog('storage_s3', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));
+  watchdog('storage_s3', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $container->path()));
 }
 
 
@@ -497,41 +494,31 @@ function storage_s3_cloudfront_storage_container_create($container) {
 
   // check if bucket is already owned by this account
 
-  $result = _storage_s3_request($container, 'HEAD', $container['settings']['bucket']);
+  $result = _storage_s3_request($container, 'HEAD', $container->settings['bucket']);
 
   if($result['http_code'] == 200) {
   
-    $result = _storage_s3_request($container, 'GET', $container['settings']['bucket']);
+    $result = _storage_s3_request($container, 'GET', $container->settings['bucket']);
     
     if(count($result['simplexml']->Contents) > 0) {
     
       form_set_error('settings][bucket', t('Bucket %name is already owned by this account, but is not empty.', 
-        array('%name' => $container['settings']['bucket'])));
+        array('%name' => $container->settings['bucket'])));
         
       throw new Exception();
     }
   }
   else {
-    $result = _storage_s3_request($container, 'PUT', $container['settings']['bucket']);
+    $result = _storage_s3_request($container, 'PUT', $container->settings['bucket']);
 
     if($result['http_code'] != 200) {
       throw new Exception();
     }
 
-    $message = 'Acquired S3 bucket <i>' . $container['settings']['bucket'] . '</i>.';
+    $message = 'Acquired S3 bucket <i>' . $container->settings['bucket'] . '</i>.';
     drupal_set_message($message);
     watchdog('storage_s3', $message, NULL, WATCHDOG_NOTICE);
   }
-  
-  if($container['settings']['cloudfront']) {
-    _storage_cloudfront_distribution_create($container);
-  }
-    
-  if($container['settings']['cloudfront_streaming']) {
-    _storage_cloudfront_streaming_distribution_create($container);
-  }
-    
-  return $container;
 }
 
 
@@ -540,17 +527,19 @@ function storage_s3_cloudfront_storage_container_create($container) {
  */
 function storage_s3_cloudfront_storage_container_postcreate($container) {
 
-  if($container['settings']['cloudfront']) {
+  if($container->settings['cloudfront']) {
+    _storage_cloudfront_distribution_create($container);
     
     $deploy = variable_get('storage_s3_cloudfront_deploy', array());
-    $deploy[$container['container_id']] = TRUE;
+    $deploy[$container->container_id] = TRUE;
     variable_set('storage_s3_cloudfront_deploy', $deploy);
   }
 
-  if($container['settings']['cloudfront_streaming']) {
+  if($container->settings['cloudfront_streaming']) {
+    _storage_cloudfront_streaming_distribution_create($container);
     
     $deploy = variable_get('storage_s3_cloudfront_streaming_deploy', array());
-    $deploy[$container['container_id']] = TRUE;
+    $deploy[$container->container_id] = TRUE;
     variable_set('storage_s3_cloudfront_streaming_deploy', $deploy);
   }
 }
@@ -561,28 +550,28 @@ function storage_s3_cloudfront_storage_container_postcreate($container) {
  */
 function storage_s3_cloudfront_storage_container_update($container) {
 
-  if($container['settings']['cloudfront'] && 
-    !$container['settings']['cloudfront_id'])
+  if($container->settings['cloudfront'] && 
+    !$container->settings['cloudfront_id'])
   {
     _storage_cloudfront_distribution_create($container);
     
-    if($container['settings']['cloudfront']) {
+    if($container->settings['cloudfront']) {
 
       $deploy = variable_get('storage_s3_cloudfront_deploy', array());
-      $deploy[$container['container_id']] = TRUE;
+      $deploy[$container->container_id] = TRUE;
       variable_set('storage_s3_cloudfront_deploy', $deploy);
     }
   }
   
-  if($container['settings']['cloudfront_streaming'] && 
-    !$container['settings']['cloudfront_streaming_id'])
+  if($container->settings['cloudfront_streaming'] && 
+    !$container->settings['cloudfront_streaming_id'])
   {
     _storage_cloudfront_streaming_distribution_create($container);
     
-    if($container['settings']['cloudfront_streaming']) {
+    if($container->settings['cloudfront_streaming']) {
 
       $deploy = variable_get('storage_s3_cloudfront_streaming_deploy', array());
-      $deploy[$container['container_id']] = TRUE;
+      $deploy[$container->container_id] = TRUE;
       variable_set('storage_s3_cloudfront_streaming_deploy', $deploy);
     }
   }
@@ -596,17 +585,17 @@ function storage_s3_cloudfront_storage_container_update($container) {
  */
 function storage_s3_cloudfront_storage_container_destroy($container) {
 
-  if(isset($container['settings']['cloudfront_id'])) {
+  if(isset($container->settings['cloudfront_id'])) {
 
     $delete = variable_get('storage_s3_cloudfront_delete', array());
-    $delete[$container['container_id']] = $container;
+    $delete[$container->container_id] = $container;
     variable_set('storage_s3_cloudfront_delete', $delete);
   }
 
-  if(isset($container['settings']['cloudfront_streaming_id'])) {
+  if(isset($container->settings['cloudfront_streaming_id'])) {
 
     $delete = variable_get('storage_s3_cloudfront_streaming_delete', array());
-    $delete[$container['container_id']] = $container;
+    $delete[$container->container_id] = $container;
     variable_set('storage_s3_cloudfront_streaming_delete', $delete);
   }
 }
@@ -626,26 +615,25 @@ function _storage_cloudfront_deploy() {
       continue;
     
     if($result['http_code'] != 200) {
-      $container['settings']['cloudfront'] = FALSE;
-      $message = 'Failed to deploy CloudFront distribution for storage container <i>' . $container['name'] . '</i>.';
+      $container->settings['cloudfront'] = FALSE;
+      $message = 'Failed to deploy CloudFront distribution for storage container <i>' . $container->name() . '</i>.';
     }
     else {
-      $container['settings']['cloudfront_status'] = (string)$result['simplexml']->Status;
+      $container->settings['cloudfront_status'] = (string)$result['simplexml']->Status;
       
-      if($container['settings']['cloudfront_status'] != 'Deployed')
+      if($container->settings['cloudfront_status'] != 'Deployed')
         continue;
 
-      $message = 'Deployed CloudFront distribution for storage container <i>' . $container['name'] . '</i>.';
+      $message = 'Deployed CloudFront distribution for storage container <i>' . $container->name() . '</i>.';
     }
   
-    drupal_write_record('storage_container', $container, 'container_id');
-    _storage_api_container_flush_serving_container($container['container_id']);
+    $container->update();
+    $container->flush_serving_container();
     
     unset($deploy[$container_id]);
     variable_set('storage_s3_cloudfront_deploy', $deploy);
 
-    $path = 'admin/build/storage/containers/' . $container['container_id'];
-    watchdog('storage_s3', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));
+    watchdog('storage_s3', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $container->path()));
   }
 }
 
@@ -664,27 +652,26 @@ function _storage_cloudfront_streaming_deploy() {
       continue;
 
     if($result['http_code'] != 200) {
-      $container['settings']['cloudfront_streaming'] = FALSE;
+      $container->settings['cloudfront_streaming'] = FALSE;
       $message = 'Failed to deploy CloudFront streaming distribution for storage container <i>' . 
-        $container['name'] . '</i>.';
+        $container->name() . '</i>.';
     }
     else {
-      $container['settings']['cloudfront_streaming_status'] = (string)$result['simplexml']->Status;
+      $container->settings['cloudfront_streaming_status'] = (string)$result['simplexml']->Status;
       
-      if($container['settings']['cloudfront_streaming_status'] != 'Deployed')
+      if($container->settings['cloudfront_streaming_status'] != 'Deployed')
         continue;
   
-      $message = 'Deployed CloudFront streaming distribution for storage container <i>' . $container['name'] . '</i>.';
+      $message = 'Deployed CloudFront streaming distribution for storage container <i>' . $container->name() . '</i>.';
     }
-  
-    drupal_write_record('storage_container', $container, 'container_id');
-    _storage_api_container_flush_serving_container($container['container_id']);
+
+    $container->update();
+    $container->flush_serving_container();
 
     unset($deploy[$container_id]);
     variable_set('storage_s3_cloudfront_streaming_deploy', $deploy);
     
-    $path = 'admin/build/storage/containers/' . $container['container_id'];
-    watchdog('storage_s3', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));
+    watchdog('storage_s3', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $container->path()));
   }
 }
 
@@ -702,13 +689,13 @@ function _storage_cloudfront_delete() {
 
     if($result['http_code'] == 200) {
       
-      $container['settings']['etag'] = $result['headers']['ETag'];
+      $container->settings['etag'] = $result['headers']['ETag'];
         
       if($result['simplexml']->DistributionConfig->Enabled == 'true') {
       
         $xml = '<?xml version="1.0" encoding="UTF-8"?>';
         $xml .= '<DistributionConfig xmlns="http://cloudfront.amazonaws.com/doc/2009-12-01/">';
-        $xml .= '<Origin>' . $container['settings']['bucket'] . '.s3.amazonaws.com</Origin>';
+        $xml .= '<Origin>' . $container->settings['bucket'] . '.s3.amazonaws.com</Origin>';
         $xml .= '<CallerReference>' . $result['simplexml']->DistributionConfig->CallerReference . '</CallerReference>';
         $xml .= '<Enabled>false</Enabled>';
         $xml .= '</DistributionConfig>';
@@ -717,7 +704,7 @@ function _storage_cloudfront_delete() {
 
         if($result['http_code'] == 200) {
 
-          $message = 'Disabled CloudFront distribution for destroyed container <i>' . $container['name'] . '</i>.';
+          $message = 'Disabled CloudFront distribution for destroyed container <i>' . $container->name() . '</i>.';
           watchdog('storage_s3', $message, NULL, WATCHDOG_NOTICE);
           continue;
         }
@@ -731,13 +718,13 @@ function _storage_cloudfront_delete() {
 
         if($result['http_code'] == 204) {
 
-          $message = 'Deleted CloudFront distribution for destroyed container <i>' . $container['name'] . '</i>.';
+          $message = 'Deleted CloudFront distribution for destroyed container <i>' . $container->name() . '</i>.';
           watchdog('storage_s3', $message, NULL, WATCHDOG_NOTICE);
         }
       }
     }
         
-    unset($delete[$container['container_id']]);
+    unset($delete[$container->container_id]);
     variable_set('storage_s3_cloudfront_delete', $delete);
   }
 }
@@ -756,13 +743,13 @@ function _storage_cloudfront_streaming_delete() {
 
     if($result['http_code'] == 200) {
       
-      $container['settings']['etag'] = $result['headers']['ETag'];
+      $container->settings['etag'] = $result['headers']['ETag'];
         
       if($result['simplexml']->StreamingDistributionConfig->Enabled == 'true') {
       
         $xml = '<?xml version="1.0" encoding="UTF-8"?>';
         $xml .= '<StreamingDistributionConfig xmlns="http://cloudfront.amazonaws.com/doc/2009-12-01/">';
-        $xml .= '<Origin>' . $container['settings']['bucket'] . '.s3.amazonaws.com</Origin>';
+        $xml .= '<Origin>' . $container->settings['bucket'] . '.s3.amazonaws.com</Origin>';
         $xml .= '<CallerReference>' . $result['simplexml']->StreamingDistributionConfig->CallerReference . '</CallerReference>';
         $xml .= '<Enabled>false</Enabled>';
         $xml .= '</StreamingDistributionConfig>';
@@ -771,7 +758,7 @@ function _storage_cloudfront_streaming_delete() {
 
         if($result['http_code'] == 200) {
 
-          $message = 'Disabled CloudFront streaming distribution for destroyed container <i>' . $container['name'] . '</i>.';
+          $message = 'Disabled CloudFront streaming distribution for destroyed container <i>' . $container->name() . '</i>.';
           watchdog('storage_s3', $message, NULL, WATCHDOG_NOTICE);
           continue;
         }
@@ -785,13 +772,13 @@ function _storage_cloudfront_streaming_delete() {
 
         if($result['http_code'] == 204) {
 
-          $message = 'Deleted CloudFront streaming distribution for destroyed container <i>' . $container['name'] . '</i>.';
+          $message = 'Deleted CloudFront streaming distribution for destroyed container <i>' . $container->name() . '</i>.';
           watchdog('storage_s3', $message, NULL, WATCHDOG_NOTICE);
         }
       }
     }
         
-    unset($delete[$container['container_id']]);
+    unset($delete[$container->container_id]);
     variable_set('storage_s3_cloudfront_streaming_delete', $delete);
   }
 }
@@ -817,15 +804,15 @@ function storage_s3_cloudfront_storage_container_info($container) {
   $locations = _storage_s3_locations();
 
   $info = array(
-    t('Bucket') => $container['settings']['bucket'],
-    t('Location') => $locations[$container['settings']['location']],
+    t('Bucket') => $container->settings['bucket'],
+    t('Location') => $locations[$container->settings['location']],
   );
   
-  if($container['capability'] == STORAGE_API_SERVING) {
+  if($container->capability == STORAGE_API_SERVING) {
   
-    if($container['settings']['cloudfront']) {
+    if($container->settings['cloudfront']) {
     
-      if($container['settings']['cloudfront_status'] == 'Deployed')
+      if($container->settings['cloudfront_status'] == 'Deployed')
         $status = t('Yes');
       else
         $status = t('Setting up. This can take a few minutes.');
@@ -836,15 +823,15 @@ function storage_s3_cloudfront_storage_container_info($container) {
   
     $info[t('Serving with CloudFront')] = $status;
     
-    if(isset($container['settings']['cloudfront_status']) && 
-      $container['settings']['cloudfront_status'] == 'Deployed')
+    if(isset($container->settings['cloudfront_status']) && 
+      $container->settings['cloudfront_status'] == 'Deployed')
     {
-      $info[t('CloudFront domain name')] = $container['settings']['cloudfront_domain'];
+      $info[t('CloudFront domain name')] = $container->settings['cloudfront_domain'];
     }
 
-    if($container['settings']['cloudfront_streaming']) {
+    if($container->settings['cloudfront_streaming']) {
     
-      if($container['settings']['cloudfront_streaming_status'] == 'Deployed')
+      if($container->settings['cloudfront_streaming_status'] == 'Deployed')
         $status = t('Yes');
       else
         $status = t('Setting up. This can take a few minutes.');
@@ -855,15 +842,15 @@ function storage_s3_cloudfront_storage_container_info($container) {
   
     $info[t('Streaming with CloudFront')] = $status;
     
-    if(isset($container['settings']['cloudfront_streaming_status']) &&
-      $container['settings']['cloudfront_streaming_status'] == 'Deployed')
+    if(isset($container->settings['cloudfront_streaming_status']) &&
+      $container->settings['cloudfront_streaming_status'] == 'Deployed')
     {
-      $info[t('CloudFront streaming domain name')] = $container['settings']['cloudfront_streaming_domain'];
+      $info[t('CloudFront streaming domain name')] = $container->settings['cloudfront_streaming_domain'];
     }
   }
   
-  if($container['capability'] == STORAGE_API_ACCESS_CONTROL)
-    $info[t('URL lifetime')] = format_interval($container['settings']['url_lifetime']);
+  if($container->capability == STORAGE_API_ACCESS_CONTROL)
+    $info[t('URL lifetime')] = format_interval($container->settings['url_lifetime']);
 
   return $info;
 }
@@ -872,10 +859,10 @@ function storage_s3_cloudfront_storage_container_info($container) {
 /**
  * Implement hook_storage_instance_create() .
  */
-function storage_s3_cloudfront_storage_instance_create($container, $file) {
+function storage_s3_cloudfront_storage_instance_create($container, $storage) {
   
-  $result = _storage_s3_request($container, 'PUT', $container['settings']['bucket'], 
-    $file['file_id'], $file);
+  $result = _storage_s3_request($container, 'PUT', $container->settings['bucket'], 
+    $storage['file_id'], $storage);
   
   return $result['http_code'] == 200;
 }
@@ -884,12 +871,12 @@ function storage_s3_cloudfront_storage_instance_create($container, $file) {
 /**
  * Implement hook_storage_instance_copy() .
  */
-function storage_s3_cloudfront_storage_instance_copy($container, $file, $source_container) {
+function storage_s3_cloudfront_storage_instance_copy($container, $storage, $reference, $source_container) {
   
-  $source['copy_source'] = '/' . $source_container['settings']['bucket'] . '/file-' . $file['file_id'];
+  $source['copy_source'] = '/' . $source_container['settings']['bucket'] . '/file-' . $storage['file_id'];
   
-  $result = _storage_s3_request($container, 'PUT', $container['settings']['bucket'], 
-    $file['file_id'], $source);
+  $result = _storage_s3_request($container, 'PUT', $container->settings['bucket'], 
+    $storage['file_id'], $source);
   
   if($result['http_code'] == 200 && $result['simplexml']) {
 
@@ -904,10 +891,10 @@ function storage_s3_cloudfront_storage_instance_copy($container, $file, $source_
 /**
  * Implement hook_storage_instance_destroy() .
  */
-function storage_s3_cloudfront_storage_instance_destroy($container, $file) {
+function storage_s3_cloudfront_storage_instance_destroy($container, $storage, $reference) {
   
-  $result = _storage_s3_request($container, 'DELETE', $container['settings']['bucket'], 
-    $file['file_id']);
+  $result = _storage_s3_request($container, 'DELETE', $container->settings['bucket'], 
+    $storage['file_id']);
   
   return $result['http_code'] == 204;
 }
@@ -916,10 +903,10 @@ function storage_s3_cloudfront_storage_instance_destroy($container, $file) {
 /**
  * Implement hook_storage_instance_get_filepath() .
  */
-function storage_s3_cloudfront_storage_instance_get_filepath($container, $file) {
+function storage_s3_cloudfront_storage_instance_get_filepath($container, $storage, $reference) {
   
-  $result = _storage_s3_request($container, 'GET', $container['settings']['bucket'], 
-    $file['file_id']);
+  $result = _storage_s3_request($container, 'GET', $container->settings['bucket'], 
+    $storage['file_id']);
 
   return $result['filepath'];
 }
@@ -928,17 +915,17 @@ function storage_s3_cloudfront_storage_instance_get_filepath($container, $file) 
 /**
  * Implement hook_storage_instance_serve() .
  */
-function storage_s3_cloudfront_storage_instance_serve($container, $file) {
+function storage_s3_cloudfront_storage_instance_serve($container, $storage, $reference) {
 
-  return _storage_s3_cloudfront_url($container, $file['file_id']);
+  return _storage_s3_cloudfront_url($container, $storage['file_id']);
 }
 
 
 /**
  * Implement hook_storage_instance_serve_rtmp() .
  */
-function storage_s3_cloudfront_storage_instance_serve_rtmp($container, $file) {
+function storage_s3_cloudfront_storage_instance_serve_rtmp($container, $storage, $reference) {
 
-  return _storage_s3_cloudfront_rtmp($container, $file['file_id']);
+  return _storage_s3_cloudfront_rtmp($container, $storage['file_id']);
 }
 

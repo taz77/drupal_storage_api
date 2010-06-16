@@ -52,16 +52,18 @@ function storage_containers() {
 
   foreach($result as $container) {
     unset($row);
+    
+    $container = new StorageContainer($container);
   
-    $row[] = _storage_container_link($container);
-    $row[] = _storage_get_service_name($container['service_id'], TRUE);
+    $row[] = $container->link();
+    $row[] = _storage_get_service_name($container->service_id, TRUE);
 
     $capabilities = storage_containers_capabilities();
-    $row[] = $capabilities[$container['capability']];
+    $row[] = $capabilities[$container->capability];
     
-    $row[] = $container['suspended'] ? 'Yes' : 'No';
-    $row[] = (int)$container['count'];
-    $row[] = storage_format_size($container['size']);
+    $row[] = $container->suspended ? 'Yes' : 'No';
+    $row[] = (int)$container->count;
+    $row[] = storage_format_size($container->size);
     
     $rows[] = $row;
   }
@@ -138,7 +140,7 @@ function storage_create_container_form($form, &$form_state) {
         '#type' => 'select',
         '#title' => t('Service'),
         '#options' => $services,
-        '#default_value' => isset($form_state['storage']['service_id']) ? $form_state['storage']['service_id'] : NULL,
+        '#default_value' => isset($form_state['storage']['service_id']) ? $form_state['storage']['service_id'] : 'fs',
       );
       
       $form['capability'] = array(
@@ -158,14 +160,16 @@ function storage_create_container_form($form, &$form_state) {
       
     case 2:
     
-      $service_name = _storage_get_service_name($form_state['storage']['service_id']);
+      $container = new StorageContainer($form_state['storage'], FALSE);
+    
+      $service_name = _storage_get_service_name($container->service_id);
     
       $capabilities = storage_containers_capabilities();
 
       $info = array(
-        t('Name') => $form_state['storage']['name'],
+        t('Name') => $container->name(),
         t('Service') => $service_name,
-        t('Capability') => $capabilities[$form_state['storage']['capability']],
+        t('Capability') => $capabilities[$container->capability],
       );
 
       $form['info'] = array(
@@ -178,10 +182,7 @@ function storage_create_container_form($form, &$form_state) {
         '#tree' => TRUE
       );
       
-      $settings = isset($form_state['storage']['settings']) ? $form_state['storage']['settings'] : array();
-      
-      $form['settings'] += _storage_service_invoke($form_state['storage']['service_id'], 
-        'container_settings_form', $settings, $form_state['storage']['capability'], FALSE);
+      $form['settings'] += $container->settings_form();
       
       $form['back'] = array(
         '#type' => 'submit',
@@ -208,7 +209,7 @@ function storage_create_container_form($form, &$form_state) {
  */
 function storage_create_container_form_validate($form, &$form_state) {
 
-  switch($form_state['values']['step']) {
+  switch ($form_state['values']['step']) {
   
     case 1:
 
@@ -225,14 +226,15 @@ function storage_create_container_form_validate($form, &$form_state) {
     
       if($form_state['clicked_button']['#value'] == t('Back'))
         break;
+        
+      $container = new StorageContainer($form_state['storage'], FALSE);
+      $container->validate();
 
-      _storage_service_invoke($form_state['storage']['service_id'], 'container_validate', 
-        $form_state['storage'], FALSE);
-
-      if(!form_get_errors()) {
+      if (!form_get_errors()) {
       
         try {
-          storage_container_create($form_state['storage']);
+          $container->create();
+          $form_state['storage'] = $container;
         }
         catch (Exception $e) {
           form_set_error('settings');
@@ -257,8 +259,10 @@ function storage_create_container_form_submit($form, &$form_state) {
     return;
   }
   
+  $container = $form_state['storage'];
+  
   $form_state['rebuild'] = FALSE;
-  $form_state['redirect'] = _storage_container_path($form_state['storage']);
+  $form_state['redirect'] = $container->path();
   unset($form_state['storage']);
 }
 
@@ -276,28 +280,28 @@ function storage_container_form($form, &$form_state, $container) {
   $form['#container'] = $container;
 
 
-  drupal_set_title(t('Storage container: ') . $container['name'], PASS_THROUGH);
+  drupal_set_title(t('Storage container: ') . $container->name(), PASS_THROUGH);
 
   $capabilities = storage_containers_capabilities();
 
   $container_info = _storage_containers_query()
-    ->condition('storage_container.container_id', $container['container_id'])
+    ->condition('storage_container.container_id', $container->container_id)
     ->execute()
     ->fetchAssoc();
 
-  $info[t('Service')] = _storage_get_service_name($container['service_id'], TRUE);
-  $info[t('Capability')] = $capabilities[$container['capability']];
-  $info[t('Suspended')] = $container['suspended'] ? t('Yes') : t('No');
+  $info[t('Service')] = _storage_get_service_name($container->service_id, TRUE);
+  $info[t('Capability')] = $capabilities[$container->capability];
+  $info[t('Suspended')] = $container->suspended ? t('Yes') : t('No');
   $info[t('Instances')] = (int)$container_info['count'];
   $info[t('Size')] = storage_format_size($container_info['size']);
 
-  $info += _storage_service_invoke($container['service_id'], 'container_info', $container);
+  $info += _storage_service_invoke($container->service_id, 'container_info', $container);
 
   $form['status'] = array(
     '#markup' => theme_storage_info_table($info)
   );
   
-  if(!$container['suspended']) {
+  if(!$container->suspended) {
 
     $form['suspend'] = array(
       '#type' => 'submit',
@@ -340,7 +344,7 @@ function storage_container_form($form, &$form_state, $container) {
 function storage_container_form_suspend($form, &$form_state) {
   $container = $form['#container'];
 
-  $form_state['redirect'] = 'admin/structure/storage/containers/' . $container['container_id'] . '/suspend';
+  $form_state['redirect'] = $container->path() . '/suspend';
 }
 
 
@@ -355,7 +359,7 @@ function storage_container_form_suspend($form, &$form_state) {
 function storage_container_form_unsuspend($form, &$form_state) {
   $container = $form['#container'];
 
-  $form_state['redirect'] = 'admin/structure/storage/containers/' . $container['container_id'] . '/unsuspend';
+  $form_state['redirect'] = $container->path() . '/unsuspend';
 }
 
 
@@ -370,7 +374,7 @@ function storage_container_form_unsuspend($form, &$form_state) {
 function storage_container_form_drain($form, &$form_state) {
   $container = $form['#container'];
 
-  $form_state['redirect'] = 'admin/structure/storage/containers/' . $container['container_id'] . '/drain';
+  $form_state['redirect'] = $container->path() . '/drain';
 }
 
 
@@ -385,7 +389,7 @@ function storage_container_form_drain($form, &$form_state) {
 function storage_container_form_destroy($form, &$form_state) {
   $container = $form['#container'];
 
-  $form_state['redirect'] = 'admin/structure/storage/containers/' . $container['container_id'] . '/destroy';
+  $form_state['redirect'] = $container->path() . '/destroy';
 }
 
 
@@ -398,8 +402,8 @@ function storage_container_form_destroy($form, &$form_state) {
 function storage_container_suspend_form($form, &$form_state, $container) {
   $form['#container'] = $container;
 
-  return confirm_form($form, 'Are you sure you want to suspend storage container <i>' . $container['name'] . '</i> ?', 
-    'admin/structure/storage/containers/' . $container['container_id'], t(''));
+  return confirm_form($form, 'Are you sure you want to suspend storage container <i>' . $container->name() . '</i> ?', 
+    $container->path(), t(''));
 }
 
 
@@ -410,22 +414,17 @@ function storage_container_suspend_form($form, &$form_state, $container) {
  */
 function storage_container_suspend_form_submit($form, &$form_state) {
   $container = $form['#container'];
-
-  $update = array(
-    'container_id' => $container['container_id'],
-    'suspended' => TRUE,
-  );
   
-  drupal_write_record('storage_container', $update, 'container_id');
-  _storage_container_flush_serving_container($container['container_id']);
+  $container->suspended = TRUE;
+  $container->update();
+  $container->flush_serving_container();
 
-  $message = 'Storage container <i>' . $container['name'] . '</i> has been suspended.';
-  $path = 'admin/structure/storage/containers/' . $container['container_id'];
+  $message = 'Storage container <i>' . $container->name() . '</i> has been suspended.';
 
   drupal_set_message($message);
-  watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));
+  watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $container->path()));
 
-  $form_state['redirect'] = $path;
+  $form_state['redirect'] = $container->path();
 }
 
 
@@ -439,7 +438,7 @@ function storage_container_unsuspend_form($form, &$form_state, $container) {
   $form['#container'] = $container;
 
   return confirm_form($form, 'Are you sure you want to unsuspend storage container <i>' . 
-    $container['name'] . '</i> ?', 'admin/structure/storage/containers/' . $container['container_id'], t(''));
+    $container->name() . '</i> ?', $container->path(), t(''));
 }
 
 
@@ -451,21 +450,16 @@ function storage_container_unsuspend_form($form, &$form_state, $container) {
 function storage_container_unsuspend_form_submit($form, &$form_state) {
   $container = $form['#container'];
 
-  $update = array(
-    'container_id' => $container['container_id'],
-    'suspended' => FALSE,
-  );
-  
-  drupal_write_record('storage_container', $update, 'container_id');
-  _storage_container_flush_serving_container($container['container_id']);
+  $container->suspended = FALSE;
+  $container->update();
+  $container->flush_serving_container();
 
-  $message = 'Storage container <i>' . $container['name'] . '</i> has been unsuspended.';
-  $path = 'admin/structure/storage/containers/' . $container['container_id'];
+  $message = 'Storage container <i>' . $container->name() . '</i> has been unsuspended.';
 
   drupal_set_message($message);
-  watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));
+  watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $container->path));
   
-  $form_state['redirect'] = $path;
+  $form_state['redirect'] = $container->path;
 }
 
 
@@ -479,7 +473,7 @@ function storage_container_drain_form($form, &$form_state, $container) {
   $form['#container'] = $container;
 
   return confirm_form($form, 'Are you sure you want to drain storage container <i>' . 
-    $container['name'] . '</i> ?', 'admin/structure/storage/containers/' . $container['container_id'], t(''));
+    $container->name() . '</i> ?', $container->path(), t(''));
 }
 
 
@@ -491,9 +485,9 @@ function storage_container_drain_form($form, &$form_state, $container) {
 function storage_container_drain_form_submit($form, &$form_state) {
   $container = $form['#container'];
 
-  storage_drain_container($container);
+  $container->drain();
   
-  $form_state['redirect'] = 'admin/structure/storage/containers/' . $container['container_id'];
+  $form_state['redirect'] = $container->path();
 }
 
 
@@ -507,7 +501,7 @@ function storage_container_destroy_form($form, &$form_state, $container) {
   $form['#container'] = $container;
 
   return confirm_form($form, 'Are you sure you want to destroy storage container <i>' . 
-    $container['name'] . '</i> ?', 'admin/structure/storage/containers/' . $container['container_id'], t(''));
+    $container->name() . '</i> ?', $container->path(), t(''));
 }
 
 
@@ -518,28 +512,8 @@ function storage_container_destroy_form($form, &$form_state, $container) {
  */
 function storage_container_destroy_form_submit($form, &$form_state) {
   $container = $form['#container'];
-
-  db_delete('storage_container')
-    ->condition('container_id', $container['container_id'])
-    ->execute();
-
-  db_delete('storage_class_container')
-    ->condition('container_id', $container['container_id'])
-    ->execute();
-
-  db_delete('storage_instance')
-    ->condition('container_id', $container['container_id'])
-    ->execute();
-
-  _storage_container_flush_serving_container($container['container_id']);
-
-  $success = _storage_service_invoke($container['service_id'], 'container_destroy', $container);
-
-  $message = 'Storage container <i>' . $container['name'] . '</i> has been destroyed.';
-
-  drupal_set_message($message);
-  watchdog('storage_api', $message, NULL);
-
+  
+  $container->destroy();
   $form_state['redirect'] = 'admin/structure/storage/containers';
 }
 
@@ -554,30 +528,29 @@ function storage_container_destroy_form_submit($form, &$form_state) {
 function storage_container_edit_form($form, &$form_state, $container) {
   $form['#container'] = $container;
 
-  $service_name = _storage_get_service_name($container['service_id']);
+  $service_name = _storage_get_service_name($container->service_id);
 
-  drupal_set_title(t('Storage container: ') . $container['name'] . 
+  drupal_set_title(t('Storage container: ') . $container->name() . 
     ' (' . $service_name . ')', PASS_THROUGH);
   
   $form['name'] = array(
     '#title' => 'Name',
     '#type' => 'textfield',
     '#required' => TRUE,
-    '#default_value' => $container['name']
+    '#default_value' => $container->name,
   );
 
   $form['settings'] = array(
     '#type' => 'fieldset',
     '#title' => $service_name . t(' settings'),
-    '#tree' => TRUE
+    '#tree' => TRUE,
   );
   
-  $form['settings'] += _storage_service_invoke($container['service_id'], 'container_settings_form', 
-    $container['settings'], $container['capability'], TRUE);
+  $form['settings'] += $container->settings_form(TRUE);
 
   $form['submit'] = array(
     '#type' => 'submit',
-    '#value' => 'Save'
+    '#value' => 'Save',
   );
   
   return $form;
@@ -593,9 +566,8 @@ function storage_container_edit_form($form, &$form_state, $container) {
 function storage_container_edit_form_validate($form, &$form_state) {
   $container = $form['#container'];
   
-  $container['settings'] = $form_state['values']['settings'] + $container['settings'];
-
-  _storage_service_invoke($container['service_id'], 'container_validate', $container, TRUE);
+  $container->settings = $form_state['values']['settings'] + $container->settings;
+  $container->validate(TRUE);
 }
 
 
@@ -608,21 +580,20 @@ function storage_container_edit_form_validate($form, &$form_state) {
 function storage_container_edit_form_submit($form, &$form_state) {
   $container = $form['#container'];
 
-  $container['name'] = $form_state['values']['name'];
-  $container['settings'] = $form_state['values']['settings'] + $container['settings'];
+  $container->name = $form_state['values']['name'];
+  $container->settings = $form_state['values']['settings'] + $container->settings;
 
-  $updated_container = _storage_service_invoke($container['service_id'], 'container_update', $container);
+  $updated_container = _storage_service_invoke($container->service_id, 'container_update', $container);
   $container = $updated_container ? $updated_container : $container;
+  
+  $container->update();
+  $container->flush_serving_container();
 
-  drupal_write_record('storage_container', $container, 'container_id');
-  _storage_container_flush_serving_container($container['container_id']);
-
-  $message = 'Storage container <i>' . $container['name'] . '</i> has been updated.';
-  $path = 'admin/build/storage/containers/' . $container['container_id'];
+  $message = 'Storage container <i>' . $container->name() . '</i> has been updated.';
 
   drupal_set_message($message);
-  watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));
+  watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $container->path()));
 
-  $form_state['redirect'] = 'admin/build/storage/containers/' . $container['container_id'];
+  $form_state['redirect'] = $container->path();
 }
 

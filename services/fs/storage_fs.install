@@ -11,16 +11,15 @@ function storage_fs_install() {
   $container = storage_fs_default_container_create();
 
   if($container) {
-    $class = storage_class_load(variable_get('storage_api_initial_class'));
+    $class = new StorageClass(variable_get('storage_api_initial_class'));
     
     if($class) {
-      storage_class_add_container($class, $container);
+      $class->addContainer($container);
     }
   }
 }
 
 
 function storage_fs_uninstall() {
-
 }
 

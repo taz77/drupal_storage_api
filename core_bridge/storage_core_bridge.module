@@ -64,8 +64,9 @@ function storage_core_bridge_stream_wrappers() {
  */
 function storage_core_bridge_form_field_ui_field_settings_form_alter(&$form, &$form_state) {
 
-  if($form['field']['type']['#value'] != 'file')
+  if ($form['field']['type']['#value'] != 'file') {
     return;
+  }
     
   $field_selectors = variable_get('storage_field_selectors', array());
   $selector_id = $field_selectors[$form['field']['field_name']['#value']];
@@ -81,8 +82,9 @@ function storage_core_bridge_form_field_ui_field_settings_form_alter(&$form, &$f
  */
 function storage_core_bridge_form_field_ui_field_edit_form_alter(&$form, &$form_state) {
 
-  if($form['#field']['type'] != 'file')
+  if ($form['#field']['type'] != 'file') {
     return;
+  }
     
   $field_selectors = variable_get('storage_field_selectors', array());
   $selector_id = $field_selectors[$form['#field']['field_name']];
@@ -113,7 +115,6 @@ function _storage_core_bridge_load($uri) {
 
 
 class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
-
   protected $uri;
   protected $filepath;
   protected $fp;
@@ -124,46 +125,75 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
   }
 
   public function url_stat($uri, $flags) {
+    dsm(__FUNCTION__);
+    dsm(func_get_args());
+
     global $storage_core_bridge_filename;
     $filename = file_uri_target($uri);
 
-    if($filename == '') {
+    if ($filename == '') {
       unset($storage_core_bridge_filename);
       return array('mode' => 0040666);
     }
     
-    if(!isset($storage_core_bridge_filename))
+    if (!isset($storage_core_bridge_filename))
       $storage_core_bridge_filename = $filename;
 
     $storage = _storage_core_bridge_load($uri);
     
-    if(!$storage)
+    if (!$storage)
       return FALSE;
       
     $stat = array(
       'mode' => 0100666,
-      'size' => $storage['size'],
-      'atime' => $storage['last_touched'],
-      'mtime' => $storage['obtained'],
-      'ctime' => $storage['obtained'],
+      'size' => $storage->size,
+      'atime' => $storage->last_touched,
+      'mtime' => $storage->obtained,
+      'ctime' => $storage->obtained,
     );
 
     return $stat;
   }
   
-  public function mkdir($uri, $mode, $options) {    // dont define?
-    return TRUE;
-  }
-  
   function setUri($uri) {
+    dsm(__FUNCTION__);
+    dsm(func_get_args());
+
     $this->uri = $uri;
   }
   
+  public function getTarget($uri = NULL) {
+    dsm(__FUNCTION__);
+    dsm(func_get_args());
+
+    if (!isset($uri)) {
+      $uri = $this->uri;
+    }
+
+    list($scheme, $target) = explode('://', $uri, 2);
+
+    // Remove erroneous leading or trailing, forward-slashes and backslashes.
+    return trim($target, '\/');
+  }
+
+  public function mkdir($uri, $mode, $options) {    // dont define?
+    dsm(__FUNCTION__);
+    dsm(func_get_args());
+
+    return TRUE;
+  }
+  
   public function chmod($mode) {    // dont define?
+    dsm(__FUNCTION__);
+    dsm(func_get_args());
+
     return TRUE;
   }
   
   public function stream_open($uri, $mode, $options, &$opened_url) {
+    dsm(__FUNCTION__);
+    dsm(func_get_args());
+
     $this->uri = $uri;
     $this->filepath = drupal_tempnam('temporary://', 'storage');
     $this->fp = fopen($this->filepath, "w");
@@ -171,14 +201,23 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
   }
   
   public function stream_write($data) {
+    dsm(__FUNCTION__);
+    dsm(func_get_args());
+
     return fwrite($this->fp, $data);
   }
   
   public function stream_flush() {
+    dsm(__FUNCTION__);
+    dsm(func_get_args());
+
     return fflush($this->fp);
   }
   
   public function stream_close() {
+    dsm(__FUNCTION__);
+    dsm(func_get_args());
+
     global $storage_core_bridge_filename;
     fclose($this->fp);
     $selector_id = $this->selectorId();
@@ -194,18 +233,27 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
   }
   
   public function realpath() {
+    dsm(__FUNCTION__);
+    dsm(func_get_args());
+
     return $this->uri;
   }
 
   public function unlink($uri) {
+    dsm(__FUNCTION__);
+    dsm(func_get_args());
+
     $storage = _storage_core_bridge_load($uri);
-    storage_remove($storage);
+    $storage->remove();
     return TRUE;
   }
   
   public function getExternalUrl() {
+    dsm(__FUNCTION__);
+    dsm(func_get_args());
+
     $storage = _storage_core_bridge_load($this->uri);
-    return storage_serve_url($storage, TRUE);
+    return $storage->serve_url(TRUE);
   }
   
   
@@ -214,7 +262,7 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
     dsm(func_get_args());
 
     $storage = _storage_core_bridge_load($this->uri);
-    return $storage['mimetype'];
+    return $storage->mimetype;
   }
 
   public function getUri() {
@@ -224,7 +272,22 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
     return $this->uri;
   }
   
-  
+
+  public function dirname($uri = NULL) {
+    dsm(__FUNCTION__);
+    dsm(func_get_args());
+
+    list($scheme, $target) = explode('://', $uri, 2);
+    $target  = $this->getTarget($uri);
+    $dirname = dirname($target);
+
+    if ($dirname == '.') {
+      $dirname = '';
+    }
+
+    return $scheme . '://' . $dirname;
+  }
+
   public function stream_lock($operation) {
     dsm(__FUNCTION__);
     dsm(func_get_args());

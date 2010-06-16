@@ -1,7 +1,7 @@
 <?php
 // $Id$
 
-// Copyright 2008-2009 Jonathan Brown
+// Copyright 2008-2010 Jonathan Brown
 
 
 _storage_update_services();
@@ -69,24 +69,6 @@ function storage_services() {
 }
 
 
-function _storage_service_flush_serving_container($service_id) {
-
-  $selector_subquery = db_select('storage_container');
-  $selector_subquery->join('storage_class_container', NULL, 'storage_container.container_id = storage_class_container.container_id');
-  $selector_subquery->join('storage_selector', NULL, 'storage_class_container.class_id = storage_selector.class_id');
-  
-  $selector_subquery->fields('storage_selector', array('selector_id'))
-    ->condition('storage_container.service_id', $service_id);
-    
-  db_update('storage')
-    ->expression('serving_container', 'NULL')
-    ->condition('selector_id', $selector_subquery, 'IN')
-    ->execute();
-
-  cache_clear_all();
-}
-
-
 /**
  * FAPI definition for the service form.
  *
@@ -98,34 +80,34 @@ function storage_service_form($form, &$form_state, $service) {
   $form['#service'] = $service;
 
 
-  drupal_set_title(t('Storage service: ') . $service['name'], PASS_THROUGH);
+  drupal_set_title(t('Storage service: ') . $service->name(), PASS_THROUGH);
 
   $data = _storage_services_query()
-    ->condition('storage_service.service_id', $service['service_id'])
+    ->condition('storage_service.service_id', $service->service_id)
     ->execute()
     ->fetchAssoc();
 
   $info[t('Instances')] = (int)$data['count'];
   $info[t('Size')] = storage_format_size($data['size']);
-  $info[t('Suspended')] = $service['suspended'] ? t('Yes') : t('No');
+  $info[t('Suspended')] = $service->suspended ? t('Yes') : t('No');
 
   $form['status'] = array(
     '#markup' => theme_storage_info_table($info)
   );
 
-  if(!$service['suspended']) {
+  if(!$service->suspended) {
 
     $form['suspend'] = array(
       '#type' => 'submit',
       '#value' => t('Suspend'),
-      '#submit' => array('storage_service_form_suspend')
+      '#submit' => array('storage_service_form_suspend'),
     );
   }
   else {
     $form['unsuspend'] = array(
       '#type' => 'submit',
       '#value' => t('Unsuspend'),
-      '#submit' => array('storage_service_form_unsuspend')
+      '#submit' => array('storage_service_form_unsuspend'),
     );
   }
   
@@ -142,7 +124,7 @@ function storage_service_form($form, &$form_state, $service) {
 function storage_service_form_suspend($form, &$form_state) {
   $service = $form['#service'];
 
-  $form_state['redirect'] = 'admin/structure/storage/services/' . $service['service_id'] . '/suspend';
+  $form_state['redirect'] = $service->path() . '/suspend';
 }
 
 
@@ -155,7 +137,7 @@ function storage_service_form_suspend($form, &$form_state) {
 function storage_service_form_unsuspend($form, &$form_state) {
   $service = $form['#service'];
 
-  $form_state['redirect'] = 'admin/structure/storage/services/' . $service['service_id'] . '/unsuspend';
+  $form_state['redirect'] = $service->path() . '/unsuspend';
 }
 
 
@@ -168,8 +150,8 @@ function storage_service_form_unsuspend($form, &$form_state) {
 function storage_service_suspend_form($form, &$form_state, $service) {
   $form['#service'] = $service;
 
-  return confirm_form($form, 'Are you sure you want to suspend storage service <i>' . $service['name'] . '</i> ?', 
-    'admin/structure/storage/services/' . $service['service_id'], t(''));
+  return confirm_form($form, 'Are you sure you want to suspend storage service <i>' . $service->name() . '</i> ?', 
+    $service->path(), t(''));
 }
 
 
@@ -181,21 +163,16 @@ function storage_service_suspend_form($form, &$form_state, $service) {
 function storage_service_suspend_form_submit($form, &$form_state) {
   $service = $form['#service'];
   
-  $update = array(
-    'service_id' => $service['service_id'],
-    'suspended' => TRUE,
-  );
-  
-  drupal_write_record('storage_service', $update, 'service_id');
-  _storage_service_flush_serving_container($service['service_id']);
+  $service->suspended = TRUE;
+  $service->update();
+  $service->flush_serving_container();
 
-  $message = 'Storage service <i>' . $service['name'] . '</i> has been suspended.';
-  $path = 'admin/structure/storage/services/' . $service['service_id']; 
+  $message = 'Storage service <i>' . $service->name() . '</i> has been suspended.';
 
   drupal_set_message($message);
-  watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));
+  watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $service->path()));
 
-  $form_state['redirect'] = $path;
+  $form_state['redirect'] = $service->path();
 }
 
 
@@ -208,8 +185,8 @@ function storage_service_suspend_form_submit($form, &$form_state) {
 function storage_service_unsuspend_form($form, &$form_state, $service) {
   $form['#service'] = $service;
 
-  return confirm_form($form, 'Are you sure you want to unsuspend storage service <i>' . $service['name'] . '</i> ?', 
-    'admin/structure/storage/services/' . $service['service_id'], t(''));
+  return confirm_form($form, 'Are you sure you want to unsuspend storage service <i>' . $service->name() . '</i> ?', 
+    $service->path(), t(''));
 }
 
 
@@ -221,20 +198,15 @@ function storage_service_unsuspend_form($form, &$form_state, $service) {
 function storage_service_unsuspend_form_submit($form, &$form_state) {
   $service = $form['#service'];
   
-  $update = array(
-    'service_id' => $service['service_id'],
-    'suspended' => FALSE,
-  );
-  
-  drupal_write_record('storage_service', $update, 'service_id');
-  _storage_service_flush_serving_container($service['service_id']);
+  $service->suspended = FALSE;
+  $service->update();
+  $service->flush_serving_container();
 
-  $message = 'Storage service <i>' . $service['name'] . '</i> has been unsuspended.';
-  $path = 'admin/structure/storage/services/' . $service['service_id']; 
+  $message = 'Storage service <i>' . $service->name() . '</i> has been unsuspended.';
 
   drupal_set_message($message);
-  watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $path));
+  watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $service->path()));
 
-  $form_state['redirect'] = $path;
+  $form_state['redirect'] = $service->path();
 }
 

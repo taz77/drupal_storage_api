@@ -23,12 +23,12 @@ function storage_db_storage_service_info() {
 /**
  * Implement hook_storage_container_settings_form() .
  */
-function storage_db_storage_container_settings_form($settings, $serving, $edit) {
+function storage_db_storage_container_settings_form($container, $edit) {
   global $db_url;
   
-  if(is_array($db_url)) {
+  if (is_array($db_url)) {
   
-    foreach($db_url as $key => $url)
+    foreach ($db_url as $key => $url)
       $options[$key] = $key;
   
     $items['db'] = array(
@@ -37,7 +37,7 @@ function storage_db_storage_container_settings_form($settings, $serving, $edit) 
       '#options' => $options,
       '#required' => TRUE,
       '#validated' => TRUE,
-      '#default_value' => isset($settings['db']) ? $settings['db'] : NULL,
+      '#default_value' => isset($container->settings['db']) ? $container->settings['db'] : NULL,
     );
   }
   else {
@@ -50,7 +50,7 @@ function storage_db_storage_container_settings_form($settings, $serving, $edit) 
     '#description' => t('Without prefix or {}, e.g. \'storage_contents\'.'),
     '#required' => TRUE,
     '#validated' => TRUE,
-    '#default_value' => isset($settings['table']) ? $settings['table'] : NULL,
+    '#default_value' => isset($container->settings['table']) ? $container->settings['table'] : NULL,
   );
   
   return $items;
@@ -62,7 +62,7 @@ function storage_db_storage_container_settings_form($settings, $serving, $edit) 
  */
 function storage_db_storage_container_validate($container, $edit) {
 
-  if(!$container['settings']['table']) {
+  if(!$container->settings['table']) {
     form_set_error('settings][path', t('Database table field is required.'));
   }
 }
@@ -73,7 +73,7 @@ function storage_db_storage_container_validate($container, $edit) {
  */
 function storage_db_storage_container_create($container) {
 
-  db_set_active($container['settings']['db']);
+  db_set_active($container->settings['db']);
   
   $success = db_query("
     CREATE TABLE {%s} (
@@ -82,12 +82,10 @@ function storage_db_storage_container_create($container) {
       PRIMARY KEY (object_id)
     )
   ",
-    $container['settings']['table']
+    $container->settings['table']
   );
   
   db_set_active();
-  
-  return $container;
 }
 
 
@@ -97,9 +95,9 @@ function storage_db_storage_container_create($container) {
 function storage_db_storage_container_info($container) {
 
   if($container['settings']['db'])
-    $info[t('Database')] = $container['settings']['db'];
+    $info[t('Database')] = $container->settings['db'];
     
-  $info[t('Table')] = $container['settings']['table'];
+  $info[t('Table')] = $container->settings['table'];
 
   return $info;
 }
@@ -110,12 +108,12 @@ function storage_db_storage_container_info($container) {
  */
 function storage_db_storage_container_destroy($container) {
   
-  db_set_active($container['settings']['db']);
+  db_set_active($container->settings['db']);
 
   $success = db_query("  
     DROP TABLE {%s}
   ",
-    $container['settings']['table']
+    $container->settings['table']
   );
   
   db_set_active();
@@ -127,18 +125,18 @@ function storage_db_storage_container_destroy($container) {
 /**
  * Implement hook_storage_instance_create() .
  */
-function storage_db_storage_instance_create($container, $file) {
+function storage_db_storage_instance_create($container, $storage) {
   
-  db_set_active($container['settings']['db']);
+  db_set_active($container->settings['db']);
   
   $success = db_query("
     INSERT INTO {%s}
     SET object_id = %d,
       contents = 0x%s
   ",
-    $container['settings']['table'],
-    $file['object_id'],
-    bin2hex(file_get_contents($file['filepath']))
+    $container->settings['table'],
+    $storage->object_id,
+    bin2hex(file_get_contents($storage->filepath))
   );
   
   db_set_active();
@@ -150,16 +148,16 @@ function storage_db_storage_instance_create($container, $file) {
 /**
  * Implement hook_storage_instance_destroy() .
  */
-function storage_db_storage_instance_destroy($container, $file) {
+function storage_db_storage_instance_destroy($container, $storage, $reference) {
   
-  db_set_active($container['settings']['db']);
+  db_set_active($container->settings['db']);
   
   $success = db_query("
     DELETE FROM {%s}
     WHERE object_id = %d
   ",
-    $container['settings']['table'],
-    $file['object_id']
+    $container->settings['table'],
+    $storage->object_id
   );
 
   db_set_active();
@@ -171,11 +169,11 @@ function storage_db_storage_instance_destroy($container, $file) {
 /**
  * Implement hook_storage_instance_get_filepath() .
  */
-function storage_db_storage_instance_get_filepath($container, $file) {
+function storage_db_storage_instance_get_filepath($container, $storage, $reference) {
   
   $filepath = tempnam(file_directory_temp(), '');
   
-  db_set_active($container['settings']['db']);
+  db_set_active($container->settings['db']);
 
   $success = file_put_contents($filepath,
     db_result(db_query("
@@ -183,8 +181,8 @@ function storage_db_storage_instance_get_filepath($container, $file) {
       FROM {%s}
       WHERE object_id = %d
     ",
-      $container['settings']['table'],
-      $file['object_id']
+      $container->settings['table'],
+      $storage->object_id
     ))
   );
 
@@ -202,18 +200,18 @@ function storage_db_storage_instance_get_filepath($container, $file) {
 /**
  * Implement hook_storage_instance_serve() .
  */
-function storage_db_storage_instance_serve($container, $file) {
-  storage_api_set_http_headers($file);
+function storage_db_storage_instance_serve($container, $storage, $reference) {
+  $storage->set_http_headers();
   
-  db_set_active($container['settings']['db']);
+  db_set_active($container->settings['db']);
 
   echo db_result(db_query("
     SELECT contents
     FROM {%s}
     WHERE object_id = %d
   ",
-    $container['settings']['table'],
-    $file['object_id']
+    $container->settings['table'],
+    $storage->object_id
   ));
   
   exit();
