@@ -15,7 +15,7 @@ class StorageService {
         ->execute()
         ->fetchAssoc();
         
-      if(!$service)
+      if (!$service)
         throw new Exception();
     }
     

@@ -50,7 +50,7 @@ function storage_containers() {
     ->orderBy('storage_container.container_id')
     ->execute();
 
-  foreach($result as $container) {
+  foreach ($result as $container) {
     unset($row);
     
     $container = new StorageContainer($container);
@@ -68,7 +68,7 @@ function storage_containers() {
     $rows[] = $row;
   }
   
-  if(empty($rows)) {
+  if (empty($rows)) {
     $rows[] = array(array('data' => t('No containers exist.'), 'colspan' => 6, 'class' => 'message'));
   }
 
@@ -91,17 +91,17 @@ function storage_create_container_form($form, &$form_state) {
 
   drupal_set_title(t('Storage containers'), PASS_THROUGH);
 
-  if(!isset($form_state['values']['step'])) {
+  if (!isset($form_state['values']['step'])) {
     $step = 1;
   }
   else {
-    if($form_state['clicked_button']['#value'] == t('Back')) {
+    if ($form_state['clicked_button']['#value'] == t('Back')) {
       $step = $form_state['values']['step'] - 1;
     }
     else {
       $step = $form_state['values']['step'];
       
-      if(!form_get_errors())
+      if (!form_get_errors())
         $step++;
     }
   }
@@ -113,13 +113,13 @@ function storage_create_container_form($form, &$form_state) {
     '#value' => $step
   );
 
-  switch($step) {
+  switch ($step) {
     
     case 1:
     
       $services = _storage_get_service_names();
       
-      if(count($services) == 0) {
+      if (count($services) == 0) {
       
         $form[] = array(
           '#markup' => '<p>There are no storage services available. Please enable a service module on the ' . 
@@ -224,7 +224,7 @@ function storage_create_container_form_validate($form, &$form_state) {
     
       $form_state['storage']['settings'] = $form_state['values']['settings'];
     
-      if($form_state['clicked_button']['#value'] == t('Back'))
+      if ($form_state['clicked_button']['#value'] == t('Back'))
         break;
         
       $container = new StorageContainer($form_state['storage'], FALSE);
@@ -254,7 +254,7 @@ function storage_create_container_form_validate($form, &$form_state) {
  */
 function storage_create_container_form_submit($form, &$form_state) {
 
-  if($form_state['clicked_button']['#value'] != t('Create')) {
+  if ($form_state['clicked_button']['#value'] != t('Create')) {
     $form_state['rebuild'] = TRUE;
     return;
   }
@@ -301,7 +301,7 @@ function storage_container_form($form, &$form_state, $container) {
     '#markup' => theme_storage_info_table($info)
   );
   
-  if(!$container->suspended) {
+  if (!$container->suspended) {
 
     $form['suspend'] = array(
       '#type' => 'submit',

@@ -42,7 +42,7 @@ function storage_services() {
   $result = _storage_services_query()
     ->execute();
 
-  foreach($result as $service) {
+  foreach ($result as $service) {
     unset($row);
   
     $name = _storage_get_service_name($service['service_id']);
@@ -55,7 +55,7 @@ function storage_services() {
     $rows[$name] = $row;
   }
   
-  if(empty($rows)) {
+  if (empty($rows)) {
     $rows[] = array(array('data' => t('No service modules enabled.'), 'colspan' => 4, 'class' => 'message'));
   }
   
@@ -95,7 +95,7 @@ function storage_service_form($form, &$form_state, $service) {
     '#markup' => theme_storage_info_table($info)
   );
 
-  if(!$service->suspended) {
+  if (!$service->suspended) {
 
     $form['suspend'] = array(
       '#type' => 'submit',

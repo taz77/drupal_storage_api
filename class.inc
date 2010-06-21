@@ -15,7 +15,7 @@ class StorageClass {
         ->execute()
         ->fetchAssoc();
 
-      if(!$class)
+      if (!$class)
         throw new Exception();
     }
     
@@ -25,7 +25,7 @@ class StorageClass {
     $this->options = unserialize($this->options);
     
     try {
-      if(isset($this->options['initial_container_id']))
+      if (isset($this->options['initial_container_id']))
         $this->initial_container = new StorageContainer($this->options['initial_container_id']);
     }
     catch (Exception $e) {}

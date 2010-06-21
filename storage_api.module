@@ -348,7 +348,7 @@ function _storage_service_invoke_all() {
   array_unshift($args, NULL);
   $args[1] = 'storage_' . $args[1];
   
-  foreach(module_implements($args[1], TRUE) as $module) {
+  foreach (module_implements($args[1], TRUE) as $module) {
     $args[0] = $module;
     $results[substr($module, 8)] = call_user_func_array('module_invoke', $args);
   }
@@ -452,7 +452,7 @@ function storage_selector_item($selector_id, $title, $description = NULL) {
   
   $classes = array();
 
-  foreach($result as $class) {
+  foreach ($result as $class) {
     $classes[$class['class_id']] = $class['name'];
   }
   
@@ -496,7 +496,7 @@ function storage_selector_item($selector_id, $title, $description = NULL) {
  */
 function storage_selector_submit($form_item) {
 
-  if($form_item['current_class_id'] == $form_item['class_id'])
+  if ($form_item['current_class_id'] == $form_item['class_id'])
     return;
 
 
@@ -517,7 +517,7 @@ function storage_selector_submit($form_item) {
     ->execute()
     ->fetchField();
   
-  if($num_files) {
+  if ($num_files) {
 
     db_merge('storage_selector')
       ->key(array(
@@ -591,7 +591,7 @@ function storage_file_id($filename, $size, $md5, $mimetype, &$new_file = NULL) {
     ->execute()
     ->fetchField();
 
-  if(!$file_id) {
+  if (!$file_id) {
   
     $file = array(
       'filename' => $filename,
@@ -615,7 +615,7 @@ function _storage_file_id($filepath, $filename, &$new_file = NULL) {
 
   $fileinfo = @stat($filepath);
   
-  if(!$fileinfo)
+  if (!$fileinfo)
     return FALSE;
 
   $md5 = hash_file('md5', $filepath, TRUE);
@@ -646,7 +646,7 @@ function _storage_acquire_from_url($url) {
   $info = curl_getinfo($ch);
   curl_close($ch);
   
-  switch((int)($info['http_code'] / 100)) {
+  switch ((int)($info['http_code'] / 100)) {
   
     case 2:
       return $filepath;
@@ -667,7 +667,7 @@ function _storage_delete_file_if_unrequired($file_id) {
   
   // do any storages use this file?
   
-  if(db_select('storage')
+  if (db_select('storage')
     ->condition('file_id', $file_id)
     ->countQuery()
     ->execute()
@@ -703,7 +703,7 @@ function _storage_get_service_names() {
 
   $services = _storage_service_invoke_all('service_info');
   
-  foreach($services as &$service)
+  foreach ($services as &$service)
     $service = $service['name'];
     
   asort($services);
@@ -716,7 +716,7 @@ function _storage_get_service_name($service_id, $link = FALSE) {
 
   $info = _storage_service_invoke($service_id, 'service_info');
   
-  if($link)
+  if ($link)
     return l($info['name'], 'admin/structure/storage/services/' . $service_id);
   else
     return $info['name'];
@@ -727,7 +727,7 @@ function _storage_bcmath() {
 
   // crappy bcmath replacements
 
-  if(!function_exists('bcdiv'))
+  if (!function_exists('bcdiv'))
   {
     function bcdiv($left_operand, $right_operand, $scale = 0)
     {
@@ -735,14 +735,14 @@ function _storage_bcmath() {
     }
   }
 
-  if(!function_exists('bccomp'))
+  if (!function_exists('bccomp'))
   {
     function bccomp($left_operand, $right_operand, $scale = 0)
     {
-      if($left_operand == $right_operand)
+      if ($left_operand == $right_operand)
         return 0;
         
-      if($left_operand > $right_operand)
+      if ($left_operand > $right_operand)
         return 1;
         
       return -1;
@@ -764,7 +764,7 @@ function _storage_bcmath() {
 function storage_format_size($count) {
   _storage_bcmath();
 
-  if(bccomp($count, 1000) < 0) {
+  if (bccomp($count, 1000) < 0) {
     return format_plural((int)$count, '1 byte', '@count bytes');
   }
   
@@ -801,7 +801,7 @@ function storage_api_theme($existing, $type, $theme, $path) {
 
 function theme_storage_info_table($info) {
 
-  foreach($info as $key => $value) {
+  foreach ($info as $key => $value) {
     $rows[] = array(
       array(
         'data' => $key . ':',
@@ -824,7 +824,7 @@ function _storage_update_services() {
 
   $code_service_ids = array();
 
-  foreach($modules as $module)
+  foreach ($modules as $module)
     $code_service_ids[] = substr($module, 8);
 
 
@@ -834,9 +834,9 @@ function _storage_update_services() {
 
   $db_service_ids = array();
 
-  foreach($result as $service) {
+  foreach ($result as $service) {
 
-    if(!in_array($service['service_id'], $code_service_ids)) {
+    if (!in_array($service['service_id'], $code_service_ids)) {
 
       db_delete('storage_service')
         ->condition('service_id', $service['service_id'])
@@ -848,9 +848,9 @@ function _storage_update_services() {
   }
   
   
-  foreach($code_service_ids as $service_id) {
+  foreach ($code_service_ids as $service_id) {
   
-    if(!in_array($service_id, $db_service_ids)) {
+    if (!in_array($service_id, $db_service_ids)) {
     
       db_insert('storage_service')
         ->fields(array(

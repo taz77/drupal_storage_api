@@ -32,7 +32,7 @@ class Storage {
     $storage['data'] = unserialize($storage['data']);
     $storage['options'] = unserialize($storage['options']);
 
-    if($storage['serving_container'])
+    if ($storage['serving_container'])
       $storage['serving_container'] = unserialize($storage['serving_container']);
 
     foreach ($storage as $key => $value)
@@ -56,7 +56,7 @@ class Storage {
       'referrer' => substr($_SERVER['HTTP_REFERER'], 0, 255)
     );
     
-    if($container_id) {
+    if ($container_id) {
       $serving['container_id'] = $container_id;
     }
 
@@ -125,7 +125,7 @@ class Storage {
       ->execute()
       ->fetchAssoc();
 
-    if(!$instance)
+    if (!$instance)
       return FALSE;
 
     return $container + $instance;
@@ -153,7 +153,7 @@ class Storage {
       ->execute()
       ->fetchAssoc();
     
-    if($container) {
+    if ($container) {
       $container = new StorageContainer($container);
 
       $query = db_select('storage_instance');
@@ -168,10 +168,10 @@ class Storage {
         ->execute()
         ->fetchAssoc();
 
-      if(!$instance)
+      if (!$instance)
         return FALSE;
 
-      foreach($instance as $key => $value)
+      foreach ($instance as $key => $value)
         $container->$key = $value;
 
       return $container;
@@ -187,12 +187,12 @@ class Storage {
 
     $container = _storage_get_selector_initial_container($this->selector_id);
     
-    if(!$container)
+    if (!$container)
       return FALSE;
 
     $filepath = $this->get_local_filepath($keep_me);
     
-    if(!$filepath)
+    if (!$filepath)
       return FALSE;
       
     $this->filepath = $filepath;
@@ -200,7 +200,7 @@ class Storage {
     
     $link = $this->nid ? l(t('view'), 'node/' . $this->nid) : NULL;
 
-    if(!_storage_create_instance($container, $this)) {
+    if (!_storage_create_instance($container, $this)) {
 
       $message = 'Failed to create instance of file ' . ($this->filename ? ($this->filename . ' ') : '');
       $message .= 'in storage container <i>' . $container->name . '</i>.';
@@ -333,11 +333,11 @@ class Storage {
    */
   function serve_rtmp() {
     
-    if($this->serving_container === FALSE) {  // FALSE means there is no container
+    if ($this->serving_container === FALSE) {  // FALSE means there is no container
       return FALSE;
     }
     
-    if($this->serving_container) {
+    if ($this->serving_container) {
       $container = $this->serving_container;
     }
     else {
@@ -345,10 +345,10 @@ class Storage {
       $this->cache_serving_container($container);
     }
     
-    if(!$container)
+    if (!$container)
       return FALSE;
     
-    if(!$this->access()) {
+    if (!$this->access()) {
       return FALSE;
     }
     
@@ -365,7 +365,7 @@ class Storage {
    */
   function inherit_servings($old_storage_id) {
 
-    if(!$old_storage_id)
+    if (!$old_storage_id)
       return;
 
     db_update('storage_serving')
@@ -482,7 +482,7 @@ class Storage {
     if ($filepath) {
       $file_id = _storage_get_file_id($filepath, $this->filename, $new_file);
 
-      if(!$this->file_id) {
+      if (!$this->file_id) {
         $this->file_id = $file_id;
       }
       
@@ -603,7 +603,7 @@ class Storage {
 
       $filepath = $this->acquire_from_source_url();
 
-      if($filepath) {
+      if ($filepath) {
         return $filepath;
       }
     }
@@ -741,7 +741,7 @@ class Storage {
       
       $success = $container->instance_destroy_if_unrequired($storage, $reference);
       
-      if(!$success)
+      if (!$success)
         $failure = TRUE;
     }
     
@@ -767,7 +767,7 @@ class Storage {
     
     $candiate_container_ids = array();
     
-    foreach($result as $candiate_container) {
+    foreach ($result as $candiate_container) {
       $candiate_container_ids[] = $candiate_container['container_id'];
     }
     
@@ -806,30 +806,32 @@ class Storage {
  *     - 'data'
  *       An array of data about the file.
  * @return
- *   storage_id of the added file or FALSE for failure.
+ *   Storage of the added file.
  */
 function storage_add($selector_id, $options = array()) {
   $options['selector_id'] = $selector_id;
   
-  if(!isset($options['obtained']))
+  if (!isset($options['obtained'])) {
     $options['obtained'] = REQUEST_TIME;
+  }
 
-  if(isset($options['get_filename'])) {
+  if (isset($options['get_filename'])) {
 
-    if(isset($options['filepath'])) {
+    if (isset($options['filepath'])) {
       $options['filename'] = basename($options['filepath']);
     }
-    else if(isset($options['source_url'])) {
+    elseif (isset($options['source_url'])) {
       $options['filename'] = basename(parse_url($options['source_url'], PHP_URL_PATH));
     }
   }
 
-  if(isset($options['filepath'])) {
+  if (isset($options['filepath'])) {
     $container = _storage_get_selector_initial_container($selector_id);
     
-    if(!$container)
-      return FALSE;
-      
+    if (!$container) {
+      throw new Exception();
+    }
+    
     $options['data']['initial_container_id'] = $container->container_id;
     $options['file_id'] = _storage_file_id($options['filepath'], $options['filename'], $new_file);
   }
@@ -840,28 +842,30 @@ function storage_add($selector_id, $options = array()) {
   
   $link = $storage->nid ? l(t('view'), 'node/' . $storage->nid) : NULL;
   
-  if($options['filepath']) {
+  if ($options['filepath']) {
   
     // If the storage's file is already in the system, then the instance might already exist.
-    if(empty($new_file)) {
+    if (empty($new_file)) {
       $exists = $container->instance_exists($storage);
     }
 
-    if(empty($exists)) {
-
-      if(!$container->instance_create($storage, $options)) {
-
+    if (empty($exists)) {
+    
+      try {
+        $container->instance_create($storage, $options);
+      }
+      catch (Exception $e) {
         $message = 'Failed to create initial instance of file ' . ($storage->filename ? ($storage->filename . ' ') : '');
         $message .= 'in storage container <i>' . $container->name() . '</i>.';
 
-        if(user_access('administer storage'))
+        if (user_access('administer storage'))
           drupal_set_message($message);
 
         $message .= ' <br />' . $storage->log_info();
         watchdog('storage_api', $message, NULL, WATCHDOG_WARNING, $link);
         
         $storage->remove();
-        return FALSE;
+        throw new Exception();
       }
     }
   }

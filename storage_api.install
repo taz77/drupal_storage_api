@@ -8,7 +8,7 @@
 function storage_api_requirements($phase) {
   $curl = FALSE;
 
-  if(function_exists('curl_version'))
+  if (function_exists('curl_version'))
     $curl = curl_version();
   
   $t = get_t();

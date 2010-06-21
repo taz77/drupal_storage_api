@@ -41,7 +41,7 @@ function storage_classes_list() {
     t('Name'), t('Files'), t('Size')
   );
 
-  foreach($result as $class) {
+  foreach ($result as $class) {
     unset($row);
     
     $row[] = l($class['name'], 'admin/structure/storage/classes/' . $class['class_id']);
@@ -116,7 +116,7 @@ function storage_create_class_form($form, &$form_state) {
     
   $containers = array();
  
-  foreach($result as $container) {
+  foreach ($result as $container) {
     $containers[$container['container_id']] = $container['name'];
   }
 
@@ -195,7 +195,7 @@ function storage_class($class) {
     ->orderBy('storage_container.container_id')
     ->execute();
 
-  foreach($result as $container_info) {
+  foreach ($result as $container_info) {
     unset($row);
     
     $container = storage_container_load($container_info['container_id']);
@@ -254,7 +254,7 @@ function storage_class_edit_form($form, &$form_state, $class) {
   $form['#container_ids'] = array();
   $form['#tree'] = TRUE;
   
-  foreach($result as $container_info) {
+  foreach ($result as $container_info) {
   
     $container = storage_container_load($container_info['container_id']);
   
@@ -305,7 +305,7 @@ function storage_class_edit_form($form, &$form_state, $class) {
     
   $containers = array();
  
-  foreach($result as $container) {
+  foreach ($result as $container) {
     $containers[$container['container_id']] = $container['name'];
   }
 
@@ -350,7 +350,7 @@ function theme_storage_class_edit_form($elements) {
     $header = array(t('Container'), t('Service'), t('Weight'), t('Serving'), NULL);
     $rows = array();
 
-    foreach($form['#container_ids'] as $container_id) {
+    foreach ($form['#container_ids'] as $container_id) {
       unset($row);
       
       $row[] = drupal_render($form['names'][$container_id]);
@@ -395,7 +395,7 @@ function storage_class_edit_form_submit($form, &$form_state) {
   $class->options['initial_container_id'] = $form_state['values']['initial_container_id'];
   $class->update();
 
-  foreach($form['#container_ids'] as $container_id) {
+  foreach ($form['#container_ids'] as $container_id) {
 
     $update = array(
       'class_id' => $class->class_id,
@@ -490,7 +490,7 @@ function storage_class_add_container_form($form, &$form_state, $class) {
     
   $containers = array();
  
-  foreach($result as $container) {
+  foreach ($result as $container) {
     $containers[$container['container_id']] = $container['name'];
   }
   

@@ -15,7 +15,7 @@ class StorageContainer {
         ->execute()
         ->fetchAssoc();
 
-      if(!$container)
+      if (!$container)
         throw new Exception();
     }
     
@@ -109,22 +109,24 @@ class StorageContainer {
     dsm($storage);
     dsm($source);
 */
-    $result = _storage_service_invoke($this->service_id, 'instance_create', 
-      $this, $storage, $source);
+    $result = _storage_service_invoke($this->service_id, 'instance_create', $this, $storage, $source);
     
-    if(!$result)
-      return FALSE;
+    if (!$result) {
+      throw new Exception();
+    }
       
-    if(!$source['keep_me'])
+    if (!$source['keep_me']) {
       @unlink($source['filepath']);
+    }
       
     $instance = array(
       'container_id' => $this->container_id,
       'file_id' => $storage->file_id,
     );
 
-    if($result !== TRUE)
+    if ($result !== TRUE) {
       $instance['reference'] = $result;
+    }
 
     drupal_write_record('storage_instance', $instance);
     
@@ -142,19 +144,20 @@ class StorageContainer {
 
   function instance_copy($storage, $source_container) {
 
-    $result = _storage_service_invoke($this->service_id, 'instance_copy', 
-      $this, $storage, $source_container);
+    $result = _storage_service_invoke($this->service_id, 'instance_copy', $this, $storage, $source_container);
     
-    if(!$result)
-      return FALSE;
+    if (!$result) {
+      throw new Exception();
+    }
       
     $instance = array(
       'container_id' => $this->container_id,
       'file_id' => $storage->file_id,
     );
 
-    if($result !== TRUE)
+    if ($result !== TRUE) {
       $instance['reference'] = $result;
+    }
 
     drupal_write_record('storage_instance', $instance);
     
@@ -174,9 +177,9 @@ class StorageContainer {
     
     $candiate_container_ids = $storage->copy_candidate_containers($this);
     
-    foreach($candiate_container_ids as $candiate_container_id) {
+    foreach ($candiate_container_ids as $candiate_container_id) {
 
-      if($container->instance_exists($storage)) {
+      if ($container->instance_exists($storage)) {
         $source_container = storage_container_load($candiate_container_id);
         return _storage_instance_copy($container, $storage, $source_container);
       }
@@ -203,7 +206,7 @@ class StorageContainer {
     }
     
     // Is it possible to short circuit?
-    $service_info = _storage_service_invoke($this->service_id, 'service_info');
+    $service_info = $this->service()->info();
 
     if ($service_info['can_copy'] && !$check) {
       if ($this->try_instance_copy($storage)) {
@@ -229,7 +232,7 @@ class StorageContainer {
           'keep_me' => $keep_me,
         );
 
-        $exists = $this->create_instance($storage, $source);
+        $exists = $this->instance_create($storage, $source);
       }
       
       if (!$keep_me) {
@@ -271,10 +274,10 @@ class StorageContainer {
       ->execute()
       ->fetchField();
     
-    if($count == 0) {
+    if ($count == 0) {
       $success = $this->instance_destroy($storage, $reference);
       
-      if(!$success)
+      if (!$success)
         $failure = TRUE;
     }
     
@@ -284,7 +287,7 @@ class StorageContainer {
 
   function instance_destroy($storage, $reference) {
 
-    if($this->suspended != 0 ||
+    if ($this->suspended != 0 ||
       $this->service_suspended != 0)
     {
       return FALSE;
@@ -292,7 +295,7 @@ class StorageContainer {
 
     $success = _storage_service_invoke($this->service_id, 'instance_destroy', $this, $storage, $reference);
       
-    if(!$success)
+    if (!$success)
       return FALSE;
 
     db_delete('storage_instance')
@@ -393,11 +396,11 @@ class StorageContainer {
    */
   function unique_filename($filename) {
 
-    if($this->reference_exists($filename)) {
+    if ($this->reference_exists($filename)) {
 
       $pos = strrpos($filename, '.');
       
-      if($pos !== FALSE) {
+      if ($pos !== FALSE) {
         $name = substr($filename, 0, $pos);
         $ext = substr($filename, $pos);
       }

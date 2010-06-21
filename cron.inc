@@ -12,7 +12,7 @@ function _storage_check_files() {
     ->orderBy('storage_id')
     ->execute();
 
-  foreach($result as $storage) {
+  foreach ($result as $storage) {
     $storage = new Storage($storage['storage_id']);
     $storage->check();
   }
@@ -30,7 +30,7 @@ function _storage_check_migrations() {
     ->orderBy('selector_id')
     ->execute();
  
-  foreach($result as $selector) {
+  foreach ($result as $selector) {
   
     // is the selector fully migrated?
     
