@@ -22,7 +22,7 @@
  * @return
  *   Filepath to the generated file. It will be deleted.
  */
-function hook_storage_generate($storage) {
+function hook_storage_generate(Storage $storage) {
 }
 
 
@@ -117,7 +117,7 @@ function hook_storage_container_settings_form($settings, $serving, $edit) {
  * @param $edit
  *   Whether this is an existing container being edited.
  */
-function hook_storage_container_validate($container, $edit) {
+function hook_storage_container_validate(StorageContainer $container, $edit) {
 }
 
 
@@ -131,7 +131,7 @@ function hook_storage_container_validate($container, $edit) {
  * @return
  *   The container (with any modifications). Even return on failure.
  */
-function hook_storage_container_create($container) {
+function hook_storage_container_create(StorageContainer $container) {
 }
 
 
@@ -143,7 +143,7 @@ function hook_storage_container_create($container) {
  * @param $container
  *   Container that has been created.
  */
-function hook_storage_container_postcreate($container) {
+function hook_storage_container_postcreate(StorageContainer $container) {
 }
 
 
@@ -155,7 +155,7 @@ function hook_storage_container_postcreate($container) {
  * @return
  *   The container (with any further modifications). Even return on failure.
  */
-function hook_storage_container_update($container) {
+function hook_storage_container_update(StorageContainer $container) {
 }
 
 
@@ -167,7 +167,7 @@ function hook_storage_container_update($container) {
  * @return
  *   An associative array of information items where the key is the translated name of the item.
  */
-function hook_storage_container_info($container) {
+function hook_storage_container_info(StorageContainer $container) {
 }
 
 
@@ -179,7 +179,7 @@ function hook_storage_container_info($container) {
  * @return
  *   
  */
-function hook_storage_container_destroy($container) {
+function hook_storage_container_destroy(StorageContainer $container) {
 }
 
 
@@ -193,7 +193,7 @@ function hook_storage_container_destroy($container) {
  * @return
  *   Success boolean value.
  */
-function hook_storage_instance_create($container, $file) {
+function hook_storage_instance_create(StorageContainer $container, $file) {
 }
 
 
@@ -209,7 +209,7 @@ function hook_storage_instance_create($container, $file) {
  * @return
  *   Success boolean value.
  */
-function hook_storage_instance_copy($container, $file, $source_container) {
+function hook_storage_instance_copy(StorageContainer $container, $file, $source_container) {
 }
 
 
@@ -223,7 +223,7 @@ function hook_storage_instance_copy($container, $file, $source_container) {
  * @return
  *   Success boolean value.
  */
-function hook_storage_instance_destroy($container, $file) {
+function hook_storage_instance_destroy(StorageContainer $container, $file) {
 }
 
 
@@ -237,7 +237,7 @@ function hook_storage_instance_destroy($container, $file) {
  * @return
  *   Filepath or FALSE for failure.
  */
-function hook_storage_instance_get_filepath($container, $file) {
+function hook_storage_instance_get_filepath(StorageContainer $container, $file) {
 }
 
 
@@ -251,7 +251,7 @@ function hook_storage_instance_get_filepath($container, $file) {
  * @return
  *   An absolute URL.
  */
-function hook_storage_instance_serve($container, $file) {
+function hook_storage_instance_serve(StorageContainer $container, $file) {
 }
 
 
@@ -267,6 +267,6 @@ function hook_storage_instance_serve($container, $file) {
  *     - 'streamer'
  *     - 'file'
  */
-function hook_storage_instance_serve_rtmp($container, $file) {
+function hook_storage_instance_serve_rtmp(StorageContainer $container, $file) {
 }
 

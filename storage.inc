@@ -5,7 +5,7 @@
 
 class Storage {
 
-  function __construct($storage) {
+  public function __construct($storage) {
   
     if (!is_array($storage)) {
     
@@ -39,11 +39,11 @@ class Storage {
       $this->$key = $value;
   }
 
-  function update() {
+  public function update() {
     drupal_write_record('storage', $this, 'storage_id');
   }
   
-  function log_serving($container_id = NULL) {
+  public function log_serving($container_id = NULL) {
     global $user;
     
     $serving = array(
@@ -69,7 +69,7 @@ class Storage {
       ->execute();
   }
   
-  function touch() {
+  public function touch() {
 
     $this->last_touched = REQUEST_TIME;
     $this->update();
@@ -81,9 +81,9 @@ class Storage {
    * @return
    *   Boolean TRUE if the current user has access to the file.
    */
-  function access() {
+  public function access() {
 
-    if (!$this->options['access_control']) {
+    if (empty($this->options['access_control'])) {
       return TRUE;
     }
 
@@ -111,7 +111,7 @@ class Storage {
   }
 
 
-  function initial_container_instance() {
+  public function initial_container_instance() {
 
     $container = storage_container_load($this->data['initial_container_id']);
 
@@ -132,7 +132,7 @@ class Storage {
   }
 
 
-  function serving_container() {
+  public function serving_container() {
 
     $query = db_select('storage_instance');
     $query->join('storage_class_container', NULL, 'storage_instance.container_id = storage_class_container.container_id');
@@ -223,7 +223,7 @@ class Storage {
   /**
    * Serve the specified file, either directly or by an HTTP 302 redirect.
    */
-  function serve() {
+  public function serve() {
 
     if ($this->serving_container) {
       $container = $this->serving_container;
@@ -270,10 +270,10 @@ class Storage {
    * @return
    *   The generated URL.
    */
-  function serve_url($absolute = FALSE) {
+  public function serve_url($absolute = FALSE) {
     $serve_from_site = FALSE;
     
-    if ($this->serving_container === FALSE || $this->options['redirect']) {  // FALSE means there is no container
+    if ($this->serving_container === FALSE || !empty($this->options['redirect'])) {  // FALSE means there is no container
       $serve_from_site = TRUE;
     }
     elseif (!$this->access()) {
@@ -297,7 +297,7 @@ class Storage {
       
       if (!$info['direct']) {    // direct services don't return a URL
       
-        $url = _storage_service_invoke($container->service_id, 'instance_serve', $container, $this);
+        $url = _storage_service_invoke($container->service_id, 'instance_serve', $container, $this, $container->reference);
       }
     }
     elseif ($this->options['serve_source_url'] && $this->source_url) {
@@ -316,7 +316,7 @@ class Storage {
   }
 
 
-  function path() {
+  public function path() {
     return 'system/storage/serve/' . $this->storage_id . ($this->filename ? ('/' . $this->filename) : '');
   }
 
@@ -331,7 +331,7 @@ class Storage {
    *     - 'streamer'
    *     - 'file'
    */
-  function serve_rtmp() {
+  public function serve_rtmp() {
     
     if ($this->serving_container === FALSE) {  // FALSE means there is no container
       return FALSE;
@@ -363,7 +363,7 @@ class Storage {
    * @param $old_storage_id
    *   storage_id of the file the statistics are being transferred from.
    */
-  function inherit_servings($old_storage_id) {
+  public function inherit_servings($old_storage_id) {
 
     if (!$old_storage_id)
       return;
@@ -386,7 +386,7 @@ class Storage {
       ->execute();
   }
 
-  function log_info() {
+  public function log_info() {
 
     $info = $this->module ? ('module: ' . $this->module . ', ') : '';
     $info .= $this->type ? ('type: ' . $this->type . ', ') : '';
@@ -400,7 +400,7 @@ class Storage {
   }
 
 
-  function file_log_info() {
+  public function file_log_info() {
 
     $info = 'file_id: ' . $this->file_id . ', ';
     $info .= 'size: ' . $this->size();
@@ -409,7 +409,7 @@ class Storage {
   }
   
   
-  function size() {
+  public function size() {
     return storage_format_size($this->size);
   }
 
@@ -419,7 +419,7 @@ class Storage {
    *
    * All instances of the file will be removed during cron.
    */
-  function remove() {
+  public function remove() {
 
     db_update('storage')
       ->fields(array(
@@ -445,7 +445,7 @@ class Storage {
    * @return
    *   An array of HTTP headers.
    */
-  function http_headers() {
+  public function http_headers() {
     $headers[] = 'Content-Type: ' . $this->mimetype;
     $headers[] = 'Content-Length: ' . $this->size;
     $headers[] = 'Content-MD5: ' . base64_encode($this->md5);
@@ -460,7 +460,7 @@ class Storage {
   /**
    * Output directly the correct HTTP headers for a specific file.
    */
-  function set_http_headers() {
+  public function set_http_headers() {
 
     // Unset the headers we don't want (they still get sent unfortunately).
     header('Set-Cookie:');
@@ -559,7 +559,7 @@ class Storage {
    * @return
    *   A filepath where the file can be accessed.
    */
-  function get_local_filepath(&$keep_me) {
+  public function get_local_filepath(&$keep_me) {
 
     $query = db_select('storage_instance');
     $query->join('storage_class_container', NULL, 'storage_instance.container_id = storage_class_container.container_id');
@@ -646,7 +646,7 @@ class Storage {
   }
 
 
-  function cache_serving_container($container) {
+  public function cache_serving_container(StorageContainer $container) {
 
     db_update('storage')
       ->fields(array('serving_container' => serialize($container)))
@@ -655,7 +655,7 @@ class Storage {
   }
 
 
-  function flush_serving_container() {
+  public function flush_serving_container() {
 
     db_update('storage')
       ->expression('serving_container', 'NULL')
@@ -663,7 +663,7 @@ class Storage {
       ->execute();
   }
   
-  function check() {
+  public function check() {
 
     // Get all containers this storage is supposed to have an instance in.
     $query = db_select('storage', NULL, array('fetch' => PDO::FETCH_ASSOC));
@@ -684,9 +684,11 @@ class Storage {
     
     $container_ids = array();
     
+    $failure = FALSE;
+    
     foreach ($result as $container) {
       $container = new StorageContainer($container);
-      $exists = $container->ensure_instance_exists($storage);
+      $exists = $container->ensure_instance_exists($this);
       
       if (!$exists) {
         $failure = TRUE;
@@ -719,7 +721,7 @@ class Storage {
   }
 
   
-  function destroy_unrequired_instances($container_ids) {
+  public function destroy_unrequired_instances($container_ids) {
     
     $query = db_select('storage_instance', NULL, array('fetch' => PDO::FETCH_ASSOC));
     $query->join('storage_container', NULL, 'storage_instance.container_id = storage_container.container_id');
@@ -735,11 +737,13 @@ class Storage {
     if (count($container_ids))
       $query->condition('storage_instance.container_id', $container_ids, 'NOT IN');
       
+    $failure = FALSE;
+      
     foreach ($query->execute() as $row) {
       $reference = $row['reference'];
       $container = new StorageContainer($row);
       
-      $success = $container->instance_destroy_if_unrequired($storage, $reference);
+      $success = $container->instance_destroy_if_unrequired($this, $reference);
       
       if (!$success)
         $failure = TRUE;
@@ -749,7 +753,7 @@ class Storage {
   }
 
 
-  function copy_candidate_containers($container) {
+  public function copy_candidate_containers(StorageContainer $container) {
 
     // Find all the containers in $storage's class that are using $container's service, 
     // except $container.

@@ -357,7 +357,7 @@ function _storage_service_invoke_all() {
 }
 
 
-function storage_serve($storage) {
+function storage_serve(Storage $storage) {
   $storage->serve();
 }
 
@@ -369,7 +369,7 @@ function storage_serve($storage) {
  * @return
  *   Boolean TRUE if the current user has access to the storage.
  */
-function storage_access($storage) {
+function storage_access(Storage $storage) {
   return $storage->access();
 }
 
@@ -792,16 +792,17 @@ function storage_api_theme($existing, $type, $theme, $path) {
     'storage_class_edit_form' => array(
       'render element' => 'form',
     ),
-    'theme_storage_info_table' => array(
-      'render element' => 'rows',
+    'storage_info_table' => array(
+      'render element' => 'info',
     ),
   );
 }
 
 
-function theme_storage_info_table($info) {
+function theme_storage_info_table($variables) {
+  $rows = array();
 
-  foreach ($info as $key => $value) {
+  foreach ($variables['info'] as $key => $value) {
     $rows[] = array(
       array(
         'data' => $key . ':',

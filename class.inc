@@ -5,7 +5,14 @@
 
 class StorageClass {
 
-  function __construct($class) {
+  public $name;
+  public $options;
+
+  public function __construct($class = NULL) {
+  
+    if (!isset($class)) {
+      return;
+    }
   
     if (!is_array($class)) {
     
@@ -17,13 +24,13 @@ class StorageClass {
 
       if (!$class)
         throw new Exception();
+
+      $class['options'] = unserialize($class['options']);
     }
     
     foreach ($class as $key => $value)
       $this->$key = $value;
       
-    $this->options = unserialize($this->options);
-    
     try {
       if (isset($this->options['initial_container_id']))
         $this->initial_container = new StorageContainer($this->options['initial_container_id']);
@@ -31,19 +38,19 @@ class StorageClass {
     catch (Exception $e) {}
   }
 
-  function name() {
+  public function name() {
     return check_plain($this->name);
   }
   
-  function path() {
+  public function path() {
     return 'admin/structure/storage/classes/' . $this->class_id;
   }
   
-  function link() {
+  public function link() {
     return l($this->name, $this->path());
   }
   
-  function addContainer($container) {
+  public function addContainer(StorageContainer $container) {
   
     db_insert('storage_class_container')
       ->fields(array(
@@ -78,7 +85,7 @@ class StorageClass {
     watchdog('storage_api', $msg, $args, WATCHDOG_NOTICE, l(t('view'), $this->path()));
   }
 
-  function removeContainer($container) {
+  public function removeContainer(StorageContainer $container) {
 
     db_delete('storage_class_container')
       ->condition('class_id', $this->class_id)
@@ -106,11 +113,24 @@ class StorageClass {
     watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $this->path()));
   }
   
-  function update() {
-    drupal_write_record('storage_class', $this, 'class_id');
+  public function insert() {
+    drupal_write_record('storage_class', $this);
   }
 
-  function destroy() {
+  public function update() {
+    drupal_write_record('storage_class', $this, 'class_id');
+  }
+  
+  public function create() {
+    $this->insert();
+    
+    $msg = 'Storage class !class has been created.';
+    drupal_set_message(t($msg, array('!class' => $this->link())));
+    watchdog('storage_api', $msg, array('!class' => $this->name()), WATCHDOG_NOTICE, 
+      l(t('view'), $this->path()));
+  }
+
+  public function destroy() {
 
     db_delete('storage_class')
       ->condition('class_id', $this->class_id)
@@ -121,30 +141,37 @@ class StorageClass {
     drupal_set_message($message);
     watchdog('storage_api', $message, NULL);
   }
-}
 
+  public function form_elements() {
 
-/**
- * Create a storage class.
- *
- * @param $class
- *   Class to be created.
- */
-function storage_class_create($name, $options = array()) {
-
-  $class = array(
-    'name' => $name,
-    'options' => $options,
-  );
-
-  drupal_write_record('storage_class', $class);
-  $class = new StorageClass($class['class_id']);
-  
-  $msg = 'Storage class !class has been created.';
-  drupal_set_message(t($msg, array('!class' => $class->link())));
-  watchdog('storage_api', $msg, array('!class' => $class->name()), WATCHDOG_NOTICE, 
-    l(t('view'), $class->path()));
+    $form['name'] = array(
+      '#title' => t('Name'),
+      '#type' => 'textfield',
+      '#required' => TRUE,
+      '#default_value' => $this->name,
+    );
     
-  return $class;
+    $form['options'] = array(
+      '#tree' => TRUE,
+      'access_control' => array(
+        '#title' => t('Enforce access control'),
+        '#type' => 'checkbox',
+        '#default_value' => isset($this->options['access_control']) ? $this->options['access_control'] : FALSE,
+      ),
+      'redirect' => array(
+        '#title' => t('Serve by redirection'),
+        '#type' => 'checkbox',
+        '#default_value' => isset($this->options['redirect']) ? $this->options['redirect'] : FALSE,
+      ),
+      'serve_source_url' => array(
+        '#title' => t('Serve source url'),
+        '#type' => 'checkbox',
+        '#default_value' => isset($this->options['serve_source_url']) ? $this->options['serve_source_url'] : FALSE,
+        '#description' => t('If no instances are available, serve the source url.')
+      )
+    );
+
+    return $form;
+  }  
 }
 

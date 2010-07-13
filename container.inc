@@ -5,7 +5,7 @@
 
 class StorageContainer {
 
-  function __construct($container, $unserialize = TRUE) {
+  public function __construct($container, $unserialize = TRUE) {
   
     if (!is_array($container)) {
     
@@ -63,23 +63,23 @@ class StorageContainer {
       l(t('view'), $this->path()));
   }
 
-  function name() {
+  public function name() {
     return check_plain($this->name);
   }
   
-  function path() {
+  public function path() {
     return 'admin/structure/storage/containers/' . $this->container_id;
   }
   
-  function link() {
+  public function link() {
     return l($this->name, $this->path());
   }
   
-  function update() {
+  public function update() {
     drupal_write_record('storage_container', $this, 'container_id');
   }
 
-  function flush_serving_container() {
+  public function flush_serving_container() {
 
     $selector_subquery = db_select('storage_class_container');
     $selector_subquery->join('storage_selector', NULL, 'storage_class_container.class_id = storage_selector.class_id');
@@ -96,8 +96,8 @@ class StorageContainer {
   }
 
 
-  function instance_create($storage, $source) {
-
+  public function instance_create(Storage $storage, $source) {
+  
     // We need write access to the directory for it to be deleted.
     if (empty($source['keep_me'])) {
     
@@ -105,16 +105,13 @@ class StorageContainer {
         $source['keep_me'] = TRUE;
       }
     }
-/*    
-    dsm($storage);
-    dsm($source);
-*/
+
     $result = _storage_service_invoke($this->service_id, 'instance_create', $this, $storage, $source);
     
     if (!$result) {
       throw new Exception();
     }
-      
+    
     if (!$source['keep_me']) {
       @unlink($source['filepath']);
     }
@@ -142,7 +139,7 @@ class StorageContainer {
   }
 
 
-  function instance_copy($storage, $source_container) {
+  public function instance_copy(Storage $storage, $source_container) {
 
     $result = _storage_service_invoke($this->service_id, 'instance_copy', $this, $storage, $source_container);
     
@@ -173,7 +170,7 @@ class StorageContainer {
   }
 
 
-  function try_instance_copy($storage) {
+  public function try_instance_copy(Storage $storage) {
     
     $candiate_container_ids = $storage->copy_candidate_containers($this);
     
@@ -187,7 +184,9 @@ class StorageContainer {
   }
 
 
-  function ensure_instance_exists($storage) {
+  public function ensure_instance_exists(Storage $storage) {
+    $check = FALSE;
+    $keep_me = TRUE;
 
     if ($this->suspended != 0 ||
       $this->service_suspended != 0)
@@ -244,7 +243,7 @@ class StorageContainer {
   }
 
 
-  function instance_exists($storage) {
+  public function instance_exists(Storage $storage) {
 
     return db_select('storage_instance')
       ->fields('storage_instance', array('reference'))
@@ -255,7 +254,7 @@ class StorageContainer {
   }
 
 
-  function instance_destroy_if_unrequired($storage, $reference) {
+  public function instance_destroy_if_unrequired(Storage $storage, $reference) {
 
     // Are there any other instances in this container that use the same file?
     
@@ -273,6 +272,8 @@ class StorageContainer {
       ->countQuery()
       ->execute()
       ->fetchField();
+      
+    $failure = FALSE;
     
     if ($count == 0) {
       $success = $this->instance_destroy($storage, $reference);
@@ -285,7 +286,7 @@ class StorageContainer {
   }
 
 
-  function instance_destroy($storage, $reference) {
+  public function instance_destroy(Storage $storage, $reference) {
 
     if ($this->suspended != 0 ||
       $this->service_suspended != 0)
@@ -316,7 +317,7 @@ class StorageContainer {
   /**
    * Remove a container from all classes and schedule instances to be destroyed.
    */
-  function drain() {
+  public function drain() {
     $selector_subquery = db_select('storage_class_container');
     $selector_subquery->join('storage_selector', NULL, 'storage_class_container.class_id = storage_selector.class_id');
     
@@ -344,7 +345,7 @@ class StorageContainer {
   /**
    * Destroy container.
    */
-  function destroy() {
+  public function destroy() {
   
     db_delete('storage_container')
       ->condition('container_id', $this->container_id)
@@ -376,9 +377,9 @@ class StorageContainer {
    * @return
    *   Whether the reference exists in the container.
    */
-  function reference_exists($reference) {
+  public function reference_exists($reference) {
 
-    return (bool)db_select('storage_instance')
+    return (bool) db_select('storage_instance')
       ->condition('container_id', $this->container_id)
       ->condition('reference', $reference)
       ->countQuery()
@@ -394,7 +395,7 @@ class StorageContainer {
    * @return
    *   Unique filename.
    */
-  function unique_filename($filename) {
+  public function unique_filename($filename) {
 
     if ($this->reference_exists($filename)) {
 
@@ -419,7 +420,7 @@ class StorageContainer {
     return $filename;
   }
 
-  function log_info() {
+  public function log_info() {
 
     $info = 'container: ' . $this->name() . ', <br />';
 

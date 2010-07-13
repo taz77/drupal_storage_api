@@ -63,39 +63,6 @@ function storage_classes_list() {
 }
 
 
-function _storage_class_form_elements($class = NULL) {
-
-  $form['name'] = array(
-    '#title' => t('Name'),
-    '#type' => 'textfield',
-    '#required' => TRUE,
-    '#default_value' => $class->name,
-  );
-  
-  $form['options'] = array(
-    '#tree' => TRUE,
-    'access_control' => array(
-      '#title' => t('Enforce access control'),
-      '#type' => 'checkbox',
-      '#default_value' => isset($class->options['access_control']) ? $class->options['access_control'] : FALSE,
-    ),
-    'redirect' => array(
-      '#title' => t('Serve by redirection'),
-      '#type' => 'checkbox',
-      '#default_value' => isset($class->options['redirect']) ? $class->options['redirect'] : FALSE,
-    ),
-    'serve_source_url' => array(
-      '#title' => t('Serve source url'),
-      '#type' => 'checkbox',
-      '#default_value' => isset($class->options['serve_source_url']) ? $class->options['serve_source_url'] : FALSE,
-      '#description' => t('If no instances are available, serve the source url.')
-    )
-  );
-
-  return $form;
-}  
-
-
 /**
  * FAPI definition for the create class form.
  *
@@ -106,7 +73,9 @@ function storage_create_class_form($form, &$form_state) {
 
   drupal_set_title(t('Storage classes'), PASS_THROUGH);
   
-  $form = _storage_class_form_elements(); 
+  $class = new StorageClass(); 
+  
+  $form = $class->form_elements();
 
   $result = db_select('storage_container', NULL, array('fetch' => PDO::FETCH_ASSOC))
     ->fields('storage_container')
@@ -143,13 +112,14 @@ function storage_create_class_form($form, &$form_state) {
  */
 function storage_create_class_form_submit($form, &$form_state) {
 
-  $update['options']['initial_container_id'] = $form_state['values']['initial_container_id'];
-  $class = storage_class_create($form_state['values']['name'], $form_state['values']['options']);
+  $class = new StorageClass($form_state['values']);
+  $class->create();
+  
   $form_state['redirect'] = $class->path() . '/add';
 }
 
 
-function storage_class($class) {
+function storage_class(StorageClass $class) {
 
   drupal_set_title(t('Storage class: ') . $class->name(), PASS_THROUGH);
   
@@ -165,7 +135,7 @@ function storage_class($class) {
   $info[t('Serve source')] = (isset($class->options['serve_source_url']) && $class->options['serve_source_url']) ? t('Yes') : t('No');
   $info[t('Initial container')] = isset($class->initial_container) ? $class->initial_container->link() : t('n/a');
 
-  $output = theme_storage_info_table($info);
+  $output = theme('storage_info_table', array('info' => $info));
 
   $subquery = db_select('storage_selector');
   $subquery->join('storage', NULL, 'storage_selector.selector_id = storage.selector_id');
@@ -232,11 +202,11 @@ function storage_class($class) {
  * @ingroup forms
  * @see storage_class_edit_form_submit()
  */
-function storage_class_edit_form($form, &$form_state, $class) {
+function storage_class_edit_form($form, &$form_state, StorageClass $class) {
 
   drupal_set_title(t('Storage class: ') . $class->name(), PASS_THROUGH);
 
-  $form = _storage_class_form_elements($class);
+  $form = $class->form_elements();
   $form['#class'] = $class;
   
   $query = db_select('storage_class_container', NULL, array('fetch' => PDO::FETCH_ASSOC));
@@ -445,7 +415,7 @@ function storage_class_edit_form_destroy($form, &$form_state) {
  * @ingroup forms
  * @see storage_class_destroy_form_submit()
  */
-function storage_class_destroy_form($form, &$form_state, $class) {
+function storage_class_destroy_form($form, &$form_state, StorageClass $class) {
   $form['#class'] = $class;
 
   return confirm_form($form, 'Are you sure you want to destroy storage class <i>' . 
@@ -471,7 +441,7 @@ function storage_class_destroy_form_submit($form, &$form_state) {
  * @ingroup forms
  * @see storage_class_add_container_form_submit()
  */
-function storage_class_add_container_form($form, &$form_state, $class) {
+function storage_class_add_container_form($form, &$form_state, StorageClass $class) {
   $form['#class'] = $class;
   
 
@@ -539,7 +509,7 @@ function storage_class_add_container_form_submit($form, &$form_state) {
  * @ingroup forms
  * @see storage_class_remove_container_form_submit()
  */
-function storage_class_remove_container_form($form, $form_state, $class, $container) {
+function storage_class_remove_container_form($form, $form_state, StorageClass $class, StorageContainer $container) {
   $form['#class'] = $class;
   $form['#container'] = $container;
 

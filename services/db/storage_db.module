@@ -23,7 +23,7 @@ function storage_db_storage_service_info() {
 /**
  * Implement hook_storage_container_settings_form() .
  */
-function storage_db_storage_container_settings_form($container, $edit) {
+function storage_db_storage_container_settings_form(StorageContainer $container, $edit) {
   global $db_url;
   
   if (is_array($db_url)) {
@@ -60,7 +60,7 @@ function storage_db_storage_container_settings_form($container, $edit) {
 /**
  * Implement hook_storage_container_validate() .
  */
-function storage_db_storage_container_validate($container, $edit) {
+function storage_db_storage_container_validate(StorageContainer $container, $edit) {
 
   if(!$container->settings['table']) {
     form_set_error('settings][path', t('Database table field is required.'));
@@ -71,7 +71,7 @@ function storage_db_storage_container_validate($container, $edit) {
 /**
  * Implement hook_storage_container_create() .
  */
-function storage_db_storage_container_create($container) {
+function storage_db_storage_container_create(StorageContainer $container) {
 
   db_set_active($container->settings['db']);
   
@@ -92,7 +92,7 @@ function storage_db_storage_container_create($container) {
 /**
  * Implement hook_storage_container_info() .
  */
-function storage_db_storage_container_info($container) {
+function storage_db_storage_container_info(StorageContainer $container) {
 
   if($container['settings']['db'])
     $info[t('Database')] = $container->settings['db'];
@@ -106,7 +106,7 @@ function storage_db_storage_container_info($container) {
 /**
  * Implement hook_storage_container_destroy() .
  */
-function storage_db_storage_container_destroy($container) {
+function storage_db_storage_container_destroy(StorageContainer $container) {
   
   db_set_active($container->settings['db']);
 
@@ -125,7 +125,7 @@ function storage_db_storage_container_destroy($container) {
 /**
  * Implement hook_storage_instance_create() .
  */
-function storage_db_storage_instance_create($container, $storage) {
+function storage_db_storage_instance_create(StorageContainer $container, Storage $storage, array $source) {
   
   db_set_active($container->settings['db']);
   
@@ -136,7 +136,7 @@ function storage_db_storage_instance_create($container, $storage) {
   ",
     $container->settings['table'],
     $storage->object_id,
-    bin2hex(file_get_contents($storage->filepath))
+    bin2hex(file_get_contents($source['filepath']))
   );
   
   db_set_active();
@@ -148,7 +148,7 @@ function storage_db_storage_instance_create($container, $storage) {
 /**
  * Implement hook_storage_instance_destroy() .
  */
-function storage_db_storage_instance_destroy($container, $storage, $reference) {
+function storage_db_storage_instance_destroy(StorageContainer $container, Storage $storage, $reference) {
   
   db_set_active($container->settings['db']);
   
@@ -169,7 +169,7 @@ function storage_db_storage_instance_destroy($container, $storage, $reference) {
 /**
  * Implement hook_storage_instance_get_filepath() .
  */
-function storage_db_storage_instance_get_filepath($container, $storage, $reference) {
+function storage_db_storage_instance_get_filepath(StorageContainer $container, Storage $storage, $reference) {
   
   $filepath = tempnam(file_directory_temp(), '');
   
@@ -200,7 +200,7 @@ function storage_db_storage_instance_get_filepath($container, $storage, $referen
 /**
  * Implement hook_storage_instance_serve() .
  */
-function storage_db_storage_instance_serve($container, $storage, $reference) {
+function storage_db_storage_instance_serve(StorageContainer $container, Storage $storage, $reference) {
   $storage->set_http_headers();
   
   db_set_active($container->settings['db']);

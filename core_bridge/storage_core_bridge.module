@@ -67,7 +67,7 @@ function storage_core_bridge_form_field_ui_field_settings_form_alter(&$form, &$f
   if ($form['field']['type']['#value'] != 'file') {
     return;
   }
-    
+
   $field_selectors = variable_get('storage_field_selectors', array());
   $selector_id = $field_selectors[$form['field']['field_name']['#value']];
   
@@ -113,7 +113,6 @@ function _storage_core_bridge_load($uri) {
 }
 
 
-
 class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
   protected $uri;
   protected $filepath;
@@ -125,8 +124,6 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
   }
 
   public function url_stat($uri, $flags) {
-    dsm(__FUNCTION__);
-    dsm(func_get_args());
 
     global $storage_core_bridge_filename;
     $filename = file_uri_target($uri);
@@ -156,16 +153,10 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
   }
   
   function setUri($uri) {
-    dsm(__FUNCTION__);
-    dsm(func_get_args());
-
     $this->uri = $uri;
   }
   
   public function getTarget($uri = NULL) {
-    dsm(__FUNCTION__);
-    dsm(func_get_args());
-
     if (!isset($uri)) {
       $uri = $this->uri;
     }
@@ -201,9 +192,6 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
   }
   
   public function stream_write($data) {
-    dsm(__FUNCTION__);
-    dsm(func_get_args());
-
     return fwrite($this->fp, $data);
   }
   
@@ -229,13 +217,13 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
       'uri' => $this->uri,
     );
     
-    storage_add($selector_id, $options);
+    try {
+      storage_add($selector_id, $options);
+    }
+    catch (Exception $e) {}
   }
   
   public function realpath() {
-    dsm(__FUNCTION__);
-    dsm(func_get_args());
-
     return $this->uri;
   }
 
@@ -249,9 +237,6 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
   }
   
   public function getExternalUrl() {
-    dsm(__FUNCTION__);
-    dsm(func_get_args());
-
     $storage = _storage_core_bridge_load($this->uri);
     return $storage->serve_url(TRUE);
   }

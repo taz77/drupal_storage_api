@@ -42,7 +42,7 @@ function _storage_ftp_login($settings) {
 /**
  * Implement hook_storage_container_settings_form() .
  */
-function storage_ftp_storage_container_settings_form($container, $edit) {
+function storage_ftp_storage_container_settings_form(StorageContainer $container, $edit) {
 
   $items['host'] = array(
     '#type' => 'textfield',
@@ -118,7 +118,7 @@ function storage_ftp_storage_container_settings_form($container, $edit) {
 /**
  * Implement hook_storage_container_validate() .
  */
-function storage_ftp_storage_container_validate($container, $edit) {
+function storage_ftp_storage_container_validate(StorageContainer $container, $edit) {
 
   if (!$container->settings['host']) {
     form_set_error('settings][host', t('Host field is required.'));
@@ -145,7 +145,7 @@ function storage_ftp_storage_container_validate($container, $edit) {
 /**
  * Implement hook_storage_container_create() .
  */
-function storage_ftp_storage_container_create($container) {
+function storage_ftp_storage_container_create(StorageContainer $container) {
 
   $ftp = _storage_ftp_login($container->settings);
   
@@ -176,7 +176,7 @@ function storage_ftp_storage_container_create($container) {
 /**
  * Implement hook_storage_container_info() .
  */
-function storage_ftp_storage_container_info($container) {
+function storage_ftp_storage_container_info(StorageContainer $container) {
 
   $info = array(
     t('Host') => $container->settings['host'],
@@ -198,7 +198,7 @@ function storage_ftp_storage_container_info($container) {
 /**
  * Implement hook_storage_object_instance_create() .
  */
-function storage_ftp_storage_object_instance_create($container, $storage) {
+function storage_ftp_storage_object_instance_create(StorageContainer $container, Storage $storage, array $source) {
   
   $ftp = _storage_ftp_login($container->settings);
   
@@ -219,7 +219,7 @@ function storage_ftp_storage_object_instance_create($container, $storage) {
   $success = @ftp_chdir($ftp, $container->settings['directory'] . '/objects');
   
   if($success)
-   $success = @ftp_put($ftp, $filename, $storage->filepath, FTP_BINARY);
+   $success = @ftp_put($ftp, $filename, $source['filepath'], FTP_BINARY);
    
   if($success && $container->settings['permissions'])
     $success = @ftp_site($ftp, 'chmod ' . $container->settings['permissions'] . ' ' . $filename);
@@ -234,7 +234,7 @@ function storage_ftp_storage_object_instance_create($container, $storage) {
 /**
  * Implement hook_storage_instance_create() .
  */
-function storage_ftp_storage_instance_create($container, $storage) {
+function storage_ftp_storage_instance_create(StorageContainer $container, Storage $storage, array $source) {
 
   $ftp = _storage_ftp_login($container->settings);
   
@@ -248,12 +248,12 @@ function storage_ftp_storage_instance_create($container, $storage) {
   // This means we cannot use the Cache-control max-age http header
   // as URLs may be reused.
   
-  $filename = $container->unique_filename($storage->filename);
+  $filename = $container->unique_filename($source['filename']);
   
   $success = @ftp_chdir($ftp, $container->settings['directory']);
   
   if($success)
-    $success = @ftp_put($ftp, $filename, $storage->filepath, FTP_BINARY);
+    $success = @ftp_put($ftp, $filename, $source['filepath'], FTP_BINARY);
   
   if($success && $container->settings['permissions'])
     $success = @ftp_site($ftp, 'chmod ' . $container->settings['permissions'] . ' ' . $filename);
@@ -268,7 +268,7 @@ function storage_ftp_storage_instance_create($container, $storage) {
 /**
  * Implement hook_storage_instance_destroy() .
  */
-function storage_ftp_storage_instance_destroy($container, $storage, $reference) {
+function storage_ftp_storage_instance_destroy(StorageContainer $container, Storage $storage, $reference) {
 
   $ftp = _storage_ftp_login($container->settings);
   
@@ -286,7 +286,7 @@ function storage_ftp_storage_instance_destroy($container, $storage, $reference) 
 /**
  * Implement hook_storage_instance_get_filepath() .
  */
-function storage_ftp_storage_instance_get_filepath($container, $storage, $reference) {
+function storage_ftp_storage_instance_get_filepath(StorageContainer $container, Storage $storage, $reference) {
 
   $ftp = _storage_ftp_login($container->settings);
   
@@ -309,7 +309,7 @@ function storage_ftp_storage_instance_get_filepath($container, $storage, $refere
 /**
  * Implement hook_storage_instance_serve() .
  */
-function storage_ftp_storage_instance_serve($container, $storage, $reference) {
+function storage_ftp_storage_instance_serve(StorageContainer $container, Storage $storage, $reference) {
 
   return $container->settings['base_url'] . $reference;
 }
@@ -318,7 +318,7 @@ function storage_ftp_storage_instance_serve($container, $storage, $reference) {
 /**
  * Implement hook_storage_instance_serve_rtmp() .
  */
-function storage_ftp_storage_instance_serve_rtmp($container, $storage, $reference) {
+function storage_ftp_storage_instance_serve_rtmp(StorageContainer $container, Storage $storage, $reference) {
 
   if($container->settings['base_url_rtmp']) {
   

@@ -5,7 +5,7 @@
 
 class StorageService {
 
-  function __construct($service) {
+  public function __construct($service) {
   
     if (!is_array($service)) {
     
@@ -29,23 +29,23 @@ class StorageService {
     return _storage_service_invoke($this->service_id, 'service_info');
   }
 
-  function name() {
+  public function name() {
     return check_plain($this->name);
   }
   
-  function path() {
+  public function path() {
     return 'admin/structure/storage/services/' . $this->service_id;
   }
   
-  function link() {
+  public function link() {
     return l($this->name, $this->path());
   }
   
-  function update() {
+  public function update() {
     drupal_write_record('storage_service', $this, 'service_id');
   }
 
-  function flush_serving_container() {
+  public function flush_serving_container() {
 
     $selector_subquery = db_select('storage_container');
     $selector_subquery->join('storage_class_container', NULL, 'storage_container.container_id = storage_class_container.container_id');

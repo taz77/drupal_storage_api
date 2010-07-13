@@ -76,7 +76,7 @@ function storage_services() {
  * @see storage_service_form_suspend()
  * @see storage_service_form_unsuspend()
  */
-function storage_service_form($form, &$form_state, $service) {
+function storage_service_form($form, &$form_state, StorageService $service) {
   $form['#service'] = $service;
 
 
@@ -147,7 +147,7 @@ function storage_service_form_unsuspend($form, &$form_state) {
  * @ingroup forms
  * @see storage_service_suspend_form_submit()
  */
-function storage_service_suspend_form($form, &$form_state, $service) {
+function storage_service_suspend_form($form, &$form_state, StorageService $service) {
   $form['#service'] = $service;
 
   return confirm_form($form, 'Are you sure you want to suspend storage service <i>' . $service->name() . '</i> ?', 
@@ -182,7 +182,7 @@ function storage_service_suspend_form_submit($form, &$form_state) {
  * @ingroup forms
  * @see storage_service_unsuspend_form_submit()
  */
-function storage_service_unsuspend_form($form, &$form_state, $service) {
+function storage_service_unsuspend_form($form, &$form_state, StorageService $service) {
   $form['#service'] = $service;
 
   return confirm_form($form, 'Are you sure you want to unsuspend storage service <i>' . $service->name() . '</i> ?', 

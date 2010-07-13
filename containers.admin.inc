@@ -173,7 +173,7 @@ function storage_create_container_form($form, &$form_state) {
       );
 
       $form['info'] = array(
-        '#markup' => theme_storage_info_table($info)
+        '#markup' => theme('storage_info_table', array('info' => $info))
       );
 
       $form['settings'] = array(
@@ -276,7 +276,7 @@ function storage_create_container_form_submit($form, &$form_state) {
  * @see storage_container_form_drain()
  * @see storage_container_form_destroy()
  */
-function storage_container_form($form, &$form_state, $container) {
+function storage_container_form($form, &$form_state, StorageContainer $container) {
   $form['#container'] = $container;
 
 
@@ -298,7 +298,7 @@ function storage_container_form($form, &$form_state, $container) {
   $info += _storage_service_invoke($container->service_id, 'container_info', $container);
 
   $form['status'] = array(
-    '#markup' => theme_storage_info_table($info)
+    '#markup' => theme('storage_info_table', array('info' => $info))
   );
   
   if (!$container->suspended) {
@@ -399,7 +399,7 @@ function storage_container_form_destroy($form, &$form_state) {
  * @ingroup forms
  * @see storage_container_suspend_form_submit()
  */
-function storage_container_suspend_form($form, &$form_state, $container) {
+function storage_container_suspend_form($form, &$form_state, StorageContainer $container) {
   $form['#container'] = $container;
 
   return confirm_form($form, 'Are you sure you want to suspend storage container <i>' . $container->name() . '</i> ?', 
@@ -434,7 +434,7 @@ function storage_container_suspend_form_submit($form, &$form_state) {
  * @ingroup forms
  * @see storage_container_unsuspend_form_submit()
  */
-function storage_container_unsuspend_form($form, &$form_state, $container) {
+function storage_container_unsuspend_form($form, &$form_state, StorageContainer $container) {
   $form['#container'] = $container;
 
   return confirm_form($form, 'Are you sure you want to unsuspend storage container <i>' . 
@@ -469,7 +469,7 @@ function storage_container_unsuspend_form_submit($form, &$form_state) {
  * @ingroup forms
  * @see storage_container_drain_form_submit()
  */
-function storage_container_drain_form($form, &$form_state, $container) {
+function storage_container_drain_form($form, &$form_state, StorageContainer $container) {
   $form['#container'] = $container;
 
   return confirm_form($form, 'Are you sure you want to drain storage container <i>' . 
@@ -497,7 +497,7 @@ function storage_container_drain_form_submit($form, &$form_state) {
  * @ingroup forms
  * @see storage_container_destroy_form_submit()
  */
-function storage_container_destroy_form($form, &$form_state, $container) {
+function storage_container_destroy_form($form, &$form_state, StorageContainer $container) {
   $form['#container'] = $container;
 
   return confirm_form($form, 'Are you sure you want to destroy storage container <i>' . 
@@ -525,7 +525,7 @@ function storage_container_destroy_form_submit($form, &$form_state) {
  * @see storage_container_edit_form_submit()
  * @see storage_container_edit_form_validate()
  */
-function storage_container_edit_form($form, &$form_state, $container) {
+function storage_container_edit_form($form, &$form_state, StorageContainer $container) {
   $form['#container'] = $container;
 
   $service_name = _storage_get_service_name($container->service_id);
