@@ -284,12 +284,17 @@ function storage_load($storage_id) {
  */
 function storage_service_load($service_id) {
 
-  try {
-    return new StorageService($service_id);
-  }
-  catch (Exception $e) {
+  $fields = db_select('storage_service')
+    ->fields('storage_service')
+    ->condition('service_id', $service_id)
+    ->execute()
+    ->fetchAssoc();
+
+  if (!$fields) {
     return FALSE;
   }
+
+  return new StorageService($fields);
 }
 
 
@@ -303,12 +308,28 @@ function storage_service_load($service_id) {
  */
 function storage_container_load($container_id) {
 
-  try {
-    return new StorageContainer($container_id);
-  }
-  catch (Exception $e) {
+  $fields = db_select('storage_container')
+    ->fields('storage_container')
+    ->condition('container_id', $container_id)
+    ->execute()
+    ->fetchAssoc();
+
+  if (!$fields) {
     return FALSE;
   }
+  
+  return storage_container_new($fields);
+}
+
+
+function storage_container_new($fields, $unserialize = TRUE) {
+
+  if ($unserialize) {
+    $fields['settings'] = unserialize($fields['settings']);
+  }
+  
+  $class = storage_container_class($fields['service_id']);
+  return new $class($fields);
 }
 
 
@@ -331,29 +352,61 @@ function storage_class_load($class_id) {
 }
 
 
-function _storage_service_invoke() {
-  $args = func_get_args();
-  
-  $args[0] = 'storage_' . $args[0];
-  $args[1] = 'storage_' . $args[1];
-  
-  return call_user_func_array('module_invoke', $args);
+function storage_api_storage_services() {
+
+  $services = array(
+    'db' => array(
+      'name' => t('Database'),
+      'class' => 'StorageDB',
+      'local' => FALSE,
+      'direct' => TRUE,
+      'can_copy' => FALSE,
+    ),
+    'fs' => array(
+      'name' => t('Filesystem'),
+      'class' => 'StorageFS',
+      'local' => TRUE,
+      'direct' => FALSE,
+      'can_copy' => FALSE,
+    ),
+    'ftp' => array(
+      'name' => t('FTP'),
+      'class' => 'StorageFTP',
+      'local' => FALSE,
+      'direct' => FALSE,
+      'can_copy' => FALSE,
+    ),
+    'rackspace' => array(
+      'name' => t('Rackspace Cloud Files'),
+      'class' => 'StorageRackspace',
+      'local' => FALSE,
+      'direct' => FALSE,
+      'can_copy' => FALSE,
+    ),
+    's3_cloudfront' => array(
+      'name' => t('Amazon S3 / CloudFront'),
+      'class' => 'StorageS3CloudFront',
+      'local' => FALSE,
+      'direct' => FALSE,
+      'can_copy' => TRUE,
+    ),
+  );
+
+  return $services;
 }
 
 
-function _storage_service_invoke_all() {
-  $results = array();
-  
-  $args = func_get_args();
-  array_unshift($args, NULL);
-  $args[1] = 'storage_' . $args[1];
-  
-  foreach (module_implements($args[1], TRUE) as $module) {
-    $args[0] = $module;
-    $results[substr($module, 8)] = call_user_func_array('module_invoke', $args);
-  }
-  
-  return $results;
+function storage_service_info($service_id) {
+
+  $services = module_invoke_all('storage_services');
+  return $services[$service_id];
+}
+
+
+function storage_container_class($service_id) {
+
+  $info = storage_service_info($service_id);
+  return $info['class'];
 }
 
 
@@ -701,20 +754,20 @@ function storage_mime_extension($mimetype) {
 
 function _storage_get_service_names() {
 
-  $services = _storage_service_invoke_all('service_info');
-  
-  foreach ($services as &$service)
-    $service = $service['name'];
+  foreach (module_invoke_all('storage_services') as $service_id => $info)
+    $names[$service_id] = $info['name'];
     
-  asort($services);
+  asort($names);
   
-  return $services;
+  return $names;
 }
 
 
 function _storage_get_service_name($service_id, $link = FALSE) {
 
-  $info = _storage_service_invoke($service_id, 'service_info');
+  $services = module_invoke_all('storage_services');
+
+  $info = $services[$service_id];
   
   if ($link)
     return l($info['name'], 'admin/structure/storage/services/' . $service_id);
@@ -821,13 +874,7 @@ function theme_storage_info_table($variables) {
 
 function _storage_update_services() {
 
-  $modules = module_implements('storage_service_info');
-
-  $code_service_ids = array();
-
-  foreach ($modules as $module)
-    $code_service_ids[] = substr($module, 8);
-
+  $code_service_ids = array_keys(module_invoke_all('storage_services'));
 
   $result = db_select('storage_service', NULL, array('fetch' => PDO::FETCH_ASSOC))
     ->fields('storage_service', array('service_id'))

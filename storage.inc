@@ -43,7 +43,7 @@ class Storage {
     drupal_write_record('storage', $this, 'storage_id');
   }
   
-  public function log_serving($container_id = NULL) {
+  public function logServing($container_id = NULL) {
     global $user;
     
     $serving = array(
@@ -111,7 +111,7 @@ class Storage {
   }
 
 
-  public function initial_container_instance() {
+  public function initialContainerInstance() {
 
     $container = storage_container_load($this->data['initial_container_id']);
 
@@ -132,7 +132,7 @@ class Storage {
   }
 
 
-  public function serving_container() {
+  public function servingContainer() {
 
     $query = db_select('storage_instance');
     $query->join('storage_class_container', NULL, 'storage_instance.container_id = storage_class_container.container_id');
@@ -154,7 +154,7 @@ class Storage {
       ->fetchAssoc();
     
     if ($container) {
-      $container = new StorageContainer($container);
+      $container = storage_container_new($container);
 
       $query = db_select('storage_instance');
       
@@ -179,7 +179,7 @@ class Storage {
     
     // We couldn't serve the file from any of the containers it is supposed to be in
     // lets see if the file is in the storage's initial container.
-    return $this->initial_container_instance();
+    return $this->initialContainerInstance();
   }
 
 
@@ -190,7 +190,7 @@ class Storage {
     if (!$container)
       return FALSE;
 
-    $filepath = $this->get_local_filepath($keep_me);
+    $filepath = $this->getLocalFilepath($keep_me);
     
     if (!$filepath)
       return FALSE;
@@ -204,7 +204,7 @@ class Storage {
 
       $message = 'Failed to create instance of file ' . ($this->filename ? ($this->filename . ' ') : '');
       $message .= 'in storage container <i>' . $container->name . '</i>.';
-      $message .= ' <br />' . $this->log_info();
+      $message .= ' <br />' . $this->logInfo();
       watchdog('storage_api', $message, NULL, WATCHDOG_WARNING, $link);
 
       return FALSE;
@@ -214,7 +214,7 @@ class Storage {
     $this->update();
 
     $message = 'Generated file' . ($this->filename ? (' ' . $this->filename) : '');
-    $message .= '<br />' . $this->log_info();
+    $message .= '<br />' . $this->logInfo();
     watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, $link);
 
     return $container;
@@ -229,24 +229,24 @@ class Storage {
       $container = $this->serving_container;
     }
     else {
-      $container = $this->serving_container();
+      $container = $this->servingContainer();
     
       if (!$container) {
         $container = $this->generate;
       }
         
-      $this->cache_serving_container($container);
+      $this->cacheServingContainer($container);
     }
     
     if ($container) {
-      $this->log_serving($container->container_id);
+      $this->logServing($container->container_id);
       
       // this may not return
-      $url = _storage_service_invoke($container->service_id, 'instance_serve', $container, $this);
+      $url = $container->serviceInstanceServe($this, $container->reference);
     }
     elseif ($this->options['serve_source_url'] && $this->source_url) {
 
-      $this->log_serving();
+      $this->logServing();
       $url = $this->source_url;
     }
     
@@ -270,7 +270,7 @@ class Storage {
    * @return
    *   The generated URL.
    */
-  public function serve_url($absolute = FALSE) {
+  public function serveURL($absolute = FALSE) {
     $serve_from_site = FALSE;
     
     if ($this->serving_container === FALSE || !empty($this->options['redirect'])) {  // FALSE means there is no container
@@ -288,16 +288,16 @@ class Storage {
       $container = $this->serving_container;
     }
     else {
-      $container = $this->serving_container();
-      $this->cache_serving_container($container);
+      $container = $this->servingContainer();
+      $this->cacheServingContainer($container);
     }
     
     if ($container) {
-      $info = _storage_service_invoke($container->service_id, 'service_info');
+      $info = storage_service_info($container->service_id);
       
       if (!$info['direct']) {    // direct services don't return a URL
       
-        $url = _storage_service_invoke($container->service_id, 'instance_serve', $container, $this, $container->reference);
+        $url = $container->serviceInstanceServe($this, $container->reference);
       }
     }
     elseif ($this->options['serve_source_url'] && $this->source_url) {
@@ -331,7 +331,7 @@ class Storage {
    *     - 'streamer'
    *     - 'file'
    */
-  public function serve_rtmp() {
+  public function serveRTMP() {
     
     if ($this->serving_container === FALSE) {  // FALSE means there is no container
       return FALSE;
@@ -341,8 +341,8 @@ class Storage {
       $container = $this->serving_container;
     }
     else {
-      $container = $this->serving_container();
-      $this->cache_serving_container($container);
+      $container = $this->servingContainer();
+      $this->cacheServingContainer($container);
     }
     
     if (!$container)
@@ -352,8 +352,7 @@ class Storage {
       return FALSE;
     }
     
-    return _storage_service_invoke($container->service_id, 'serve_rtmp',
-      $container, $this);
+    return $container->serviceInstanceServe($this, $container->reference);
   }
 
 
@@ -363,7 +362,7 @@ class Storage {
    * @param $old_storage_id
    *   storage_id of the file the statistics are being transferred from.
    */
-  public function inherit_servings($old_storage_id) {
+  public function inheritServings($old_storage_id) {
 
     if (!$old_storage_id)
       return;
@@ -386,7 +385,7 @@ class Storage {
       ->execute();
   }
 
-  public function log_info() {
+  public function logInfo() {
 
     $info = $this->module ? ('module: ' . $this->module . ', ') : '';
     $info .= $this->type ? ('type: ' . $this->type . ', ') : '';
@@ -400,7 +399,7 @@ class Storage {
   }
 
 
-  public function file_log_info() {
+  public function fileLogInfo() {
 
     $info = 'file_id: ' . $this->file_id . ', ';
     $info .= 'size: ' . $this->size();
@@ -431,7 +430,7 @@ class Storage {
       ->execute();
     
     $message = 'File removed' . ($this->filename ? (': ' . $this->filename . ' ') : '') . ' <br />';
-    $message .= $this->log_info();
+    $message .= $this->logInfo();
     
     watchdog('storage_api', $message, NULL);
   }
@@ -445,7 +444,7 @@ class Storage {
    * @return
    *   An array of HTTP headers.
    */
-  public function http_headers() {
+  public function HTTPHeaders() {
     $headers[] = 'Content-Type: ' . $this->mimetype;
     $headers[] = 'Content-Length: ' . $this->size;
     $headers[] = 'Content-MD5: ' . base64_encode($this->md5);
@@ -460,19 +459,19 @@ class Storage {
   /**
    * Output directly the correct HTTP headers for a specific file.
    */
-  public function set_http_headers() {
+  public function SetHTTPHeaders() {
 
     // Unset the headers we don't want (they still get sent unfortunately).
     header('Set-Cookie:');
     header('Expires:');
     
-    foreach ($this->http_headers() as $header) {
+    foreach ($this->HTTPHeaders() as $header) {
       header($header);
     }
   }
 
 
-  private function acquire_from_source_url() {
+  private function acquireFromSourceURL() {
 
     if (REQUEST_TIME < $this->data['next_acquire_time'])
       return;
@@ -504,7 +503,7 @@ class Storage {
         $this->new_file = $new_file;    // _storage_ensure_instance_exists() will make use of this
 
         $message = 'Acquired file from url: ' . $this->source_url . ' . <br />';
-        $message .= $this->log_info();
+        $message .= $this->logInfo();
         
         $link = $this->nid ? l(t('view'), 'node/' . $this->nid) : NULL;
       
@@ -523,7 +522,7 @@ class Storage {
       $this->update();
 
       $message = 'Failed acquiring file from url: ' . $this->source_url . ' . <br />';
-      $message .= $this->log_info();
+      $message .= $this->logInfo();
       
       $link = $this->nid ? l(t('view'), 'node/' . $this->nid) : NULL;
       
@@ -559,7 +558,7 @@ class Storage {
    * @return
    *   A filepath where the file can be accessed.
    */
-  public function get_local_filepath(&$keep_me) {
+  public function getLocalFilepath(&$keep_me) {
 
     $query = db_select('storage_instance');
     $query->join('storage_class_container', NULL, 'storage_instance.container_id = storage_class_container.container_id');
@@ -582,18 +581,17 @@ class Storage {
       
     if ($row) {
       $reference = $row['reference'];
-      $container = new StorageContainer($row);
+      $container = storage_container_new($row);
     }
     else {
-      $container = $this->initial_container_instance();
+      $container = $this->initialContainerInstance();
     }
     
     if ($container) {
     
-      $filepath = _storage_service_invoke($container->service_id, 'instance_get_filepath', 
-        $container, $this, $reference);
+      $filepath =  $container->serviceInstanceGetFilepath($this, $reference);
 
-      $service_info = _storage_service_invoke($container->service_id, 'service_info');
+      $service_info = storage_service_info($container->service_id);
       $keep_me = $service_info['local'];
       
       return $filepath;
@@ -601,7 +599,7 @@ class Storage {
     
     if ($this->source_url) {
 
-      $filepath = $this->acquire_from_source_url();
+      $filepath = $this->acquireFromSourceURL();
 
       if ($filepath) {
         return $filepath;
@@ -646,7 +644,7 @@ class Storage {
   }
 
 
-  public function cache_serving_container(StorageContainer $container) {
+  public function cacheServingContainer(StorageContainer $container) {
 
     db_update('storage')
       ->fields(array('serving_container' => serialize($container)))
@@ -655,7 +653,7 @@ class Storage {
   }
 
 
-  public function flush_serving_container() {
+  public function flushServingContainer() {
 
     db_update('storage')
       ->expression('serving_container', 'NULL')
@@ -687,8 +685,8 @@ class Storage {
     $failure = FALSE;
     
     foreach ($result as $container) {
-      $container = new StorageContainer($container);
-      $exists = $container->ensure_instance_exists($this);
+      $container = storage_container_new($container);
+      $exists = $container->ensureInstanceExists($this);
       
       if (!$exists) {
         $failure = TRUE;
@@ -702,7 +700,7 @@ class Storage {
     }
   
     // The storage is fully propagated, now we can destroy unrequired instances.
-    if (!$this->destroy_unrequired_instances($container_ids)) {
+    if (!$this->destroyUnrequiredInstances($container_ids)) {
       return FALSE;
     }
     
@@ -721,7 +719,7 @@ class Storage {
   }
 
   
-  public function destroy_unrequired_instances($container_ids) {
+  public function destroyUnrequiredInstances($container_ids) {
     
     $query = db_select('storage_instance', NULL, array('fetch' => PDO::FETCH_ASSOC));
     $query->join('storage_container', NULL, 'storage_instance.container_id = storage_container.container_id');
@@ -741,9 +739,9 @@ class Storage {
       
     foreach ($query->execute() as $row) {
       $reference = $row['reference'];
-      $container = new StorageContainer($row);
+      $container = storage_container_new($row);
       
-      $success = $container->instance_destroy_if_unrequired($this, $reference);
+      $success = $container->instanceDestroyIfUnrequired($this, $reference);
       
       if (!$success)
         $failure = TRUE;
@@ -753,7 +751,7 @@ class Storage {
   }
 
 
-  public function copy_candidate_containers(StorageContainer $container) {
+  public function copyCandidateContainers(StorageContainer $container) {
 
     // Find all the containers in $storage's class that are using $container's service, 
     // except $container.
@@ -850,13 +848,13 @@ function storage_add($selector_id, $options = array()) {
   
     // If the storage's file is already in the system, then the instance might already exist.
     if (empty($new_file)) {
-      $exists = $container->instance_exists($storage);
+      $exists = $container->instanceExists($storage);
     }
 
     if (empty($exists)) {
     
       try {
-        $container->instance_create($storage, $options);
+        $container->instanceCreate($storage, $options);
       }
       catch (Exception $e) {
         $message = 'Failed to create initial instance of file ' . ($storage->filename ? ($storage->filename . ' ') : '');
@@ -865,7 +863,7 @@ function storage_add($selector_id, $options = array()) {
         if (user_access('administer storage'))
           drupal_set_message($message);
 
-        $message .= ' <br />' . $storage->log_info();
+        $message .= ' <br />' . $storage->logInfo();
         watchdog('storage_api', $message, NULL, WATCHDOG_WARNING, $link);
         
         $storage->remove();
@@ -875,7 +873,7 @@ function storage_add($selector_id, $options = array()) {
   }
   
   $message = 'File added' . ($storage->filename ? (': ' . $storage->filename . ' ') : '') . ' <br />';
-  $message .= $storage->log_info();
+  $message .= $storage->logInfo();
   
   watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, $link);
 

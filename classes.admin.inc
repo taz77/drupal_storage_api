@@ -75,7 +75,7 @@ function storage_create_class_form($form, &$form_state) {
   
   $class = new StorageClass(); 
   
-  $form = $class->form_elements();
+  $form = $class->formElements();
 
   $result = db_select('storage_container', NULL, array('fetch' => PDO::FETCH_ASSOC))
     ->fields('storage_container')
@@ -206,7 +206,7 @@ function storage_class_edit_form($form, &$form_state, StorageClass $class) {
 
   drupal_set_title(t('Storage class: ') . $class->name(), PASS_THROUGH);
 
-  $form = $class->form_elements();
+  $form = $class->formElements();
   $form['#class'] = $class;
   
   $query = db_select('storage_class_container', NULL, array('fetch' => PDO::FETCH_ASSOC));

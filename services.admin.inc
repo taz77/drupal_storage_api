@@ -42,17 +42,16 @@ function storage_services() {
   $result = _storage_services_query()
     ->execute();
 
-  foreach ($result as $service) {
+  foreach ($result as $fields) {
+    $service = new StorageService($fields);
     unset($row);
   
-    $name = _storage_get_service_name($service['service_id']);
-  
-    $row[] = l($name, 'admin/structure/storage/services/' . $service['service_id']);
-    $row[] = $service['suspended'] ? t('Yes') : t('No');
-    $row[] = (int)$service['count'];
-    $row[] = storage_format_size($service['size']);
+    $row[] = $service->link();
+    $row[] = $service->suspended ? t('Yes') : t('No');
+    $row[] = (int)$service->count;
+    $row[] = storage_format_size($service->size);
     
-    $rows[$name] = $row;
+    $rows[$service->name()] = $row;
   }
   
   if (empty($rows)) {
@@ -92,7 +91,7 @@ function storage_service_form($form, &$form_state, StorageService $service) {
   $info[t('Suspended')] = $service->suspended ? t('Yes') : t('No');
 
   $form['status'] = array(
-    '#markup' => theme_storage_info_table($info)
+    '#markup' => theme('storage_info_table', array('info' => $info))
   );
 
   if (!$service->suspended) {
@@ -165,7 +164,7 @@ function storage_service_suspend_form_submit($form, &$form_state) {
   
   $service->suspended = TRUE;
   $service->update();
-  $service->flush_serving_container();
+  $service->flushServingContainer();
 
   $message = 'Storage service <i>' . $service->name() . '</i> has been suspended.';
 
@@ -200,7 +199,7 @@ function storage_service_unsuspend_form_submit($form, &$form_state) {
   
   $service->suspended = FALSE;
   $service->update();
-  $service->flush_serving_container();
+  $service->flushServingContainer();
 
   $message = 'Storage service <i>' . $service->name() . '</i> has been unsuspended.';
 

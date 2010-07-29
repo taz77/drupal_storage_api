@@ -33,7 +33,7 @@ class StorageClass {
       
     try {
       if (isset($this->options['initial_container_id']))
-        $this->initial_container = new StorageContainer($this->options['initial_container_id']);
+        $this->initial_container = storage_container_load($this->options['initial_container_id']);
     }
     catch (Exception $e) {}
   }
@@ -142,7 +142,7 @@ class StorageClass {
     watchdog('storage_api', $message, NULL);
   }
 
-  public function form_elements() {
+  public function formElements() {
 
     $form['name'] = array(
       '#title' => t('Name'),

@@ -5,7 +5,7 @@
 
 
 /**
- * Implement hook_stream_wrappers() .
+ * Implements hook_stream_wrappers() .
  */
 function storage_core_bridge_stream_wrappers() {
 
@@ -124,7 +124,6 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
   }
 
   public function url_stat($uri, $flags) {
-
     global $storage_core_bridge_filename;
     $filename = file_uri_target($uri);
 
@@ -152,7 +151,7 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
     return $stat;
   }
   
-  function setUri($uri) {
+  public function setUri($uri) {
     $this->uri = $uri;
   }
   
@@ -174,17 +173,11 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
     return TRUE;
   }
   
-  public function chmod($mode) {    // dont define?
-    dsm(__FUNCTION__);
-    dsm(func_get_args());
-
+  public function chmod($mode) {
     return TRUE;
   }
   
   public function stream_open($uri, $mode, $options, &$opened_url) {
-    dsm(__FUNCTION__);
-    dsm(func_get_args());
-
     $this->uri = $uri;
     $this->filepath = drupal_tempnam('temporary://', 'storage');
     $this->fp = fopen($this->filepath, "w");
@@ -196,19 +189,12 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
   }
   
   public function stream_flush() {
-    dsm(__FUNCTION__);
-    dsm(func_get_args());
-
     return fflush($this->fp);
   }
   
   public function stream_close() {
-    dsm(__FUNCTION__);
-    dsm(func_get_args());
-
     global $storage_core_bridge_filename;
     fclose($this->fp);
-    $selector_id = $this->selectorId();
     
     $options = array(
       'filepath' => $this->filepath,
@@ -218,12 +204,14 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
     );
     
     try {
-      storage_add($selector_id, $options);
+      storage_add($this->selectorId(), $options);
     }
     catch (Exception $e) {}
   }
   
   public function realpath() {
+    dsm(__FUNCTION__);
+    dsm(func_get_args());
     return $this->uri;
   }
 
@@ -238,7 +226,7 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
   
   public function getExternalUrl() {
     $storage = _storage_core_bridge_load($this->uri);
-    return $storage->serve_url(TRUE);
+    return $storage->serveURL(TRUE);
   }
   
   

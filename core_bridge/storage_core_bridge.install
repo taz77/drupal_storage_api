@@ -1,6 +1,8 @@
 <?php
 // $Id$
 
+// Copyright 2010 Jonathan Brown
+
 
 /**
  * Implement hook_install() .

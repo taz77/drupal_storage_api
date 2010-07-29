@@ -3,49 +3,30 @@
 
 // Copyright 2010 Jonathan Brown
 
-class StorageContainer {
+abstract class StorageContainer {
 
-  public function __construct($container, $unserialize = TRUE) {
+  public function __construct($fields, $unserialize = TRUE) {
   
-    if (!is_array($container)) {
-    
-      $container = db_select('storage_container')
-        ->fields('storage_container')
-        ->condition('container_id', $container)
-        ->execute()
-        ->fetchAssoc();
-
-      if (!$container)
-        throw new Exception();
-    }
-    
-    if ($unserialize) {
+    if ($unserialize && isset($container['settings'])) {
       $container['settings'] = unserialize($container['settings']);
     }
-
-    foreach ($container as $key => $value)
+    
+    foreach ($fields as $key => $value) {
       $this->$key = $value;
+    }
   }
   
   public function service() {
     return new StorageService($this->service_id);
   }
-        
-  public function settings_form($edit = FALSE) {
-    return _storage_service_invoke($this->service_id, 'container_settings_form', $this, $edit);
-  }
 
-  public function validate($edit = FALSE) {
-    _storage_service_invoke($this->service_id, 'container_validate', $this, $edit);
-  }
-  
   /**
    * Creates a storage container.
    */
   public function create() {
-
+  
     try {
-      _storage_service_invoke($this->service_id, 'container_create', $this);
+      $this->serviceCreate();
     }
     catch (Exception $e) {
       $msg = 'Failed to create storage container !container.';
@@ -55,7 +36,7 @@ class StorageContainer {
     }
     
     drupal_write_record('storage_container', $this);
-    _storage_service_invoke($this->service_id, 'container_postcreate', $this);
+    $this->servicePostCreate();
 
     $msg = 'Storage container !container has been created.';
     drupal_set_message(t($msg, array('!container' => $this->link())));
@@ -79,7 +60,7 @@ class StorageContainer {
     drupal_write_record('storage_container', $this, 'container_id');
   }
 
-  public function flush_serving_container() {
+  public function flushServingContainer() {
 
     $selector_subquery = db_select('storage_class_container');
     $selector_subquery->join('storage_selector', NULL, 'storage_class_container.class_id = storage_selector.class_id');
@@ -96,7 +77,7 @@ class StorageContainer {
   }
 
 
-  public function instance_create(Storage $storage, $source) {
+  public function instanceCreate(Storage $storage, $source) {
   
     // We need write access to the directory for it to be deleted.
     if (empty($source['keep_me'])) {
@@ -105,78 +86,66 @@ class StorageContainer {
         $source['keep_me'] = TRUE;
       }
     }
+    
+    $reference = $this->serviceInstanceCreate($storage, $source);
 
-    $result = _storage_service_invoke($this->service_id, 'instance_create', $this, $storage, $source);
-    
-    if (!$result) {
-      throw new Exception();
-    }
-    
     if (!$source['keep_me']) {
       @unlink($source['filepath']);
     }
-      
+
     $instance = array(
       'container_id' => $this->container_id,
       'file_id' => $storage->file_id,
     );
 
-    if ($result !== TRUE) {
-      $instance['reference'] = $result;
+    if ($reference) {
+      $instance['reference'] = $reference;
     }
 
     drupal_write_record('storage_instance', $instance);
     
-    $storage->flush_serving_container();
+    $storage->flushServingContainer();
     
     $message = 'File instance created' . ($storage->filename ? (': ' . $storage->filename . ' ') : '') . '. <br />';
-    $message .= $this->log_info();
-    $message .= $storage->log_info();
+    $message .= $this->logInfo();
+    $message .= $storage->logInfo();
 
     watchdog('storage_api', $message, NULL);
-
-    return $result;
   }
 
 
-  public function instance_copy(Storage $storage, $source_container) {
+  public function instanceCopy(Storage $storage, $source_container) {
 
-    $result = _storage_service_invoke($this->service_id, 'instance_copy', $this, $storage, $source_container);
-    
-    if (!$result) {
-      throw new Exception();
-    }
-      
+    $reference = $this->serviceInstanceCopy($storage, $source_container);
+
     $instance = array(
       'container_id' => $this->container_id,
       'file_id' => $storage->file_id,
     );
 
     if ($result !== TRUE) {
-      $instance['reference'] = $result;
+      $instance['reference'] = $reference;
     }
 
     drupal_write_record('storage_instance', $instance);
     
-    $storage->flush_serving_container();
+    $storage->flushServingContainer();
     
     $message = 'File instance copied' . ($storage->filename ? (': ' . $storage->filename . ' ') : '') . '. <br />';
-    $message .= $this->log_info();
-    $message .= $storage->log_info();
+    $message .= $this->logInfo();
+    $message .= $storage->logInfo();
 
     watchdog('storage_api', $message, NULL);
-
-    return $result;
   }
 
 
-  public function try_instance_copy(Storage $storage) {
+  public function tryInstanceCopy(Storage $storage) {
     
-    $candiate_container_ids = $storage->copy_candidate_containers($this);
+    $candiate_container_ids = $storage->copyCandidateContainers($this);
     
     foreach ($candiate_container_ids as $candiate_container_id) {
 
-      if ($container->instance_exists($storage)) {
+      if ($container->instanceExists($storage)) {
         $source_container = storage_container_load($candiate_container_id);
         return _storage_instance_copy($container, $storage, $source_container);
       }
@@ -184,7 +153,7 @@ class StorageContainer {
   }
 
 
-  public function ensure_instance_exists(Storage $storage) {
+  public function ensureInstanceExists(Storage $storage) {
     $check = FALSE;
     $keep_me = TRUE;
 
@@ -195,12 +164,12 @@ class StorageContainer {
     }
     
     if ($storage->file_id) {
-      if ($this->instance_exists($storage)) {
+      if ($this->instanceExists($storage)) {
         return TRUE;
       }
     }
     else {
-      // We don't have an file_id yet, so we might check for an instance once we do.
+      // We don't have a file_id yet, so we might check for an instance once we do.
       $check = TRUE;
     }
     
@@ -208,12 +177,12 @@ class StorageContainer {
     $service_info = $this->service()->info();
 
     if ($service_info['can_copy'] && !$check) {
-      if ($this->try_instance_copy($storage)) {
+      if ($this->tryInstanceCopy($storage)) {
         return TRUE;
       }
     }
 
-    $filepath = $storage->get_local_filepath($keep_me);
+    $filepath = $storage->getLocalFilepath($keep_me);
     
     $exists = FALSE;
     
@@ -221,7 +190,7 @@ class StorageContainer {
     
       // If it's a new file, there is no point in checking for an instance.
       if ($check && !$storage->new_file) {
-        $exists = $this->instance_exists($storage);
+        $exists = $this->instanceExists($storage);
       }
       
       if (!$exists) {
@@ -231,7 +200,7 @@ class StorageContainer {
           'keep_me' => $keep_me,
         );
 
-        $exists = $this->instance_create($storage, $source);
+        $exists = $this->instanceCreate($storage, $source);
       }
       
       if (!$keep_me) {
@@ -243,7 +212,7 @@ class StorageContainer {
   }
 
 
-  public function instance_exists(Storage $storage) {
+  public function instanceExists(Storage $storage) {
 
     return db_select('storage_instance')
       ->fields('storage_instance', array('reference'))
@@ -254,7 +223,7 @@ class StorageContainer {
   }
 
 
-  public function instance_destroy_if_unrequired(Storage $storage, $reference) {
+  public function instanceDestroyIfUnrequired(Storage $storage, $reference) {
 
     // Are there any other instances in this container that use the same file?
     
@@ -276,7 +245,7 @@ class StorageContainer {
     $failure = FALSE;
     
     if ($count == 0) {
-      $success = $this->instance_destroy($storage, $reference);
+      $success = $this->instanceDestroy($storage, $reference);
       
       if (!$success)
         $failure = TRUE;
@@ -286,7 +255,7 @@ class StorageContainer {
   }
 
 
-  public function instance_destroy(Storage $storage, $reference) {
+  public function instanceDestroy(Storage $storage, $reference) {
 
     if ($this->suspended != 0 ||
       $this->service_suspended != 0)
@@ -294,10 +263,7 @@ class StorageContainer {
       return FALSE;
     }
 
-    $success = _storage_service_invoke($this->service_id, 'instance_destroy', $this, $storage, $reference);
-      
-    if (!$success)
-      return FALSE;
+    $this->serviceInstanceDestroy($storage, $reference);
 
     db_delete('storage_instance')
       ->condition('file_id', $storage->file_id)
@@ -305,8 +271,8 @@ class StorageContainer {
       ->execute();
     
     $message = 'File instance destroyed' . ($storage->filename ? (': ' . $storage->filename . ' ') : '') . '. <br />';
-    $message .= $this->log_info();
-    $message .= $storage->log_info();
+    $message .= $this->logInfo();
+    $message .= $storage->logInfo();
 
     watchdog('storage_api', $message, NULL);
 
@@ -359,12 +325,10 @@ class StorageContainer {
       ->condition('container_id', $this->container_id)
       ->execute();
       
-    $this->flush_serving_container();
-
-    $success = _storage_service_invoke($this->service_id, 'container_destroy', $this);
+    $this->flushServingContainer();
+    $this->serviceDestroy();
 
     $message = 'Storage container <i>' . $this->name() . '</i> has been destroyed.';
-
     drupal_set_message($message);
     watchdog('storage_api', $message, NULL);
   }
@@ -377,7 +341,7 @@ class StorageContainer {
    * @return
    *   Whether the reference exists in the container.
    */
-  public function reference_exists($reference) {
+  public function referenceExists($reference) {
 
     return (bool) db_select('storage_instance')
       ->condition('container_id', $this->container_id)
@@ -395,9 +359,9 @@ class StorageContainer {
    * @return
    *   Unique filename.
    */
-  public function unique_filename($filename) {
+  public function uniqueFilename($filename) {
 
-    if ($this->reference_exists($filename)) {
+    if ($this->referenceExists($filename)) {
 
       $pos = strrpos($filename, '.');
       
@@ -414,17 +378,39 @@ class StorageContainer {
       do {
         $filename = $name . '_' . $counter++ . $ext;
         
-      } while($this->reference_exists($filename));
+      } while($this->referenceExists($filename));
     }
 
     return $filename;
   }
 
-  public function log_info() {
+  public function logInfo() {
 
     $info = 'container: ' . $this->name() . ', <br />';
 
     return $info;
   }
+
+  // Optional API functions.
+  public function servicePostCreate() {}
+  public function serviceUpdate() {}
+  public function serviceInstanceCopy(Storage $storage, $reference, $source_container) {}
+}
+
+
+interface StorageServiceInterface {
+
+  public function serviceSettingsForm($edit = FALSE);
+  public function serviceValidate($edit = FALSE);
+  public function serviceCreate();
+  public function servicePostCreate();
+  public function serviceInfo();
+  public function serviceUpdate();
+  public function serviceDestroy();
+  public function serviceInstanceCreate(Storage $storage, array $source);
+  public function serviceInstanceCopy(Storage $storage, $reference, $source_container);
+  public function serviceInstanceDestroy(Storage $storage, $reference);
+  public function serviceInstanceGetFilepath(Storage $storage, $reference);
+  public function serviceInstanceServe(Storage $storage, $reference);
 }
 

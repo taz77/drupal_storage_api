@@ -1,6 +1,8 @@
 <?php
 // $Id$
 
+// Copyright 2008-2010 Jonathan Brown
+
 
 /**
  * Implement hook_requirements() .
@@ -157,5 +159,27 @@ function storage_api_install() {
   $class->create();
   
   variable_set('storage_api_initial_class', $class->class_id);
+
+  $path = file_create_filename('storage', file_directory_path());
+
+  $container = array(
+    'name' => t('Local'),
+    'service_id' => 'fs',
+    'capability' => STORAGE_API_SERVING,
+    'settings' => array(
+      'path' => $path,
+      'base_url' => $path,
+    ),
+  );
+
+  try {
+    $container = storage_container_new($container, FALSE);
+    $container->create();
+  }
+  catch (Exception $e) {
+    return;
+  }
+  
+  $class->addContainer($container);
 }
 

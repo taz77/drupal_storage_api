@@ -5,32 +5,18 @@
 
 class StorageService {
 
-  public function __construct($service) {
-  
-    if (!is_array($service)) {
+  public function __construct($fields) {
     
-      $service = db_select('storage_service')
-        ->fields('storage_service')
-        ->condition('service_id', $service)
-        ->execute()
-        ->fetchAssoc();
-        
-      if (!$service)
-        throw new Exception();
+    foreach ($fields as $key => $value) {
+      $this->$key = $value;
     }
     
-    $service += _storage_service_invoke($service['service_id'], 'service_info');
-
-    foreach ($service as $key => $value)
-      $this->$key = $value;
+    $services = module_invoke_all('storage_services');
+    $this->info = $services[$this->service_id];
   }
   
-  public function info() {
-    return _storage_service_invoke($this->service_id, 'service_info');
-  }
-
   public function name() {
-    return check_plain($this->name);
+    return check_plain($this->info['name']);
   }
   
   public function path() {
@@ -38,14 +24,14 @@ class StorageService {
   }
   
   public function link() {
-    return l($this->name, $this->path());
+    return l($this->info['name'], $this->path());
   }
   
   public function update() {
     drupal_write_record('storage_service', $this, 'service_id');
   }
 
-  public function flush_serving_container() {
+  public function flushServingContainer() {
 
     $selector_subquery = db_select('storage_container');
     $selector_subquery->join('storage_class_container', NULL, 'storage_container.container_id = storage_class_container.container_id');
@@ -62,4 +48,5 @@ class StorageService {
     cache_clear_all();
   }
 }
+
 

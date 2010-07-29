@@ -1,7 +1,0 @@
-; $Id$
-name = FTP
-description = "FTP storage service serving via any HTTP or FTP service."
-package = Storage services
-dependencies[] = storage_api
-core = 7.x
-files[] = storage_ftp.module

@@ -1,7 +1,0 @@
-; $Id$
-name = Amazon S3 / CloudFront
-description = "Amazon S3 / CloudFront storage service."
-package = Storage services
-dependencies[] = storage_api
-core = 7.x
-files[] = storage_s3_cloudfront.module

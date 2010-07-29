@@ -53,7 +53,7 @@ function storage_containers() {
   foreach ($result as $container) {
     unset($row);
     
-    $container = new StorageContainer($container);
+    $container = storage_container_new($container);
   
     $row[] = $container->link();
     $row[] = _storage_get_service_name($container->service_id, TRUE);
@@ -160,7 +160,7 @@ function storage_create_container_form($form, &$form_state) {
       
     case 2:
     
-      $container = new StorageContainer($form_state['storage'], FALSE);
+      $container = storage_container_new($form_state['storage'], FALSE);
     
       $service_name = _storage_get_service_name($container->service_id);
     
@@ -182,7 +182,7 @@ function storage_create_container_form($form, &$form_state) {
         '#tree' => TRUE
       );
       
-      $form['settings'] += $container->settings_form();
+      $form['settings'] += $container->serviceSettingsForm();
       
       $form['back'] = array(
         '#type' => 'submit',
@@ -227,8 +227,8 @@ function storage_create_container_form_validate($form, &$form_state) {
       if ($form_state['clicked_button']['#value'] == t('Back'))
         break;
         
-      $container = new StorageContainer($form_state['storage'], FALSE);
-      $container->validate();
+      $container = storage_container_new($form_state['storage'], FALSE);
+      $container->serviceValidate();
 
       if (!form_get_errors()) {
       
@@ -295,7 +295,7 @@ function storage_container_form($form, &$form_state, StorageContainer $container
   $info[t('Instances')] = (int)$container_info['count'];
   $info[t('Size')] = storage_format_size($container_info['size']);
 
-  $info += _storage_service_invoke($container->service_id, 'container_info', $container);
+  $info += $container->serviceInfo();
 
   $form['status'] = array(
     '#markup' => theme('storage_info_table', array('info' => $info))
@@ -417,7 +417,7 @@ function storage_container_suspend_form_submit($form, &$form_state) {
   
   $container->suspended = TRUE;
   $container->update();
-  $container->flush_serving_container();
+  $container->flushServingContainer();
 
   $message = 'Storage container <i>' . $container->name() . '</i> has been suspended.';
 
@@ -452,7 +452,7 @@ function storage_container_unsuspend_form_submit($form, &$form_state) {
 
   $container->suspended = FALSE;
   $container->update();
-  $container->flush_serving_container();
+  $container->flushServingContainer();
 
   $message = 'Storage container <i>' . $container->name() . '</i> has been unsuspended.';
 
@@ -546,7 +546,7 @@ function storage_container_edit_form($form, &$form_state, StorageContainer $cont
     '#tree' => TRUE,
   );
   
-  $form['settings'] += $container->settings_form(TRUE);
+  $form['settings'] += $container->serviceSettingsForm(TRUE);
 
   $form['submit'] = array(
     '#type' => 'submit',
@@ -567,7 +567,7 @@ function storage_container_edit_form_validate($form, &$form_state) {
   $container = $form['#container'];
   
   $container->settings = $form_state['values']['settings'] + $container->settings;
-  $container->validate(TRUE);
+  $container->serviceValidate(TRUE);
 }
 
 
@@ -583,11 +583,9 @@ function storage_container_edit_form_submit($form, &$form_state) {
   $container->name = $form_state['values']['name'];
   $container->settings = $form_state['values']['settings'] + $container->settings;
 
-  $updated_container = _storage_service_invoke($container->service_id, 'container_update', $container);
-  $container = $updated_container ? $updated_container : $container;
-  
+  $container->serviceUpdate();
   $container->update();
-  $container->flush_serving_container();
+  $container->flushServingContainer();
 
   $message = 'Storage container <i>' . $container->name() . '</i> has been updated.';
 
