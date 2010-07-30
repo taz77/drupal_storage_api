@@ -684,8 +684,8 @@ class Storage {
     
     $failure = FALSE;
     
-    foreach ($result as $container) {
-      $container = storage_container_new($container);
+    foreach ($result as $fields) {
+      $container = storage_container_new($fields);
       $exists = $container->ensureInstanceExists($this);
       
       if (!$exists) {

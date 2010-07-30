@@ -11,8 +11,7 @@ class StorageService {
       $this->$key = $value;
     }
     
-    $services = module_invoke_all('storage_services');
-    $this->info = $services[$this->service_id];
+    $this->info = storage_service_info($this->service_id);
   }
   
   public function name() {

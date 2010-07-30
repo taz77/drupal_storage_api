@@ -17,7 +17,7 @@ abstract class StorageContainer {
   }
   
   public function service() {
-    return new StorageService($this->service_id);
+    return storage_service_load($this->service_id);
   }
 
   /**
@@ -174,7 +174,7 @@ abstract class StorageContainer {
     }
     
     // Is it possible to short circuit?
-    $service_info = $this->service()->info();
+    $service_info = $this->service()->info;
 
     if ($service_info['can_copy'] && !$check) {
       if ($this->tryInstanceCopy($storage)) {
