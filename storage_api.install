@@ -25,6 +25,33 @@ function storage_api_requirements($phase) {
     ),
   );
   
+  if ($phase == 'runtime') {
+    $services = storage_service_info();
+  
+    // Get service_ids of all containers
+    $service_ids = db_select('storage_container')
+      ->fields('storage_container', array('service_id'))
+      ->groupBy('service_id')
+      ->execute()
+      ->fetchCol();
+      
+    foreach ($service_ids as $service_id) {
+      $container = storage_container_new(array('service_id' => $service_id), FALSE);
+
+      $result = $container->serviceCheck();
+      
+      if ($result !== TRUE) {
+        
+        $requirements['storage_api_' . $service_id] = array(
+            'title' => t('Storage API - ') . $services[$service_id]['name'] . t(' service'),
+            'value' => t('Not configured'),
+            'description' => $result,
+            'severity' => REQUIREMENT_ERROR,
+        );
+      }
+    }
+  }
+  
   return $requirements;
 }
 

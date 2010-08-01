@@ -39,7 +39,7 @@ class StorageDB extends StorageContainer implements StorageServiceInterface {
     return $items;
   }
   
-  public function serviceValidate($edit = FALSE) {
+  public function serviceSettingsValidate($edit = FALSE) {
 
     if (!$this->settings['table']) {
       form_set_error('settings][path', t('Database table field is required.'));

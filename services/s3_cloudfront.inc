@@ -609,7 +609,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
     return $items;
   }
   
-  public function serviceValidate($edit = FALSE) {
+  public function serviceSettingsValidate($edit = FALSE) {
 
     if (!$this->settings['access_key_id']) {
       form_set_error('settings][access_key_id', t('Access Key ID field is required.'));

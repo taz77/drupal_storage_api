@@ -77,6 +77,22 @@ class StorageRackspace extends StorageContainer implements StorageServiceInterfa
     return $rscf_container;
   }
   
+  public function serviceCheck() {
+
+    $path = drupal_get_path('module', 'storage_api');
+    @include_once DRUPAL_ROOT . '/' . $path . '/services/php-cloudfiles/cloudfiles.php';
+
+    if (class_exists('CF_Authentication')) {
+      return TRUE;
+    }
+    
+    $message = t('Download <a href="http://github.com/rackspace/php-cloudfiles/downloads" target="_blank">php-cloudfiles</a>, decompress it, rename the directory to <em>php-cloudfiles</em> and put it in %directory.', array('%directory' => $path . '/services')) . '<br />';
+    $message .= t('Alternatively you can use <a href="http://git-scm.com/" target="_blank">Git</a>:') . '<br />';
+    $message .= '<code>git clone git://github.com/rackspace/php-cloudfiles.git</code>';
+    
+    return $message;
+  }
+
   public function serviceSettingsForm($edit = FALSE) {
 
     $items['credentials_info'] = array(
@@ -114,7 +130,7 @@ class StorageRackspace extends StorageContainer implements StorageServiceInterfa
     return $items;
   }
   
-  public function serviceValidate($edit = FALSE) {
+  public function serviceSettingsValidate($edit = FALSE) {
 
     if (!$this->settings['username']) {
       form_set_error('settings][username', t('Username field is required.'));

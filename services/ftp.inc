@@ -107,7 +107,7 @@ class StorageFTP extends StorageContainer implements StorageServiceInterface {
     return $items;
   }
   
-  public function serviceValidate($edit = FALSE) {
+  public function serviceSettingsValidate($edit = FALSE) {
 
     if (!$this->settings['host']) {
       form_set_error('settings][host', t('Host field is required.'));

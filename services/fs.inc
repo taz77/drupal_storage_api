@@ -40,7 +40,7 @@ class StorageFS extends StorageContainer implements StorageServiceInterface {
     return $items;
   }
   
-  public function serviceValidate($edit = FALSE) {
+  public function serviceSettingsValidate($edit = FALSE) {
 
     if (!$this->settings['path']) {
       form_set_error('settings][path', t('Directory path field is required.'));

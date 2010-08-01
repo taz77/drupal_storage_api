@@ -392,6 +392,10 @@ abstract class StorageContainer {
   }
 
   // Optional API functions.
+  public function serviceCheck() {
+    return TRUE;
+  }
+  
   public function servicePostCreate() {}
   public function serviceUpdate() {}
   public function serviceInstanceCopy(Storage $storage, $reference, $source_container) {}
@@ -400,8 +404,9 @@ abstract class StorageContainer {
 
 interface StorageServiceInterface {
 
+  public function serviceCheck();
   public function serviceSettingsForm($edit = FALSE);
-  public function serviceValidate($edit = FALSE);
+  public function serviceSettingsValidate($edit = FALSE);
   public function serviceCreate();
   public function servicePostCreate();
   public function serviceInfo();

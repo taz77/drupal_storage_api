@@ -396,10 +396,16 @@ function storage_api_storage_services() {
 }
 
 
-function storage_service_info($service_id) {
+function storage_service_info($service_id = NULL) {
 
   $services = module_invoke_all('storage_services');
-  return $services[$service_id];
+  
+  if (empty($service_id)) {
+    return $services;
+  }
+  else {
+    return $services[$service_id];
+  }
 }
 
 

@@ -212,10 +212,21 @@ function storage_create_container_form_validate($form, &$form_state) {
   switch ($form_state['values']['step']) {
   
     case 1:
-
+    
       $form_state['storage']['name'] = $form_state['values']['name'];
       $form_state['storage']['service_id'] = $form_state['values']['service_id'];
       $form_state['storage']['capability'] = $form_state['values']['capability'];
+      
+      $container = storage_container_new($form_state['storage'], FALSE);
+      
+      $result = $container->serviceCheck();
+      
+      if ($result !== TRUE) {
+        $info = $container->service()->info;
+        $message = $info['name'] . ' ' . t('service is not set up properly.') . '<br />';
+        $message .= $result;
+        form_set_error('service_id', $message);
+      }
     
       break;
       
@@ -228,7 +239,7 @@ function storage_create_container_form_validate($form, &$form_state) {
         break;
         
       $container = storage_container_new($form_state['storage'], FALSE);
-      $container->serviceValidate();
+      $container->serviceSettingsValidate();
 
       if (!form_get_errors()) {
       
