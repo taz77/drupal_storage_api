@@ -6,9 +6,9 @@
 
 class StorageS3CloudFront extends StorageContainer implements StorageServiceInterface {
 
-  private function signature($components, $secret_access_key) {
+  private function signature($source) {
 
-    return base64_encode(hash_hmac('sha1', utf8_encode(implode("\n", $components)), $secret_access_key, TRUE));
+    return base64_encode(hash_hmac('sha1', utf8_encode($source), $this->settings['secret_access_key'], TRUE));
   }
   
   private function s3_request($method, $bucket = NULL, $object_name = NULL, Storage $storage = NULL, $source = NULL) {
@@ -96,7 +96,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
     
     $components[] = '/' . $bucket . $object_name;
     
-    $signature = $this->signature($components, $this->settings['secret_access_key']);
+    $signature = $this->signature(implode("\n", $components));
     $headers[] = 'Authorization: AWS ' . $this->settings['access_key_id'] . ':' . $signature;
 
     $curl_options[CURLOPT_HTTPHEADER] = $headers;
@@ -161,7 +161,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
           '/' . $this->settings['bucket'] . '/' . $s3_object
         );
         
-        $query['Signature'] = $this->signature($components, $this->settings['secret_access_key']);
+        $query['Signature'] = $this->signature(implode("\n", $components));
       }
     }
 
@@ -237,8 +237,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
         break;
     }
     
-    $signature = base64_encode(hash_hmac('sha1', utf8_encode($date), $this->settings['secret_access_key'], TRUE));
-    $headers[] = 'Authorization: AWS ' . $this->settings['access_key_id'] . ':' . $signature;
+    $headers[] = 'Authorization: AWS ' . $this->settings['access_key_id'] . ':' . $this->signature($date);
 
     $curl_options[CURLOPT_HTTPHEADER] = $headers;
     
@@ -791,17 +790,17 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
   public function serviceInstanceCreate(Storage $storage, array $source) {
     
     $result = $this->s3_request('PUT', $this->settings['bucket'], 
-      $storage['file_id'], $storage, $source);
+      $storage->file_id, $storage, $source);
     
     return $result['http_code'] == 200;
   }
 
   public function serviceInstanceCopy(Storage $storage, $reference, $source_container) {
     
-    $source['copy_source'] = '/' . $source_container['settings']['bucket'] . '/file-' . $storage['file_id'];
+    $source['copy_source'] = '/' . $source_container['settings']['bucket'] . '/file-' . $storage->file_id;
     
     $result = $this->s3_request('PUT', $this->settings['bucket'], 
-      $storage['file_id'], $source);
+      $storage->file_id, $source);
     
     if ($result['http_code'] == 200 && $result['simplexml']) {
 
@@ -815,7 +814,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
   public function serviceInstanceDestroy(Storage $storage, $reference) {
     
     $result = $this->s3_request('DELETE', $this->settings['bucket'], 
-      $storage['file_id']);
+      $storage->file_id);
     
     return $result['http_code'] == 204;
   }
@@ -823,14 +822,14 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
   public function serviceInstanceGetFilepath(Storage $storage, $reference) {
     
     $result = $this->s3_request('GET', $this->settings['bucket'], 
-      $storage['file_id']);
+      $storage->file_id);
 
     return $result['filepath'];
   }
   
   public function serviceInstanceServe(Storage $storage, $reference) {
 
-    return $this->url($storage['file_id']);
+    return $this->url($storage->file_id);
   }
 }
 

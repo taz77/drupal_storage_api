@@ -210,15 +210,10 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
   }
   
   public function realpath() {
-    dsm(__FUNCTION__);
-    dsm(func_get_args());
     return $this->uri;
   }
 
   public function unlink($uri) {
-    dsm(__FUNCTION__);
-    dsm(func_get_args());
-
     $storage = _storage_core_bridge_load($uri);
     $storage->remove();
     return TRUE;

@@ -762,7 +762,7 @@ class Storage {
     $result = $query->fields('storage_container', array('container_id'))
       ->condition('storage_selector.selector_id', $this->selector_id)
       ->condition('storage_class_container.container_id', $container->container_id, '!=')
-      ->condition('storage_container}.service_id', $this->service_id)
+      ->condition('storage_container}.service_id', $container->service_id)
       ->orderBy('storage_class_container.weight')
       ->orderBy('storage_container.container_id')
       ->execute();

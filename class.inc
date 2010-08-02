@@ -89,7 +89,7 @@ class StorageClass {
 
     db_delete('storage_class_container')
       ->condition('class_id', $this->class_id)
-      ->condition('container_id', $container['container_id'])
+      ->condition('container_id', $container->container_id)
       ->execute();
     
     $selector_subquery = db_select('storage_selector')
@@ -104,10 +104,8 @@ class StorageClass {
 
     cache_clear_all();
 
-    $container = storage_container_load($container['container_id']);
-    
-    $message = 'Storage container <i>' . $container['name'] . 
-      '</i> has been removed from class <i>' . $this->name .'</i>.';
+    $message = 'Storage container <i>' . $container->name() . 
+      '</i> has been removed from class <i>' . $this->name() .'</i>.';
       
     drupal_set_message($message);
     watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $this->path()));
