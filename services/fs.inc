@@ -96,7 +96,7 @@ class StorageFS extends StorageContainer implements StorageServiceInterface {
     
     $path = $this->settings['path'] . '/' . $filename;
 
-    if (empty($storage->keep_me) && !file_uri_scheme($source['filepath']))   // cannot rename a file across wrapper types
+    if (empty($source['keep_me']) && !file_uri_scheme($source['filepath']))   // cannot rename a file across wrapper types
       $success = @rename($source['filepath'], $path);
     else
       $success = @copy($source['filepath'], $path);
