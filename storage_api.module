@@ -28,7 +28,7 @@ function storage_api_permission() {
 
 
 /**
- * Implement hook_menu() .
+ * Implements hook_menu().
  */
 function storage_api_menu() {
 
@@ -37,7 +37,7 @@ function storage_api_menu() {
     'page callback' => 'storage_serve',
     'page arguments' => array(3),
     'access callback' => 'storage_access',
-    'access arguments' => array(3)
+    'access arguments' => array(3),
   );
   
 
@@ -47,7 +47,7 @@ function storage_api_menu() {
     'description' => 'Configure storage.',
     'page callback' => 'system_admin_menu_block_page',
     'file' => 'system.admin.inc',
-    'file path' => drupal_get_path('module', 'system')
+    'file path' => drupal_get_path('module', 'system'),
   );
 
 
@@ -57,7 +57,7 @@ function storage_api_menu() {
     'access arguments' => array('administer storage'),
     'page callback' => 'storage_services',
     'weight' => 0,
-    'file' => 'services.admin.inc'
+    'file' => 'service.admin.inc',
   );
   
   $items['admin/structure/storage/services/%storage_service'] = array(
@@ -65,7 +65,7 @@ function storage_api_menu() {
     'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('storage_service_form', 4),
-    'file' => 'services.admin.inc',
+    'file' => 'service.admin.inc',
   );
   
   $items['admin/structure/storage/services/%storage_service/suspend'] = array(
@@ -73,7 +73,7 @@ function storage_api_menu() {
     'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('storage_service_suspend_form', 4),
-    'file' => 'services.admin.inc'
+    'file' => 'service.admin.inc',
   );
   
   $items['admin/structure/storage/services/%storage_service/unsuspend'] = array(
@@ -81,7 +81,7 @@ function storage_api_menu() {
     'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('storage_service_unsuspend_form', 4),
-    'file' => 'services.admin.inc'
+    'file' => 'service.admin.inc',
   );
   
   
@@ -91,7 +91,7 @@ function storage_api_menu() {
     'access arguments' => array('administer storage'),
     'page callback' => 'storage_containers',
     'weight' => 1,
-    'file' => 'containers.admin.inc'
+    'file' => 'container.admin.inc',
   );
 
   $items['admin/structure/storage/containers/list'] = array(
@@ -99,7 +99,7 @@ function storage_api_menu() {
     'access arguments' => array('administer storage'),
     'type' => MENU_DEFAULT_LOCAL_TASK,
     'weight' => 0,
-    'file' => 'containers.admin.inc'
+    'file' => 'container.admin.inc',
   );
   
   $items['admin/structure/storage/containers/create'] = array(
@@ -109,7 +109,7 @@ function storage_api_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('storage_create_container_form'),
     'weight' => 1,
-    'file' => 'containers.admin.inc'
+    'file' => 'container.admin.inc',
   );
   
   $items['admin/structure/storage/containers/%storage_container'] = array(
@@ -117,7 +117,7 @@ function storage_api_menu() {
     'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('storage_container_form', 4),
-    'file' => 'containers.admin.inc'
+    'file' => 'container.admin.inc',
   );
   
   $items['admin/structure/storage/containers/%storage_container/view'] = array(
@@ -125,7 +125,7 @@ function storage_api_menu() {
     'access arguments' => array('administer storage'),
     'type' => MENU_DEFAULT_LOCAL_TASK,
     'weight' => 0,
-    'file' => 'containers.admin.inc'
+    'file' => 'container.admin.inc',
   );
   
   $items['admin/structure/storage/containers/%storage_container/suspend'] = array(
@@ -133,7 +133,7 @@ function storage_api_menu() {
     'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('storage_container_suspend_form', 4),
-    'file' => 'containers.admin.inc',
+    'file' => 'container.admin.inc',
   );
   
   $items['admin/structure/storage/containers/%storage_container/unsuspend'] = array(
@@ -141,7 +141,7 @@ function storage_api_menu() {
     'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('storage_container_unsuspend_form', 4),
-    'file' => 'containers.admin.inc'
+    'file' => 'container.admin.inc',
   );
   
   $items['admin/structure/storage/containers/%storage_container/drain'] = array(
@@ -149,7 +149,7 @@ function storage_api_menu() {
     'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('storage_container_drain_form', 4),
-    'file' => 'containers.admin.inc'
+    'file' => 'container.admin.inc',
   );
 
   $items['admin/structure/storage/containers/%storage_container/destroy'] = array(
@@ -157,7 +157,7 @@ function storage_api_menu() {
     'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('storage_container_destroy_form', 4),
-    'file' => 'containers.admin.inc'
+    'file' => 'container.admin.inc',
   );
   
   $items['admin/structure/storage/containers/%storage_container/edit'] = array(
@@ -167,7 +167,7 @@ function storage_api_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('storage_container_edit_form', 4),
     'weight' => 1,
-    'file' => 'containers.admin.inc'
+    'file' => 'container.admin.inc',
   );
 
   
@@ -177,7 +177,7 @@ function storage_api_menu() {
     'access arguments' => array('administer storage'),
     'page callback' => 'storage_classes_list',
     'weight' => 2,
-    'file' => 'classes.admin.inc'
+    'file' => 'class.admin.inc',
   );
 
   $items['admin/structure/storage/classes/list'] = array(
@@ -185,7 +185,7 @@ function storage_api_menu() {
     'access arguments' => array('administer storage'),
     'type' => MENU_DEFAULT_LOCAL_TASK,
     'weight' => 0,
-    'file' => 'classes.admin.inc'
+    'file' => 'class.admin.inc',
   );
 
   $items['admin/structure/storage/classes/create'] = array(
@@ -195,7 +195,7 @@ function storage_api_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('storage_create_class_form'),
     'weight' => 1,
-    'file' => 'classes.admin.inc'
+    'file' => 'class.admin.inc',
   );
 
   $items['admin/structure/storage/classes/%storage_class'] = array(
@@ -203,7 +203,7 @@ function storage_api_menu() {
     'type' => MENU_CALLBACK,
     'page callback' => 'storage_class',
     'page arguments' => array(4),
-    'file' => 'classes.admin.inc'
+    'file' => 'class.admin.inc',
   );
   
   $items['admin/structure/storage/classes/%storage_class/view'] = array(
@@ -211,7 +211,7 @@ function storage_api_menu() {
     'access arguments' => array('administer storage'),
     'type' => MENU_DEFAULT_LOCAL_TASK,
     'weight' => 0,
-    'file' => 'classes.admin.inc'
+    'file' => 'class.admin.inc',
   );
   
   $items['admin/structure/storage/classes/%storage_class/edit'] = array(
@@ -221,7 +221,7 @@ function storage_api_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('storage_class_edit_form', 4),
     'weight' => 1,
-    'file' => 'classes.admin.inc'
+    'file' => 'class.admin.inc',
   );
   
   $items['admin/structure/storage/classes/%storage_class/destroy'] = array(
@@ -229,7 +229,7 @@ function storage_api_menu() {
     'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('storage_class_destroy_form', 4),
-    'file' => 'classes.admin.inc'
+    'file' => 'class.admin.inc',
   );
   
   $items['admin/structure/storage/classes/%storage_class/add'] = array(
@@ -239,7 +239,7 @@ function storage_api_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('storage_class_add_container_form', 4),
     'weight' => 2,
-    'file' => 'classes.admin.inc'
+    'file' => 'class.admin.inc',
   );
   
   $items['admin/structure/storage/classes/%storage_class/remove/%storage_container'] = array(
@@ -248,7 +248,7 @@ function storage_api_menu() {
     'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('storage_class_remove_container_form', 4, 6),
-    'file' => 'classes.admin.inc'
+    'file' => 'class.admin.inc',
   );
 
   return $items;
