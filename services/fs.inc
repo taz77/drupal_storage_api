@@ -12,7 +12,7 @@ class StorageFS extends StorageContainer implements StorageServiceInterface {
       '#type' => 'textfield',
       '#title' => t('Directory path'),
       '#description' => t("Can be absolute or relative."),
-      '#default_value' => isset($this->settings['path']) ? $this->settings['path'] : file_directory_path(),
+      '#default_value' => isset($this->settings['path']) ? $this->settings['path'] : drupal_realpath('public://'),
       '#required' => TRUE,
       '#validated' => TRUE,
     );
@@ -31,7 +31,7 @@ class StorageFS extends StorageContainer implements StorageServiceInterface {
         '#type' => 'textfield',
         '#title' => t('Base URL path'),
         '#description' => t($description),
-        '#default_value' => isset($this->settings['base_url']) ? $this->settings['base_url'] : file_directory_path(),
+        '#default_value' => isset($this->settings['base_url']) ? $this->settings['base_url'] : drupal_realpath('public://'),
         '#required' => TRUE,
         '#validated' => TRUE,
       );
