@@ -934,6 +934,11 @@ function storage_api_modules_disabled($modules) {
 }
 
 
+function storage_api_new_local_storage_path() {
+
+  return file_create_filename('storage', conf_path());
+}
+
 /**
  * Implement hook_cron() .
  */

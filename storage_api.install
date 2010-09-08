@@ -187,7 +187,7 @@ function storage_api_install() {
   
   variable_set('storage_api_initial_class', $class->class_id);
 
-  $path = file_create_filename('storage', drupal_realpath('public://'));
+  $path = storage_api_new_local_storage_path();
 
   $container = array(
     'name' => t('Local'),
