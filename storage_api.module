@@ -62,7 +62,6 @@ function storage_api_menu() {
   
   $items['admin/structure/storage/services/%storage_service'] = array(
     'access arguments' => array('administer storage'),
-    'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('storage_service_form', 4),
     'file' => 'service.admin.inc',
@@ -93,19 +92,11 @@ function storage_api_menu() {
     'weight' => 1,
     'file' => 'container.admin.inc',
   );
-
-  $items['admin/structure/storage/containers/list'] = array(
-    'title' => 'Overview',
-    'access arguments' => array('administer storage'),
-    'type' => MENU_DEFAULT_LOCAL_TASK,
-    'weight' => 0,
-    'file' => 'container.admin.inc',
-  );
   
   $items['admin/structure/storage/containers/create'] = array(
     'title' => 'Create',
     'access arguments' => array('administer storage'),
-    'type' => MENU_LOCAL_TASK,
+    'type' => MENU_LOCAL_ACTION,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('storage_create_container_form'),
     'weight' => 1,
@@ -114,7 +105,6 @@ function storage_api_menu() {
   
   $items['admin/structure/storage/containers/%storage_container'] = array(
     'access arguments' => array('administer storage'),
-    'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('storage_container_form', 4),
     'file' => 'container.admin.inc',
@@ -200,7 +190,6 @@ function storage_api_menu() {
 
   $items['admin/structure/storage/classes/%storage_class'] = array(
     'access arguments' => array('administer storage'),
-    'type' => MENU_CALLBACK,
     'page callback' => 'storage_class',
     'page arguments' => array(4),
     'file' => 'class.admin.inc',
@@ -235,7 +224,7 @@ function storage_api_menu() {
   $items['admin/structure/storage/classes/%storage_class/add'] = array(
     'title' => 'Add container',
     'access arguments' => array('administer storage'),
-    'type' => MENU_LOCAL_TASK,
+    'type' => MENU_LOCAL_ACTION,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('storage_class_add_container_form', 4),
     'weight' => 2,

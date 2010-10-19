@@ -89,7 +89,7 @@ function storage_containers() {
  */
 function storage_create_container_form($form, &$form_state) {
 
-  drupal_set_title(t('Storage containers'), PASS_THROUGH);
+  drupal_set_title(t('Create container'), PASS_THROUGH);
 
   if (!isset($form_state['values']['step'])) {
     $step = 1;
