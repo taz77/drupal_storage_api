@@ -83,14 +83,14 @@ class StorageRackspace extends StorageContainer implements StorageServiceInterfa
     @include_once DRUPAL_ROOT . '/' . $path . '/services/php-cloudfiles/cloudfiles.php';
 
     if (class_exists('CF_Authentication')) {
-      return TRUE;
+      return;
     }
     
     $message = t('Download <a href="http://github.com/rackspace/php-cloudfiles/downloads" target="_blank">php-cloudfiles</a>, decompress it, rename the directory to <em>php-cloudfiles</em> and put it in %directory.', array('%directory' => $path . '/services')) . '<br />';
     $message .= t('Alternatively you can use <a href="http://git-scm.com/" target="_blank">Git</a>:') . '<br />';
     $message .= '<code>git clone git://github.com/rackspace/php-cloudfiles.git</code>';
     
-    return $message;
+    throw new Exception($message);
   }
 
   public function serviceSettingsForm($edit = FALSE) {

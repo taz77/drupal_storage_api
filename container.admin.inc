@@ -150,9 +150,9 @@ function storage_create_container_form($form, &$form_state) {
         '#default_value' => isset($form_state['storage']['capability']) ? $form_state['storage']['capability'] : STORAGE_API_SERVING,
       );
       
-      $form['aggressive_client_side_caching'] = array(
+      $form['acsc'] = array(
         '#type' => 'checkbox',
-        '#title' => t('Aggressive client side caching'),
+        '#title' => t('Aggressive client-side caching'),
         '#description' => t('Some services can generate URLs that will never be resued for a different file. This means the web browser doesn\'t have to check if the URL still points to the same file, incresing performance. However, URLs will not look as clean.'),
       );
 
@@ -176,6 +176,7 @@ function storage_create_container_form($form, &$form_state) {
         t('Name') => $container->name(),
         t('Service') => $service_name,
         t('Capability') => $capabilities[$container->capability],
+        t('ACSC') => $container->acsc ? t('Yes') : t('No'),
       );
 
       $form['info'] = array(
@@ -222,15 +223,17 @@ function storage_create_container_form_validate($form, &$form_state) {
       $form_state['storage']['name'] = $form_state['values']['name'];
       $form_state['storage']['service_id'] = $form_state['values']['service_id'];
       $form_state['storage']['capability'] = $form_state['values']['capability'];
+      $form_state['storage']['acsc'] = $form_state['values']['acsc'];
       
       $container = storage_container_new($form_state['storage'], FALSE);
       
-      $result = $container->serviceCheck();
-      
-      if ($result !== TRUE) {
+      try {
+        $container->serviceCheck();
+      }
+      catch (Exception $e) {
         $info = $container->service()->info;
         $message = $info['name'] . ' ' . t('service is not set up properly.') . '<br />';
-        $message .= $result;
+        $message .= $e->getMessage();
         form_set_error('service_id', $message);
       }
     
@@ -306,11 +309,14 @@ function storage_container_form($form, &$form_state, StorageContainer $container
     ->execute()
     ->fetchAssoc();
 
-  $info[t('Service')] = _storage_get_service_name($container->service_id, TRUE);
-  $info[t('Capability')] = $capabilities[$container->capability];
-  $info[t('Suspended')] = $container->suspended ? t('Yes') : t('No');
-  $info[t('Instances')] = (int)$container_info['count'];
-  $info[t('Size')] = storage_format_size($container_info['size']);
+  $info = array(
+    t('Service') => _storage_get_service_name($container->service_id, TRUE),
+    t('Capability') => $capabilities[$container->capability],
+    t('ACSC') => $container->acsc ? t('Yes') : t('No'),
+    t('Suspended') => $container->suspended ? t('Yes') : t('No'),
+    t('Instances') => (int)$container_info['count'],
+    t('Size') => storage_format_size($container_info['size']),
+  );
 
   $info += $container->serviceInfo();
 

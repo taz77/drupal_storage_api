@@ -444,13 +444,16 @@ class Storage {
    * @return
    *   An array of HTTP headers.
    */
-  public function HTTPHeaders() {
+  public function HTTPHeaders($acsc = FALSE) {
     $headers[] = 'Content-Type: ' . $this->mimetype;
     $headers[] = 'Content-Length: ' . $this->size;
     $headers[] = 'Content-MD5: ' . base64_encode($this->md5);
     $headers[] = 'Last-Modified: ' . date(DATE_RFC1123, $this->obtained);
-    $headers[] = 'Cache-control: max-age=' . 60 * 60 * 24 * 365;  // the file will stay fresh for a whole year 
     $headers[] = 'Content-Disposition: attachment; filename="' . $this->filename . '"';
+    
+    if ($acsc) {
+      $headers[] = 'Cache-control: max-age=' . 60 * 60 * 24 * 365;  // the file will stay fresh for a whole year 
+    }
 
     return $headers;
   }

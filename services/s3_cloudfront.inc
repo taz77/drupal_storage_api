@@ -50,7 +50,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
           $components[1] = base64_encode($storage->md5);
           $components[2] = $storage->mimetype;
           
-          $headers = array_merge($headers, $storage->HTTPHeaders());
+          $headers = array_merge($headers, $storage->HTTPHeaders($this->acsc));
           
           $curl_options[CURLOPT_INFILE] = $fp;
           $curl_options[CURLOPT_INFILESIZE] = $storage->size;
@@ -138,7 +138,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
     
     return $result;
   }
-
+  
   private function url($s3_object) {
     $query = array();
 
@@ -805,7 +805,12 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
 
   public function serviceInstanceCreate(Storage $storage, array $source) {
     
-    $reference = $storage->file_id . '/' . $storage->filename;
+    if ($this->acsc) {
+      $reference = $storage->file_id . '/' . $storage->filename;
+    }
+    else {
+      $reference = $this->uniqueFilename($storage->filename);
+    }
 
     $result = $this->request('PUT', $this->settings['bucket'], $reference, $storage, $source);
     
@@ -821,8 +826,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
     
     $source['copy_source'] = '/' . $source_container['settings']['bucket'] . '/file-' . $storage->file_id;
     
-    $result = $this->request('PUT', $this->settings['bucket'], 
-      $storage->file_id, $source);
+    $result = $this->request('PUT', $this->settings['bucket'], $reference, $source);
     
     if ($result['http_code'] == 200 && $result['simplexml']) {
 
@@ -835,23 +839,23 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
 
   public function serviceInstanceDestroy(Storage $storage, $reference) {
     
-    $result = $this->request('DELETE', $this->settings['bucket'], 
-      $storage->file_id);
+    $result = $this->request('DELETE', $this->settings['bucket'], $reference);
     
-    return $result['http_code'] == 204;
+    if ($result['http_code'] != 204) {
+      throw Exception();
+    }
   }
   
   public function serviceInstanceGetFilepath(Storage $storage, $reference) {
     
-    $result = $this->request('GET', $this->settings['bucket'], 
-      $storage->file_id);
+    $result = $this->request('GET', $this->settings['bucket'], $reference);
 
     return $result['filepath'];
   }
-  
+
   public function serviceInstanceServe(Storage $storage, $reference) {
 
-    return $this->url($storage->file_id);
+    return $this->url($reference);
   }
 }
 

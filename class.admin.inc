@@ -127,14 +127,16 @@ function storage_class(StorageClass $class) {
     ->havingCondition('storage_class.class_id', $class->class_id)
     ->execute()
     ->fetchAssoc();
-
-  $info[t('Files')] = $class_info['files'];
-  $info[t('Size')] = storage_format_size($class_info['size']);
-  $info[t('Access control')] = (isset($class->options['access_control']) && $class->options['access_control']) ? t('Yes') : t('No');
-  $info[t('Redirection')] = (isset($class->options['redirect']) && $class->options['redirect']) ? t('Yes') : t('No');
-  $info[t('Serve source')] = (isset($class->options['serve_source_url']) && $class->options['serve_source_url']) ? t('Yes') : t('No');
-  $info[t('Initial container')] = isset($class->initial_container) ? $class->initial_container->link() : t('n/a');
-
+  
+  $info = array(
+    t('Files') => $class_info['files'],
+    t('Size') => storage_format_size($class_info['size']),
+    t('Access control') => (isset($class->options['access_control']) && $class->options['access_control']) ? t('Yes') : t('No'),
+    t('Redirection') => (isset($class->options['redirect']) && $class->options['redirect']) ? t('Yes') : t('No'),
+    t('Serve source') => (isset($class->options['serve_source_url']) && $class->options['serve_source_url']) ? t('Yes') : t('No'),
+    t('Initial container') => (isset($class->initial_container) && $class->initial_container) ? $class->initial_container->link() : t('n/a'),
+  );
+  
   $output = theme('storage_info_table', array('info' => $info));
 
   $subquery = db_select('storage_selector');

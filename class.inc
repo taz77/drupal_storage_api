@@ -60,7 +60,7 @@ class StorageClass {
       ))
       ->execute();  
     
-    if (empty($this->options['initial_container_id'])) {
+    if (empty($this->initial_container)) {
       $this->options['initial_container_id'] = $container->container_id;
       $this->update();
     }

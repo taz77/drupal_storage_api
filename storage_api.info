@@ -7,13 +7,15 @@ core = 7.x
 files[] = storage_api.install
 files[] = storage_api.module
 files[] = storage_api.test
-files[] = instance_operations.inc
-files[] = mime_extension.inc
-files[] = services.admin.inc
-files[] = containers.admin.inc
-files[] = classes.admin.inc
+files[] = service.inc
+files[] = container.inc
+files[] = class.inc
 files[] = cron.inc
+files[] = mime_extension.inc
 
+files[] = service.admin.inc
+files[] = container.admin.inc
+files[] = class.admin.inc
 
 files[] = services/db.inc
 files[] = services/fs.inc

@@ -103,15 +103,17 @@ class StorageFS extends StorageContainer implements StorageServiceInterface {
     else
       $success = @copy($source['filepath'], $path);
 
-    if ($success)
+    if ($success) {
       return $filename;
+    }
+    else {
+      throw Exception();
+    }
   }
   
   public function serviceInstanceDestroy(Storage $storage, $reference) {
       
     @unlink($this->settings['path'] . '/' . $reference);
-    
-    return TRUE;
   }
   
   public function serviceInstanceGetFilepath(Storage $storage, $reference) {
