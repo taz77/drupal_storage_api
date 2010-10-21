@@ -30,9 +30,8 @@ abstract class StorageContainer {
     }
     catch (Exception $e) {
       $msg = 'Failed to create storage container !container.';
-      drupal_set_message(t($msg, array('!container' => $this->name())), 'error');
       watchdog('storage_api', $msg, array('!container' => $this->name()), WATCHDOG_ERROR);
-      throw new Exception();
+      throw new Exception(t($msg, array('!container' => $this->name())));
     }
     
     drupal_write_record('storage_container', $this);
@@ -398,6 +397,7 @@ abstract class StorageContainer {
   
   public function servicePostCreate() {}
   public function serviceUpdate() {}
+  public function serviceMaintenance() {}
   public function serviceInstanceCopy(Storage $storage, $reference, $source_container) {}
 }
 
@@ -412,6 +412,7 @@ interface StorageServiceInterface {
   public function serviceInfo();
   public function serviceUpdate();
   public function serviceDestroy();
+  public function serviceMaintenance();
   public function serviceInstanceCreate(Storage $storage, array $source);
   public function serviceInstanceCopy(Storage $storage, $reference, $source_container);
   public function serviceInstanceDestroy(Storage $storage, $reference);

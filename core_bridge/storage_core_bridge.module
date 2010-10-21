@@ -5,7 +5,7 @@
 
 
 /**
- * Implements hook_stream_wrappers() .
+ * Implements hook_stream_wrappers().
  */
 function storage_core_bridge_stream_wrappers() {
 
@@ -60,11 +60,11 @@ function storage_core_bridge_stream_wrappers() {
 
 
 /**
- * Implement hook_form_FORM_ID_alter() .
+ * Implements hook_form_FORM_ID_alter().
  */
 function storage_core_bridge_form_field_ui_field_settings_form_alter(&$form, &$form_state) {
 
-  if ($form['field']['type']['#value'] != 'file') {
+  if (!in_array($form['field']['type']['#value'], array('file', 'image'))) {
     return;
   }
 
@@ -73,16 +73,16 @@ function storage_core_bridge_form_field_ui_field_settings_form_alter(&$form, &$f
   
   $form['field']['settings']['storage_class'] = storage_selector_item($selector_id, t('Storage class'), $description = NULL);
   
-  $form['#submit'][] = 'storage_core_bridge_file_field_form_submit';
+  $form['#submit'][] = 'storage_core_bridge_field_form_submit';
 }
 
 
 /**
- * Implement hook_form_FORM_ID_alter() .
+ * Implements hook_form_FORM_ID_alter().
  */
 function storage_core_bridge_form_field_ui_field_edit_form_alter(&$form, &$form_state) {
 
-  if ($form['#field']['type'] != 'file') {
+  if (!in_array($form['#field']['type'], array('file', 'image'))) {
     return;
   }
     
@@ -91,11 +91,11 @@ function storage_core_bridge_form_field_ui_field_edit_form_alter(&$form, &$form_
   
   $form['field']['settings']['storage_class'] = storage_selector_item($selector_id, t('Storage class'), $description = NULL);
   
-  $form['#submit'][] = 'storage_core_bridge_file_field_form_submit';
+  $form['#submit'][] = 'storage_core_bridge_field_form_submit';
 }
 
 
-function storage_core_bridge_file_field_form_submit($form, &$form_state) {
+function storage_core_bridge_field_form_submit($form, &$form_state) {
 
   storage_selector_submit($form_state['values']['field']['settings']['storage_class']);
 }
@@ -110,6 +110,13 @@ function _storage_core_bridge_load($uri) {
     ->fetchField();
     
   return storage_load($storage_id);
+}
+
+
+function storage_core_bridge_file_url_alter(&$uri) {
+
+//  dsm($uri);
+  //http:///styles/thumbnail/storage-2/mountain-lake_2.jpeg
 }
 
 
@@ -209,6 +216,13 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
     catch (Exception $e) {}
   }
   
+  /**
+   * Implements abstract public function getDirectoryPath()
+   */
+  public function getDirectoryPath() {
+    return 'http://';
+  }
+
   public function realpath() {
     return $this->uri;
   }

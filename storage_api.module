@@ -94,7 +94,7 @@ function storage_api_menu() {
   );
   
   $items['admin/structure/storage/containers/create'] = array(
-    'title' => 'Create',
+    'title' => 'Create a container',
     'access arguments' => array('administer storage'),
     'type' => MENU_LOCAL_ACTION,
     'page callback' => 'drupal_get_form',
@@ -927,6 +927,7 @@ function storage_api_new_local_storage_path() {
 
   return file_create_filename('storage', conf_path());
 }
+
 
 /**
  * Implement hook_cron() .

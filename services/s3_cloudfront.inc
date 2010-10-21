@@ -11,7 +11,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
     return base64_encode(hash_hmac('sha1', utf8_encode($source), $this->settings['secret_access_key'], TRUE));
   }
   
-  private function s3_request($method, $bucket = NULL, $object_name = NULL, Storage $storage = NULL, $source = NULL) {
+  private function request($method, $bucket = NULL, $object_name = NULL, Storage $storage = NULL, $source = NULL) {
     $result = array();
     $date = date(DATE_RFC1123, time());   // we don't use REQUEST_TIME in case it is too old
 
@@ -110,8 +110,9 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
     $result += curl_getinfo($ch);
     curl_close($ch);
     
-    if (isset($fp))
+    if (isset($fp)) {
       fclose($fp);
+    }
       
     if (isset($result['filepath']) && $result['http_code'] != 200) {
       @unlink($result['filepath']);
@@ -182,7 +183,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
     throw new Exception();
   }
 
-  private function cloudfront_request($method, $streaming = FALSE, $xml = NULL) {
+  private function requestCloudFront($method, $streaming = FALSE, $xml = NULL) {
     $result = array();
     $date = date(DATE_RFC1123, time());   // we don't use $_SERVER['REQUEST_TIME'] in case it is too old
 
@@ -198,11 +199,17 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
 
     if ($streaming) {
       $path = '/2009-12-01/streaming-distribution';
-      $id = $this->settings['cloudfront_streaming_id'];
+      
+      if (isset($this->settings['cloudfront_streaming_id'])) {
+        $id = $this->settings['cloudfront_streaming_id'];
+      }
     }
     else {
       $path = '/2009-12-01/distribution';
-      $id = $this->settings['cloudfront_id'];
+
+      if (isset($this->settings['streaming_id'])) {
+        $id = $this->settings['streaming_id'];
+      }
     }
 
     switch ($method) {
@@ -247,7 +254,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
     $result = curl_getinfo($ch);
     curl_close($ch);
     
-    if ($fp) {
+    if (isset($fp)) {
       fclose($fp);
     }
       
@@ -256,9 +263,10 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
       list($headers, $result['body']) = explode("\r\n\r\n", $transfer, 2);
       
       $headers = preg_split("/\r\n|\n|\r/", $headers);
+      array_shift($headers);  // Get rid of the HTTP result line.
       
       foreach ($headers as $header) {
-        list($header, $value) = explode(':', $header, 2);
+        list($header, $value) = explode(':', $header . ':', 2);
         $result['headers'][$header] = $value;
       }
 
@@ -280,32 +288,33 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
     return $result;
   }
 
-  private function s3_locations() {
+  private function locations() {
 
     return array(
       '' => t('US Standard'),
       'us-west-1' => t('US-West (Northern California)'),
       'EU' => t('EU (Ireland)'),
+      'ap-southeast-1' => t('APAC (Singapore)'),
     );
   }
 
-  private function cloudfront_caller_reference() {
+  private function callerReference() {
     static $id;
 
     // make sure we can create multiple distributions at the same time
     return $_SERVER['REQUEST_TIME'] . '-' . ++$id;
   }
 
-  private function cloudfront_distribution_create() {
+  private function distributionCreate() {
 
     $xml = '<?xml version="1.0" encoding="UTF-8"?>';
     $xml .= '<DistributionConfig xmlns="http://cloudfront.amazonaws.com/doc/2009-12-01/">';
     $xml .= '<Origin>' . $this->settings['bucket'] . '.s3.amazonaws.com</Origin>';
-    $xml .= '<CallerReference>' . _storage_cloudfront_caller_reference() . '</CallerReference>';
+    $xml .= '<CallerReference>' . $this->callerReference() . '</CallerReference>';
     $xml .= '<Enabled>true</Enabled>';
     $xml .= '</DistributionConfig>';
 
-    $result = $this->cloudfront_request('POST', FALSE, $xml);
+    $result = $this->requestCloudFront('POST', FALSE, $xml);
     
     if ($result['http_code'] != 201) {
       $this->settings['cloudfront'] = FALSE;
@@ -322,16 +331,16 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
     watchdog('storage_s3', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $this->path()));
   }
 
-  private function cloudfront_streaming_distribution_create() {
+  private function distributionCreateStreaming() {
 
     $xml = '<?xml version="1.0" encoding="UTF-8"?>';
     $xml .= '<StreamingDistributionConfig xmlns="http://cloudfront.amazonaws.com/doc/2009-12-01/">';
     $xml .= '<Origin>' . $this->settings['bucket'] . '.s3.amazonaws.com</Origin>';
-    $xml .= '<CallerReference>' . _storage_cloudfront_caller_reference() . '</CallerReference>';
+    $xml .= '<CallerReference>' . $this->callerReference() . '</CallerReference>';
     $xml .= '<Enabled>true</Enabled>';
     $xml .= '</StreamingDistributionConfig>';
 
-    $result = $this->cloudfront_request('POST', TRUE, $xml);
+    $result = $this->requestCloudFront('POST', TRUE, $xml);
     
     if ($result['http_code'] != 201) {
       $this->settings['cloudfront_streaming'] = FALSE;
@@ -348,15 +357,15 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
     watchdog('storage_s3', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $this->path()));
   }
 
-  private function cloudfront_deploy() {
+  private function distributionDeploy() {
 
     $deploy = variable_get('storage_s3_cloudfront_deploy', array());
     
     foreach ($deploy as $container_id => $null) {
     
-      $container = storage_api_container_load($container_id);
+      $container = storage_container_load($container_id);
       
-      $result = $this->cloudfront_request($container, 'GET');
+      $result = $this->requestCloudFront('GET');
       
       if (!$result['http_code'])
         continue;
@@ -384,15 +393,15 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
     }
   }
 
-  private function cloudfront_streaming_deploy() {
+  private function distributionDeployStreaming() {
 
     $deploy = variable_get('storage_s3_cloudfront_streaming_deploy', array());
     
     foreach ($deploy as $container_id => $null) {
     
-      $container = storage_api_container_load($container_id);
+      $container = storage_container_load($container_id);
       
-      $result = $this->cloudfront_request($container, 'GET', TRUE);
+      $result = $this->requestCloudFront('GET', TRUE);
       
       if (!$result['http_code'])
         continue;
@@ -421,13 +430,13 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
     }
   }
 
-  private function cloudfront_delete() {
+  private function distributionDelete() {
 
     $delete = variable_get('storage_s3_cloudfront_delete', array());
     
     foreach ($delete as $container) {
     
-      $result = $this->cloudfront_request($container, 'GET');
+      $result = $this->requestCloudFront('GET');
       
       if (!$result['http_code'])
         continue;
@@ -445,7 +454,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
           $xml .= '<Enabled>false</Enabled>';
           $xml .= '</DistributionConfig>';
         
-          $result = $this->cloudfront_request($container, 'PUT', FALSE, $xml);
+          $result = $this->requestCloudFront('PUT', FALSE, $xml);
 
           if ($result['http_code'] == 200) {
 
@@ -459,7 +468,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
           if ($result['simplexml']->Status == 'InProgress')
             continue;
         
-          $result = $this->cloudfront_request($container, 'DELETE');
+          $result = $this->requestCloudFront('DELETE');
 
           if ($result['http_code'] == 204) {
 
@@ -474,13 +483,13 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
     }
   }
 
-  private function cloudfront_streaming_delete() {
+  private function distributionDeleteStreaming() {
 
     $delete = variable_get('storage_s3_cloudfront_streaming_delete', array());
     
     foreach ($delete as $container) {
     
-      $result = $this->cloudfront_request($container, 'GET', TRUE);
+      $result = $this->requestCloudFront('GET', TRUE);
       
       if (!$result['http_code'])
         continue;
@@ -498,7 +507,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
           $xml .= '<Enabled>false</Enabled>';
           $xml .= '</StreamingDistributionConfig>';
         
-          $result = $this->cloudfront_request($container, 'PUT', TRUE, $xml);
+          $result = $this->requestCloudFront('PUT', TRUE, $xml);
 
           if ($result['http_code'] == 200) {
 
@@ -512,7 +521,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
           if ($result['simplexml']->Status == 'InProgress')
             continue;
         
-          $result = $this->cloudfront_request($container, 'DELETE', TRUE);
+          $result = $this->requestCloudFront('DELETE', TRUE);
 
           if ($result['http_code'] == 204) {
 
@@ -526,6 +535,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
       variable_set('storage_s3_cloudfront_streaming_delete', $delete);
     }
   }
+  
   
   public function serviceSettingsForm($edit = FALSE) {
 
@@ -565,7 +575,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
       $items['location'] = array(
         '#type' => 'select',
         '#title' => t('Location'),
-        '#options' => $this->s3_locations(),
+        '#options' => $this->locations(),
         '#default_value' => isset($this->settings['location']) ? $this->settings['location'] : NULL,
       );
     }
@@ -627,23 +637,22 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
       
     
     // Test account credentials.
-    $result = $this->s3_request('GET');   // HEAD doesn't work
-      
+    $result = $this->request('GET');   // HEAD doesn't work
+    
     if ($result['http_code'] != 200) {
-      form_set_error('settings');
+      form_set_error('settings][bucket');
       return;
     }
   }
   
   public function serviceCreate() {
 
-    // check if bucket is already owned by this account
-
-    $result = $this->s3_request('HEAD', $this->settings['bucket']);
+    // Check if bucket is already owned by this account.
+    $result = $this->request('HEAD', $this->settings['bucket']);
 
     if ($result['http_code'] == 200) {
     
-      $result = $this->s3_request('GET', $this->settings['bucket']);
+      $result = $this->request('GET', $this->settings['bucket']);
       
       if (count($result['simplexml']->Contents) > 0) {
       
@@ -654,7 +663,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
       }
     }
     else {
-      $result = $this->s3_request('PUT', $this->settings['bucket']);
+      $result = $this->request('PUT', $this->settings['bucket']);
 
       if ($result['http_code'] != 200) {
         throw new Exception();
@@ -669,7 +678,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
   public function servicePostCreate() {
 
     if ($this->settings['cloudfront']) {
-      $this->cloudfront_distribution_create($this);
+      $this->distributionCreate();
       
       $deploy = variable_get('storage_s3_cloudfront_deploy', array());
       $deploy[$this->container_id] = TRUE;
@@ -677,7 +686,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
     }
 
     if ($this->settings['cloudfront_streaming']) {
-      $this->cloudfront_streaming_distribution_create($this);
+      $this->distributionCreateStreaming();
       
       $deploy = variable_get('storage_s3_cloudfront_streaming_deploy', array());
       $deploy[$this->container_id] = TRUE;
@@ -688,9 +697,9 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
   public function serviceUpdate() {
 
     if ($this->settings['cloudfront'] && 
-      !$this->settings['cloudfront_id'])
+      !isset($this->settings['cloudfront_id']))
     {
-      $this->cloudfront_distribution_create($this);
+      $this->distributionCreate();
       
       if ($this->settings['cloudfront']) {
 
@@ -701,9 +710,9 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
     }
     
     if ($this->settings['cloudfront_streaming'] && 
-      !$this->settings['cloudfront_streaming_id'])
+      !isset($this->settings['cloudfront_streaming_id']))
     {
-      $this->cloudfront_streaming_distribution_create($this);
+      $this->distributionCreateStreaming();
       
       if ($this->settings['cloudfront_streaming']) {
 
@@ -716,7 +725,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
 
   public function serviceInfo() {
 
-    $locations = $this->s3_locations();
+    $locations = $this->locations();
 
     $info = array(
       t('Bucket') => $this->settings['bucket'],
@@ -787,19 +796,32 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
     }
   }
   
+  public function serviceMaintenance() {
+    $this->distributionDeploy();
+    $this->distributionDeployStreaming();
+    $this->distributionDelete();
+    $this->distributionDeleteStreaming();
+  }
+
   public function serviceInstanceCreate(Storage $storage, array $source) {
     
-    $result = $this->s3_request('PUT', $this->settings['bucket'], 
-      $storage->file_id, $storage, $source);
+    $reference = $storage->file_id . '/' . $storage->filename;
+
+    $result = $this->request('PUT', $this->settings['bucket'], $reference, $storage, $source);
     
-    return $result['http_code'] == 200;
+    if ($result['http_code'] == 200) {
+      return $reference;
+    }
+    else {
+      throw Exception();
+    }
   }
 
   public function serviceInstanceCopy(Storage $storage, $reference, $source_container) {
     
     $source['copy_source'] = '/' . $source_container['settings']['bucket'] . '/file-' . $storage->file_id;
     
-    $result = $this->s3_request('PUT', $this->settings['bucket'], 
+    $result = $this->request('PUT', $this->settings['bucket'], 
       $storage->file_id, $source);
     
     if ($result['http_code'] == 200 && $result['simplexml']) {
@@ -813,7 +835,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
 
   public function serviceInstanceDestroy(Storage $storage, $reference) {
     
-    $result = $this->s3_request('DELETE', $this->settings['bucket'], 
+    $result = $this->request('DELETE', $this->settings['bucket'], 
       $storage->file_id);
     
     return $result['http_code'] == 204;
@@ -821,7 +843,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
   
   public function serviceInstanceGetFilepath(Storage $storage, $reference) {
     
-    $result = $this->s3_request('GET', $this->settings['bucket'], 
+    $result = $this->request('GET', $this->settings['bucket'], 
       $storage->file_id);
 
     return $result['filepath'];
@@ -832,20 +854,6 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
     return $this->url($storage->file_id);
   }
 }
-
-
-
-/**
- * Implement hook_cron() .
- */
-function storage_s3_cloudfront_cron() {
-
-  _storage_cloudfront_deploy();
-  _storage_cloudfront_streaming_deploy();
-  _storage_cloudfront_delete();
-  _storage_cloudfront_streaming_delete();
-}
-
 
 /**
  * Implement hook_storage_instance_serve_rtmp() .

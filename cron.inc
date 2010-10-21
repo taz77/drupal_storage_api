@@ -75,10 +75,27 @@ function _storage_flush_storage_servings() {
 }
 
 
+function _storage_api_container_maintenance() {
+
+  $query = db_select('storage_container', NULL, array('fetch' => PDO::FETCH_ASSOC));
+  $query->join('storage_service', NULL, 'storage_container.service_id = storage_service.service_id');
+  
+  $result = $query->condition('storage_container.suspended', 0)
+    ->condition('storage_service.suspended', 0)
+    ->fields('storage_container')
+    ->execute();
+    
+  foreach ($result as $container) {
+    storage_container_new($container)->serviceMaintenance();
+  }
+}
+
+
 function _storage_api_cron() {
 
   _storage_check_files();
   _storage_check_migrations();
   _storage_flush_storage_servings();
+  _storage_api_container_maintenance();
 }
 

@@ -204,6 +204,7 @@ function storage_api_install() {
     $container->create();
   }
   catch (Exception $e) {
+    drupal_set_message($e->getMessage(), 'error');
     return;
   }
   

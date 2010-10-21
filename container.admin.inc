@@ -149,6 +149,12 @@ function storage_create_container_form($form, &$form_state) {
         '#options' => storage_containers_capabilities(),
         '#default_value' => isset($form_state['storage']['capability']) ? $form_state['storage']['capability'] : STORAGE_API_SERVING,
       );
+      
+      $form['aggressive_client_side_caching'] = array(
+        '#type' => 'checkbox',
+        '#title' => t('Aggressive client side caching'),
+        '#description' => t('Some services can generate URLs that will never be resued for a different file. This means the web browser doesn\'t have to check if the URL still points to the same file, incresing performance. However, URLs will not look as clean.'),
+      );
 
       $form['next'] = array(
         '#type' => 'submit',
@@ -248,7 +254,7 @@ function storage_create_container_form_validate($form, &$form_state) {
           $form_state['storage'] = $container;
         }
         catch (Exception $e) {
-          form_set_error('settings');
+          form_set_error('settings', $e->getMessage());
         }
       }
       
@@ -578,7 +584,7 @@ function storage_container_edit_form_validate($form, &$form_state) {
   $container = $form['#container'];
   
   $container->settings = $form_state['values']['settings'] + $container->settings;
-  $container->serviceValidate(TRUE);
+  $container->serviceSettingsValidate(TRUE);
 }
 
 
