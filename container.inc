@@ -20,6 +20,29 @@ abstract class StorageContainer {
     return storage_service_load($this->service_id);
   }
 
+  public function count() {
+  
+    return db_select('storage_instance')
+      ->condition('container_id', $this->container_id)
+      ->isNotNull('file_id')
+      ->countQuery()
+      ->execute()
+      ->fetchField();
+  }
+
+  public function size($format = FALSE) {
+
+    $query = db_select('storage_instance');
+    $query->join('storage_file', NULL, 'storage_instance.file_id = storage_file.file_id');
+    $query->addExpression('SUM(storage_file.size)', 'size');
+
+    $size = $query->condition('container_id', $this->container_id)
+      ->execute()
+      ->fetchField();
+      
+    return $format ? storage_format_size($size) : $size;
+  }
+
   /**
    * Creates a storage container.
    */
@@ -151,13 +174,12 @@ abstract class StorageContainer {
     }
   }
 
-
   public function ensureInstanceExists(Storage $storage) {
     $check = FALSE;
     $keep_me = TRUE;
 
     if ($this->suspended != 0 ||
-      $this->service_suspended != 0)
+      $this->service()->suspended != 0)
     {
       return FALSE;
     }
@@ -173,9 +195,7 @@ abstract class StorageContainer {
     }
     
     // Is it possible to short circuit?
-    $service_info = $this->service()->info;
-
-    if ($service_info['can_copy'] && !$check) {
+    if ($this->service()->info['can_copy'] && !$check) {
       if ($this->tryInstanceCopy($storage)) {
         return TRUE;
       }
@@ -199,7 +219,8 @@ abstract class StorageContainer {
           'keep_me' => $keep_me,
         );
 
-        $exists = $this->instanceCreate($storage, $source);
+        $this->instanceCreate($storage, $source);
+        $exists = TRUE;
       }
       
       if (!$keep_me) {
@@ -262,7 +283,7 @@ abstract class StorageContainer {
       return FALSE;
     }
 
-    $this->serviceInstanceDestroy($storage, $reference);
+    $this->serviceInstanceDestroy($reference);
 
     db_delete('storage_instance')
       ->condition('file_id', $storage->file_id)
@@ -276,6 +297,27 @@ abstract class StorageContainer {
     watchdog('storage_api', $message, NULL);
 
     return TRUE;
+  }
+  
+  
+  public function instanceServeURL($reference) {
+  
+    if (!$this->service()->info['direct']) {    // direct services don't return a URL
+      return $this->serviceInstanceServe($reference);
+    }
+  }
+
+
+  public function instanceLink($reference) {
+  
+    $url = $this->instanceServeURL($reference);
+    
+    if ($url !== '') {
+      return l($reference, $url);
+    }
+    else {
+      return $reference;
+    }
   }
 
 
@@ -415,8 +457,9 @@ interface StorageServiceInterface {
   public function serviceMaintenance();
   public function serviceInstanceCreate(Storage $storage, array $source);
   public function serviceInstanceCopy(Storage $storage, $reference, $source_container);
-  public function serviceInstanceDestroy(Storage $storage, $reference);
-  public function serviceInstanceGetFilepath(Storage $storage, $reference);
-  public function serviceInstanceServe(Storage $storage, $reference);
+  public function serviceInstanceCheck($reference);
+  public function serviceInstanceDestroy($reference);
+  public function serviceInstanceGetFilepath($reference);
+  public function serviceInstanceServe($reference);
 }
 

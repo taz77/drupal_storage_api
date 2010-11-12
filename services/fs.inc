@@ -111,17 +111,35 @@ class StorageFS extends StorageContainer implements StorageServiceInterface {
     }
   }
   
-  public function serviceInstanceDestroy(Storage $storage, $reference) {
-      
-    @unlink($this->settings['path'] . '/' . $reference);
-  }
-  
-  public function serviceInstanceGetFilepath(Storage $storage, $reference) {
-
+  private function instancePath($reference) {
     return $this->settings['path'] . '/' . $reference;
   }
   
-  public function serviceInstanceServe(Storage $storage, $reference) {
+  public function serviceInstanceCheck($reference) {
+    $path = $this->instancePath($reference);
+    $stat = stat($path);
+    
+    if ($stat === FALSE) {
+      return FALSE;
+    }
+    
+    return array(
+      'size' => $stat['size'],
+      'md5' => hash_file('md5', $path, TRUE),
+    );
+  }
+  
+  public function serviceInstanceDestroy($reference) {
+      
+    @unlink($this->instancePath($reference));
+  }
+  
+  public function serviceInstanceGetFilepath($reference) {
+
+    return $this->instancePath($reference);
+  }
+  
+  public function serviceInstanceServe($reference) {
 
     return $this->settings['base_url'] . '/' . $reference;
   }

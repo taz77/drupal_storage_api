@@ -35,7 +35,7 @@ function _storage_services_query() {
 
 function storage_services() {
 
-  drupal_set_title(t('Storage services'), PASS_THROUGH);
+  drupal_set_title(t('Storage services'));
 
   $header = array(t('Service'), t('Suspended'), t('Instances'), t('Size'));
 
@@ -78,8 +78,6 @@ function storage_services() {
 function storage_service_form($form, &$form_state, StorageService $service) {
   $form['#service'] = $service;
 
-
-  drupal_set_title(t('Storage service: ') . $service->name(), PASS_THROUGH);
 
   $data = _storage_services_query()
     ->condition('storage_service.service_id', $service->service_id)

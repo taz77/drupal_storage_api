@@ -109,7 +109,10 @@ class StorageDB extends StorageContainer implements StorageServiceInterface {
   
   public function serviceInstanceCopy(Storage $storage, $reference, $source_container){}
   
-  public function serviceInstanceDestroy(Storage $storage, $reference) {
+  public function serviceInstanceCheck($reference) {
+  }
+  
+  public function serviceInstanceDestroy($reference) {
     
     db_set_active($this->settings['db']);
     
@@ -118,7 +121,7 @@ class StorageDB extends StorageContainer implements StorageServiceInterface {
       WHERE object_id = %d
     ",
       $this->settings['table'],
-      $storage->object_id
+      $reference
     );
 
     db_set_active();
@@ -126,7 +129,7 @@ class StorageDB extends StorageContainer implements StorageServiceInterface {
     return $success;
   }
   
-  public function serviceInstanceGetFilepath(Storage $storage, $reference) {
+  public function serviceInstanceGetFilepath($reference) {
     
     $filepath = tempnam(file_directory_temp(), '');
     
@@ -139,7 +142,7 @@ class StorageDB extends StorageContainer implements StorageServiceInterface {
         WHERE object_id = %d
       ",
         $this->settings['table'],
-        $storage->object_id
+        $reference
       ))
     );
 
@@ -153,7 +156,7 @@ class StorageDB extends StorageContainer implements StorageServiceInterface {
     return $filepath;
   }
   
-  public function serviceInstanceServe(Storage $storage, $reference) {
+  public function serviceInstanceServe($reference) {
     $storage->SetHTTPHeaders();
     
     db_set_active($this->settings['db']);
@@ -164,7 +167,7 @@ class StorageDB extends StorageContainer implements StorageServiceInterface {
       WHERE object_id = %d
     ",
       $this->settings['table'],
-      $storage->object_id
+      $reference
     ));
     
     exit();

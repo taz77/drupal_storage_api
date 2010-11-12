@@ -6,15 +6,15 @@
 
 function _storage_check_files() {
 
-  $result = db_select('storage', NULL, array('fetch' => PDO::FETCH_ASSOC))
+  $storage_ids = db_select('storage')
     ->fields('storage', array('storage_id'))
     ->condition('check_me', 1)
     ->orderBy('storage_id')
-    ->execute();
+    ->execute()
+    ->fetchCol();
 
-  foreach ($result as $storage) {
-    $storage = new Storage($storage['storage_id']);
-    $storage->check();
+  foreach ($storage_ids as $storage_id) {
+    storage_load($storage_id)->check();
   }
 }
 

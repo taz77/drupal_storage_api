@@ -61,6 +61,8 @@ function storage_api_menu() {
   );
   
   $items['admin/structure/storage/services/%storage_service'] = array(
+    'title callback' => 'storage_service_title',
+    'title arguments' => array(4),
     'access arguments' => array('administer storage'),
     'page callback' => 'drupal_get_form',
     'page arguments' => array('storage_service_form', 4),
@@ -94,7 +96,7 @@ function storage_api_menu() {
   );
   
   $items['admin/structure/storage/containers/create'] = array(
-    'title' => 'Create a container',
+    'title' => 'Create container',
     'access arguments' => array('administer storage'),
     'type' => MENU_LOCAL_ACTION,
     'page callback' => 'drupal_get_form',
@@ -104,12 +106,14 @@ function storage_api_menu() {
   );
   
   $items['admin/structure/storage/containers/%storage_container'] = array(
+    'title callback' => 'storage_container_title',
+    'title arguments' => array(4),
     'access arguments' => array('administer storage'),
     'page callback' => 'drupal_get_form',
     'page arguments' => array('storage_container_form', 4),
     'file' => 'container.admin.inc',
   );
-  
+
   $items['admin/structure/storage/containers/%storage_container/view'] = array(
     'title' => 'View',
     'access arguments' => array('administer storage'),
@@ -117,7 +121,17 @@ function storage_api_menu() {
     'weight' => 0,
     'file' => 'container.admin.inc',
   );
-  
+
+  $items['admin/structure/storage/containers/%storage_container/edit'] = array(
+    'title' => 'Edit',
+    'access arguments' => array('administer storage'),
+    'type' => MENU_LOCAL_TASK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('storage_container_edit_form', 4),
+    'weight' => 1,
+    'file' => 'container.admin.inc',
+  );
+
   $items['admin/structure/storage/containers/%storage_container/suspend'] = array(
     'access arguments' => array('administer storage'),
     'type' => MENU_CALLBACK,
@@ -149,18 +163,8 @@ function storage_api_menu() {
     'page arguments' => array('storage_container_destroy_form', 4),
     'file' => 'container.admin.inc',
   );
-  
-  $items['admin/structure/storage/containers/%storage_container/edit'] = array(
-    'title' => 'Edit',
-    'access arguments' => array('administer storage'),
-    'type' => MENU_LOCAL_TASK,
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('storage_container_edit_form', 4),
-    'weight' => 1,
-    'file' => 'container.admin.inc',
-  );
 
-  
+
   $items['admin/structure/storage/classes'] = array(
     'title' => 'Classes',
     'description' => 'Configure storage classes.',
@@ -170,18 +174,10 @@ function storage_api_menu() {
     'file' => 'class.admin.inc',
   );
 
-  $items['admin/structure/storage/classes/list'] = array(
-    'title' => 'Overview',
-    'access arguments' => array('administer storage'),
-    'type' => MENU_DEFAULT_LOCAL_TASK,
-    'weight' => 0,
-    'file' => 'class.admin.inc',
-  );
-
   $items['admin/structure/storage/classes/create'] = array(
     'title' => 'Create',
     'access arguments' => array('administer storage'),
-    'type' => MENU_LOCAL_TASK,
+    'type' => MENU_LOCAL_ACTION,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('storage_create_class_form'),
     'weight' => 1,
@@ -189,6 +185,8 @@ function storage_api_menu() {
   );
 
   $items['admin/structure/storage/classes/%storage_class'] = array(
+    'title callback' => 'storage_class_title',
+    'title arguments' => array(4),
     'access arguments' => array('administer storage'),
     'page callback' => 'storage_class',
     'page arguments' => array(4),
@@ -287,6 +285,12 @@ function storage_service_load($service_id) {
 }
 
 
+function storage_service_title(StorageService $service) {
+
+  return $service->name();
+}
+
+
 /**
  * Loads a storage container.
  *
@@ -322,6 +326,12 @@ function storage_container_new($fields, $unserialize = TRUE) {
 }
 
 
+function storage_container_title(StorageContainer $container) {
+
+  return $container->name();
+}
+
+
 /**
  * Loads a storage class.
  *
@@ -338,6 +348,12 @@ function storage_class_load($class_id) {
   catch (Exception $e) {
     return FALSE;
   }
+}
+
+
+function storage_class_title(StorageClass $class) {
+
+  return $class->name();
 }
 
 
@@ -377,7 +393,8 @@ function storage_api_storage_services() {
       'class' => 'StorageS3CloudFront',
       'local' => FALSE,
       'direct' => FALSE,
-      'can_copy' => TRUE,
+      'can_copy' => FALSE,
+//      'can_copy' => TRUE,
     ),
   );
 
@@ -758,19 +775,6 @@ function _storage_get_service_names() {
 }
 
 
-function _storage_get_service_name($service_id, $link = FALSE) {
-
-  $services = module_invoke_all('storage_services');
-
-  $info = $services[$service_id];
-  
-  if ($link)
-    return l($info['name'], 'admin/structure/storage/services/' . $service_id);
-  else
-    return $info['name'];
-}
-
-
 function _storage_bcmath() {
 
   // crappy bcmath replacements
@@ -819,7 +823,7 @@ function storage_format_size($count) {
   $count = bcdiv($count, 1000, 2);
   $u = 0;
   
-  while(bccomp($count, 1000) >= 0) {
+  while (bccomp($count, 1000) >= 0) {
 
     $count = bcdiv($count, 1000, 2);
     $u++;

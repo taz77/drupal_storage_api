@@ -30,7 +30,7 @@ function _storage_classes_query() {
 
 function storage_classes_list() {
 
-  drupal_set_title(t('Storage classes'), PASS_THROUGH);
+  drupal_set_title(t('Storage classes'));
 
   $result = _storage_classes_query()
     ->orderBy('storage_class.name')
@@ -71,7 +71,7 @@ function storage_classes_list() {
  */
 function storage_create_class_form($form, &$form_state) {
 
-  drupal_set_title(t('Storage classes'), PASS_THROUGH);
+  drupal_set_title(t('Create class'));
   
   $class = new StorageClass(); 
   
@@ -121,8 +121,6 @@ function storage_create_class_form_submit($form, &$form_state) {
 
 function storage_class(StorageClass $class) {
 
-  drupal_set_title(t('Storage class: ') . $class->name(), PASS_THROUGH);
-  
   $class_info = _storage_classes_query()
     ->havingCondition('storage_class.class_id', $class->class_id)
     ->execute()
@@ -173,8 +171,7 @@ function storage_class(StorageClass $class) {
     $container = storage_container_load($container_info['container_id']);
     
     $row[] = $container->link();
-    $row[] = l(_storage_get_service_name($container->service_id), 
-        'admin/structure/storage/services/' . $container->service_id);
+    $row[] = $container->service()->link();
     $row[] = $container->capability ? t('Yes') : t('No');
     $row[] = (int)$container_info['count'];
     $row[] = storage_format_size($container_info['size']);
@@ -205,8 +202,6 @@ function storage_class(StorageClass $class) {
  * @see storage_class_edit_form_submit()
  */
 function storage_class_edit_form($form, &$form_state, StorageClass $class) {
-
-  drupal_set_title(t('Storage class: ') . $class->name(), PASS_THROUGH);
 
   $form = $class->formElements();
   $form['#class'] = $class;
@@ -243,8 +238,7 @@ function storage_class_edit_form($form, &$form_state, StorageClass $class) {
     );
 
     $form['services'][$container->container_id] = array(
-      '#markup' => l(_storage_get_service_name($container->service_id), 
-        'admin/structure/storage/services/' . $container->service_id)
+      '#markup' => $container->service()->link(),
     );
     
     $form['servings'][$container->container_id] = array(
@@ -446,8 +440,6 @@ function storage_class_destroy_form_submit($form, &$form_state) {
 function storage_class_add_container_form($form, &$form_state, StorageClass $class) {
   $form['#class'] = $class;
   
-
-  drupal_set_title(t('Storage class: ') . $class->name(), PASS_THROUGH);
 
   $selector_subquery = db_select('storage_class_container')
     ->fields('storage_class_container', array('container_id'))

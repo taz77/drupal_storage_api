@@ -242,7 +242,7 @@ class Storage {
       $this->logServing($container->container_id);
       
       // this may not return
-      $url = $container->serviceInstanceServe($this, $container->reference);
+      $url = $container->serviceInstanceServe($container->reference);
     }
     elseif ($this->options['serve_source_url'] && $this->source_url) {
 
@@ -293,12 +293,8 @@ class Storage {
     }
     
     if ($container) {
-      $info = storage_service_info($container->service_id);
-      
-      if (!$info['direct']) {    // direct services don't return a URL
-      
-        $url = $container->serviceInstanceServe($this, $container->reference);
-      }
+
+      $url = $container->instanceServeURL($container->reference);
     }
     elseif ($this->options['serve_source_url'] && $this->source_url) {
 
@@ -352,7 +348,7 @@ class Storage {
       return FALSE;
     }
     
-    return $container->serviceInstanceServe($this, $container->reference);
+    return $container->serviceInstanceServe($container->reference);
   }
 
 
@@ -592,11 +588,8 @@ class Storage {
     
     if ($container) {
     
-      $filepath =  $container->serviceInstanceGetFilepath($this, $reference);
-
-      $service_info = storage_service_info($container->service_id);
-      $keep_me = $service_info['local'];
-      
+      $filepath = $container->serviceInstanceGetFilepath($reference);
+      $keep_me = $container->service()->info['local'];
       return $filepath;
     }
     
@@ -719,6 +712,8 @@ class Storage {
 
       _storage_delete_file_if_unrequired($this->file_id);
     }
+    
+    return TRUE;
   }
 
   

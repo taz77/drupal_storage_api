@@ -11,11 +11,25 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
     return base64_encode(hash_hmac('sha1', utf8_encode($source), $this->settings['secret_access_key'], TRUE));
   }
   
-  private function request($method, $bucket = NULL, $object_name = NULL, Storage $storage = NULL, $source = NULL) {
-    $result = array();
-    $date = date(DATE_RFC1123, time());   // we don't use REQUEST_TIME in case it is too old
+  private function parseHeaders($source) {
+    $headers = array();
 
-    $components = array($method, '', '', $date);
+    $source = explode("\r\n", trim($source));
+    array_shift($source);  // Get rid of the HTTP result line.
+
+    foreach ($source as $header) {
+      list($header, $value) = explode(':', $header . ':', 3);
+      $headers[$header] = trim($value);
+    }
+    
+    return $headers;
+  }
+  
+  private function request($op, $bucket = NULL, $object_name = NULL, Storage $storage = NULL, $source = NULL, $query = array()) {
+    $result = array();
+    $date = date(DATE_RFC1123, time());   // we don't use $_SERVER['REQUEST_TIME'] in case it is too old
+
+    $components = array($op, '', '', $date);
     
     $headers[] = 'Date: ' . $date;
 
@@ -26,7 +40,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
       CURLOPT_USERAGENT => 'Storage API (http://drupal.org/project/storage_api)',
     );
 
-    switch ($method) {
+    switch ($op) {
     
       case 'PUT':
         $curl_options[CURLOPT_PUT] = TRUE;
@@ -75,6 +89,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
         
       case 'HEAD':
         $curl_options[CURLOPT_NOBODY] = TRUE;
+        $curl_options[CURLOPT_HEADER] = TRUE;
         break;
         
       case 'GET':
@@ -94,7 +109,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
     if ($bucket)
       $object_name = '/' . $object_name;
     
-    $components[] = '/' . $bucket . $object_name;
+    $components[] = '/' . $bucket . drupal_encode_path($object_name);
     
     $signature = $this->signature(implode("\n", $components));
     $headers[] = 'Authorization: AWS ' . $this->settings['access_key_id'] . ':' . $signature;
@@ -104,7 +119,8 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
     if ($bucket)  
       $bucket .= '.';
 
-    $ch = curl_init('http://' . $bucket . 's3.amazonaws.com' . $object_name);
+    $ch = curl_init(url('http://' . $bucket . 's3.amazonaws.com' . drupal_encode_path($object_name), 
+      array('query' => $query)));
     curl_setopt_array($ch, $curl_options);
     $transfer = curl_exec($ch);
     $result += curl_getinfo($ch);
@@ -121,17 +137,24 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
     
     if (is_string($transfer) && $transfer != '') {
       $result['transfer'] = $transfer;
-      $result['simplexml'] = @simplexml_load_string($transfer);
+      
+      
+      if ($op == 'HEAD') {
+        $result['headers'] = $this->parseHeaders($transfer);
+      }
+      else {
+        $result['simplexml'] = @simplexml_load_string($transfer);
 
-      if ($result['simplexml']) {
-        if ($result['simplexml']->getName() == 'Error') {
+        if ($result['simplexml']) {
+          if ($result['simplexml']->getName() == 'Error') {
 
-          $msg = (string)$result['simplexml']->Message;
+            $msg = (string) $result['simplexml']->Message;
 
-          watchdog('storage_s3', 'Amazon S3 error: @msg', array('@msg' => $msg), WATCHDOG_ERROR);
+            watchdog('storage_s3', 'Amazon S3 error: @msg', array('@msg' => $msg), WATCHDOG_ERROR);
 
-          if (user_access('administer storage'))
-            drupal_set_message(t('Amazon S3 error: @msg', array('@msg' => $msg)), 'error');
+            if (user_access('administer storage'))
+              drupal_set_message(t('Amazon S3 error: @msg', array('@msg' => $msg)), 'error');
+          }
         }
       }
     }
@@ -183,7 +206,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
     throw new Exception();
   }
 
-  private function requestCloudFront($method, $streaming = FALSE, $xml = NULL) {
+  private function requestCloudFront($op, $streaming = FALSE, $xml = NULL) {
     $result = array();
     $date = date(DATE_RFC1123, time());   // we don't use $_SERVER['REQUEST_TIME'] in case it is too old
 
@@ -212,7 +235,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
       }
     }
 
-    switch ($method) {
+    switch ($op) {
     
       case 'POST':
         $curl_options[CURLOPT_POST] = TRUE;
@@ -262,20 +285,14 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
       
       list($headers, $result['body']) = explode("\r\n\r\n", $transfer, 2);
       
-      $headers = preg_split("/\r\n|\n|\r/", $headers);
-      array_shift($headers);  // Get rid of the HTTP result line.
+      $result['headers'] = $this->parseHeaders($headers); 
       
-      foreach ($headers as $header) {
-        list($header, $value) = explode(':', $header . ':', 2);
-        $result['headers'][$header] = $value;
-      }
-
       $result['simplexml'] = @simplexml_load_string($result['body']);
       
       if ($result['simplexml']) {
         if ($result['simplexml']->getName() == 'ErrorResponse') {
         
-          $msg = (string)$result['simplexml']->Error->Message;
+          $msg = (string) $result['simplexml']->Error->Message;
 
           watchdog('storage_s3', 'Amazon CloudFront error: @msg', array('@msg' => $msg), WATCHDOG_ERROR);
 
@@ -301,7 +318,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
   private function callerReference() {
     static $id;
 
-    // make sure we can create multiple distributions at the same time
+    // Make sure we can create multiple distributions at the same time.
     return $_SERVER['REQUEST_TIME'] . '-' . ++$id;
   }
 
@@ -321,9 +338,9 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
       return;
     }
 
-    $this->settings['cloudfront_id'] = (string)$result['simplexml']->Id;
-    $this->settings['cloudfront_status'] = (string)$result['simplexml']->Status;
-    $this->settings['cloudfront_domain'] = (string)$result['simplexml']->DomainName;
+    $this->settings['cloudfront_id'] = (string) $result['simplexml']->Id;
+    $this->settings['cloudfront_status'] = (string) $result['simplexml']->Status;
+    $this->settings['cloudfront_domain'] = (string) $result['simplexml']->DomainName;
 
     $message = 'Added CloudFront distribution to storage container <i>' . $this->name() . '</i>.';
 
@@ -347,9 +364,9 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
       return;
     }
 
-    $this->settings['cloudfront_streaming_id'] = (string)$result['simplexml']->Id;
-    $this->settings['cloudfront_streaming_status'] = (string)$result['simplexml']->Status;
-    $this->settings['cloudfront_streaming_domain'] = (string)$result['simplexml']->DomainName;
+    $this->settings['cloudfront_streaming_id'] = (string) $result['simplexml']->Id;
+    $this->settings['cloudfront_streaming_status'] = (string) $result['simplexml']->Status;
+    $this->settings['cloudfront_streaming_domain'] = (string) $result['simplexml']->DomainName;
 
     $message = 'Added CloudFront streaming distribution to storage container <i>' . $this->name() . '</i>.';
 
@@ -375,7 +392,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
         $message = 'Failed to deploy CloudFront distribution for storage container <i>' . $container->name() . '</i>.';
       }
       else {
-        $container->settings['cloudfront_status'] = (string)$result['simplexml']->Status;
+        $container->settings['cloudfront_status'] = (string) $result['simplexml']->Status;
         
         if ($container->settings['cloudfront_status'] != 'Deployed')
           continue;
@@ -412,7 +429,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
           $container->name() . '</i>.';
       }
       else {
-        $container->settings['cloudfront_streaming_status'] = (string)$result['simplexml']->Status;
+        $container->settings['cloudfront_streaming_status'] = (string) $result['simplexml']->Status;
         
         if ($container->settings['cloudfront_streaming_status'] != 'Deployed')
           continue;
@@ -818,7 +835,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
       return $reference;
     }
     else {
-      throw Exception();
+      throw new Exception();
     }
   }
 
@@ -836,24 +853,69 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
     
     return FALSE;
   }
+  
+  private function eTag2md5($etag) {
+    return pack('H*', substr($etag, 1, 32));
+  }
 
-  public function serviceInstanceDestroy(Storage $storage, $reference) {
+  public function serviceManifest(&$reference, &$finished) {
+
+    $query = array(
+      'max-keys' => 100,
+    );
+    
+    if ($reference) {
+      $query['marker'] = $reference;
+    }
+  
+    $result = $this->request('GET', $this->settings['bucket'], NULL, NULL, NULL, $query);
+    
+    foreach ($result['simplexml']->Contents as $object) {
+    
+      $manifest[] = array(
+        'reference' => (string) $object->Key,
+        'size' => (string) $object->Size,
+        'md5' => $this->eTag2md5($object->ETag),
+      );
+    }
+    
+    $reference = (string) $object->Key;
+    $finished = $result['simplexml']->IsTruncated == 'false';
+    
+    return $manifest;
+  }
+
+  public function serviceInstanceCheck($reference) {
+
+    $result = $this->request('HEAD', $this->settings['bucket'], $reference);
+    
+    if ($result['http_code'] != 200) {
+      return FALSE;
+    }
+    
+    return array(
+      'size' => $result['headers']['Content-Length'],
+      'md5' => $this->eTag2md5($result['headers']['ETag']),
+    );
+  }
+  
+  public function serviceInstanceDestroy($reference) {
     
     $result = $this->request('DELETE', $this->settings['bucket'], $reference);
     
     if ($result['http_code'] != 204) {
-      throw Exception();
+      throw new Exception();
     }
   }
   
-  public function serviceInstanceGetFilepath(Storage $storage, $reference) {
+  public function serviceInstanceGetFilepath($reference) {
     
     $result = $this->request('GET', $this->settings['bucket'], $reference);
 
     return $result['filepath'];
   }
 
-  public function serviceInstanceServe(Storage $storage, $reference) {
+  public function serviceInstanceServe($reference) {
 
     return $this->url($reference);
   }

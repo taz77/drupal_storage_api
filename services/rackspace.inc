@@ -249,14 +249,15 @@ class StorageRackspace extends StorageContainer implements StorageServiceInterfa
     }
   }
   
-  public function serviceInstanceDestroy(Storage $storage, $reference) {
-
-    $name = $storage->file_id . '/' . $reference;
+  public function serviceInstanceCheck($reference) {
+  }
+  
+  public function serviceInstanceDestroy($reference) {
 
     $rscf_container = $this->rscf_container($this);
       
     try {
-      $rscf_container->delete_object($name);
+      $rscf_container->delete_object($reference);
     }
     catch(Exception $e) {
       _storage_rackspace_log_exception($e);
@@ -264,9 +265,7 @@ class StorageRackspace extends StorageContainer implements StorageServiceInterfa
     }
   }
   
-  public function serviceInstanceGetFilepath(Storage $storage, $reference) {
-
-    $name = $storage->file_id . '/' . $reference;
+  public function serviceInstanceGetFilepath($reference) {
 
     $rscf_container = $this->rscf_container($this);
 
@@ -276,7 +275,7 @@ class StorageRackspace extends StorageContainer implements StorageServiceInterfa
     $filepath = tempnam(file_directory_temp(), '');
     
     try {
-      $object = $rscf_container->get_object($name);
+      $object = $rscf_container->get_object($reference);
       $object->save_to_filename($filepath);
     }
     catch(Exception $e) {
@@ -288,9 +287,9 @@ class StorageRackspace extends StorageContainer implements StorageServiceInterfa
     return $filepath;
   }
   
-  public function serviceInstanceServe(Storage $storage, $reference) {
+  public function serviceInstanceServe($reference) {
 
-    return $this->settings['cdn_uri'] . '/'. $storage->file_id . '/' . $reference;
+    return $this->settings['cdn_uri'] . '/'. $reference;
   }
 }
 

@@ -14,40 +14,14 @@ function storage_containers_capabilities() {
 }
 
 
-function _storage_containers_query() {
-
-  $subquery = db_select('storage_instance');
-  $subquery->join('storage', NULL, 'storage_instance.file_id = storage.file_id');
-  $subquery->join('storage_file', NULL, 'storage.file_id = storage_file.file_id');
-  
-  $subquery->fields('storage_instance', array('container_id'));
-  $subquery->addExpression('COUNT(storage.storage_id)', 'count');
-  $subquery->addExpression('SUM(storage_file.size)', 'size');
-  
-  $subquery->groupBy('storage_instance.container_id');
-
-
-  $query = db_select('storage_container', NULL, array('fetch' => PDO::FETCH_ASSOC));
-  $query->leftJoin($subquery, 'files', 'storage_container.container_id = files.container_id');
-  
-  $query->fields('storage_container');
-    
-  $query->addField('files', 'count', 'count');
-  $query->addField('files', 'size', 'size');
-  
-  return $query;
-}
-
-
 function storage_containers() {
-
-  drupal_set_title(t('Storage containers'), PASS_THROUGH);
 
   $header = array(t('Container'), t('Service'), t('Capability'), t('Suspended'), t('Instances'), t('Size'));
 
-  $result = _storage_containers_query()
-    ->orderBy('storage_container.name')
-    ->orderBy('storage_container.container_id')
+  $result = $query = db_select('storage_container', NULL, array('fetch' => PDO::FETCH_ASSOC))
+    ->fields('storage_container')
+    ->orderBy('name')
+    ->orderBy('container_id')
     ->execute();
 
   foreach ($result as $container) {
@@ -56,14 +30,14 @@ function storage_containers() {
     $container = storage_container_new($container);
   
     $row[] = $container->link();
-    $row[] = _storage_get_service_name($container->service_id, TRUE);
+    $row[] = $container->service()->link();
 
     $capabilities = storage_containers_capabilities();
     $row[] = $capabilities[$container->capability];
     
     $row[] = $container->suspended ? 'Yes' : 'No';
-    $row[] = (int)$container->count;
-    $row[] = storage_format_size($container->size);
+    $row[] = $container->count();
+    $row[] = $container->size(TRUE);
     
     $rows[] = $row;
   }
@@ -89,7 +63,7 @@ function storage_containers() {
  */
 function storage_create_container_form($form, &$form_state) {
 
-  drupal_set_title(t('Create container'), PASS_THROUGH);
+  drupal_set_title(t('Create container'));
 
   if (!isset($form_state['values']['step'])) {
     $step = 1;
@@ -168,7 +142,7 @@ function storage_create_container_form($form, &$form_state) {
     
       $container = storage_container_new($form_state['storage'], FALSE);
     
-      $service_name = _storage_get_service_name($container->service_id);
+      $service_name = $container->service()->name();
     
       $capabilities = storage_containers_capabilities();
 
@@ -300,22 +274,15 @@ function storage_container_form($form, &$form_state, StorageContainer $container
   $form['#container'] = $container;
 
 
-  drupal_set_title(t('Storage container: ') . $container->name(), PASS_THROUGH);
-
   $capabilities = storage_containers_capabilities();
 
-  $container_info = _storage_containers_query()
-    ->condition('storage_container.container_id', $container->container_id)
-    ->execute()
-    ->fetchAssoc();
-
   $info = array(
-    t('Service') => _storage_get_service_name($container->service_id, TRUE),
+    t('Service') => $container->service()->link(),
     t('Capability') => $capabilities[$container->capability],
     t('ACSC') => $container->acsc ? t('Yes') : t('No'),
     t('Suspended') => $container->suspended ? t('Yes') : t('No'),
-    t('Instances') => (int)$container_info['count'],
-    t('Size') => storage_format_size($container_info['size']),
+    t('Instances') => $container->count(),
+    t('Size') => $container->size(TRUE),
   );
 
   $info += $container->serviceInfo();
@@ -330,6 +297,7 @@ function storage_container_form($form, &$form_state, StorageContainer $container
       '#type' => 'submit',
       '#value' => t('Suspend'),
       '#submit' => array('storage_container_form_suspend'),
+      '#weight' => 2,
     );
   }
   else {
@@ -337,6 +305,7 @@ function storage_container_form($form, &$form_state, StorageContainer $container
       '#type' => 'submit',
       '#value' => t('Unsuspend'),
       '#submit' => array('storage_container_form_unsuspend'),
+      '#weight' => 2,
     );
   }
 
@@ -344,12 +313,14 @@ function storage_container_form($form, &$form_state, StorageContainer $container
     '#type' => 'submit',
     '#value' => t('Drain'),
     '#submit' => array('storage_container_form_drain'),
+    '#weight' => 2,
   );
 
   $form['destroy'] = array(
     '#type' => 'submit',
     '#value' => t('Destroy'),
     '#submit' => array('storage_container_form_destroy'),
+    '#weight' => 2,
   );
 
   return $form;
@@ -551,11 +522,6 @@ function storage_container_destroy_form_submit($form, &$form_state) {
 function storage_container_edit_form($form, &$form_state, StorageContainer $container) {
   $form['#container'] = $container;
 
-  $service_name = _storage_get_service_name($container->service_id);
-
-  drupal_set_title(t('Storage container: ') . $container->name() . 
-    ' (' . $service_name . ')', PASS_THROUGH);
-  
   $form['name'] = array(
     '#title' => 'Name',
     '#type' => 'textfield',
@@ -565,7 +531,7 @@ function storage_container_edit_form($form, &$form_state, StorageContainer $cont
 
   $form['settings'] = array(
     '#type' => 'fieldset',
-    '#title' => $service_name . t(' settings'),
+    '#title' => $container->service()->name() . t(' settings'),
     '#tree' => TRUE,
   );
   

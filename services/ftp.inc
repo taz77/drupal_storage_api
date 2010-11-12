@@ -197,7 +197,10 @@ class StorageFTP extends StorageContainer implements StorageServiceInterface {
       return $filename;
   }
   
-  public function serviceInstanceDestroy(Storage $storage, $reference) {
+  public function serviceInstanceCheck($reference) {
+  }
+  
+  public function serviceInstanceDestroy($reference) {
 
     _storage_ftp_login($this->settings);
       
@@ -206,7 +209,7 @@ class StorageFTP extends StorageContainer implements StorageServiceInterface {
     return $result;
   }
   
-  public function serviceInstanceGetFilepath(Storage $storage, $reference) {
+  public function serviceInstanceGetFilepath($reference) {
 
     _storage_ftp_login($this->settings);
     
@@ -220,7 +223,7 @@ class StorageFTP extends StorageContainer implements StorageServiceInterface {
     return FALSE;
   }
   
-  public function serviceInstanceServe(Storage $storage, $reference) {
+  public function serviceInstanceServe($reference) {
 
     return $this->settings['base_url'] . $reference;
   }
