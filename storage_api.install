@@ -43,10 +43,10 @@ function storage_api_requirements($phase) {
       if ($result !== TRUE) {
         
         $requirements['storage_api_' . $service_id] = array(
-            'title' => t('Storage API - ') . $services[$service_id]['name'] . t(' service'),
-            'value' => t('Not configured'),
-            'description' => $result,
-            'severity' => REQUIREMENT_ERROR,
+          'title' => t('Storage API - ') . $services[$service_id]['name'] . t(' service'),
+          'value' => t('Not configured'),
+          'description' => $result,
+          'severity' => REQUIREMENT_ERROR,
         );
       }
     }
@@ -156,7 +156,7 @@ function storage_api_schema() {
     ),
     'primary key' => array('container_id', 'reference'),
     'unique keys' => array(
-      'unique_key' => array('$container_id', 'file_id'),
+      'unique_key' => array('container_id', 'file_id'),
     ),
   );
   
