@@ -609,7 +609,7 @@ class Storage {
       if (!$filepath)
         return FALSE;
       
-      $file_id = _storage_file_id($filepath, $filename, $new_file);
+      $file_id = _storage_api_file_id($filepath, $filename, $new_file);
       
       if (!$file_id) {
         @unlink($filepath);
@@ -833,7 +833,7 @@ function storage_add($selector_id, $options = array()) {
     }
     
     $options['data']['initial_container_id'] = $container->container_id;
-    $options['file_id'] = _storage_file_id($options['filepath'], $options['filename'], $new_file);
+    $options['file_id'] = _storage_api_file_id($options['filepath'], $options['filename'], $new_file);
   }
   
   $options['check_me'] = TRUE;

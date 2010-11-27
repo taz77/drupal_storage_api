@@ -26,6 +26,32 @@ function storage_api_requirements($phase) {
   );
   
   if ($phase == 'runtime') {
+
+    if (extension_loaded('fileinfo')) {
+      $finfo = @finfo_open(FILEINFO_MIME);
+    
+      if ($finfo !== FALSE) {
+        $value = t("Fileinfo PHP extension");
+      }
+    }
+    
+    if (!isset($value)) {
+      exec('file', $output, $result);
+      
+      if ($result != 127) {
+        $value = t("Unix 'file' command");
+      }
+      else {
+        $value = t("Filename extension mapping");
+      }
+    }
+
+    $requirements['storage_api_mime'] = array(
+      'title' => t('Storage API - MIME detection'),
+      'value' => $value,
+      'severity' => REQUIREMENT_OK,
+    );
+
     $services = storage_service_info();
   
     // Get service_ids of all containers

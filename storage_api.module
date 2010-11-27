@@ -645,13 +645,55 @@ function _storage_get_selector_initial_container($selector_id) {
 }
 
 
-function storage_file_id($filename, $size, $md5, $mimetype, &$new_file = NULL) {
+function storage_api_mime_detect($filepath, $filename) {
+  $filepath = drupal_realpath($filepath);
+  $mime = FALSE;
+
+  if (extension_loaded('fileinfo')) {
+    $finfo = &drupal_static(__FUNCTION__);
+
+    if (!isset($finfo)) {
+      $finfo = @finfo_open(FILEINFO_MIME);
+    }
+
+    if ($finfo !== FALSE) {
+      $mime = finfo_file($finfo, $filepath);
+    }
+  }
+
+  if ($mime == '' || (strtok($mime, ';') == 'application/octet-stream')) {
+    // On OSX the -i switch is -I, so if we use the long flags everyone is
+    // happy.
+    $command = 'file --brief --mime ' . escapeshellarg($filepath);
+    $mime = trim(exec($command, $output, $result));
+
+    if ($result !== 0) {
+      $mime = FALSE;
+    }
+  }
+
+  if ($mime == '' || (strtok($mime, ';') == 'application/octet-stream')) {
+    $mime = file_get_mimetype($filename);
+  }
+
+  return ($mime == '') ? 'application/octet-stream; charset=binary' : $mime;
+}
+
+
+function _storage_api_file_id($filepath, $filename, &$new_file = NULL) {
   $txn = db_transaction();
+  
+  $fileinfo = @stat($filepath);
+  
+  if (!$fileinfo)
+    return FALSE;
+
+  $md5 = hash_file('md5', $filepath, TRUE);
   
   $file_id = db_select('storage_file')
     ->fields('storage_file', array('file_id'))
     ->condition('filename', $filename)
-    ->condition('size', $size)
+    ->condition('size', $fileinfo['size'])
     ->condition('md5', $md5)
     ->execute()
     ->fetchField();
@@ -660,9 +702,9 @@ function storage_file_id($filename, $size, $md5, $mimetype, &$new_file = NULL) {
   
     $file = array(
       'filename' => $filename,
-      'size' => $size,
+      'size' => $fileinfo['size'],
       'md5' => $md5,
-      'mimetype' => $mimetype,
+      'mimetype' => storage_api_mime_detect($filepath, $filename),
     );
 
     drupal_write_record('storage_file', $file);
@@ -672,21 +714,6 @@ function storage_file_id($filename, $size, $md5, $mimetype, &$new_file = NULL) {
   }
   
   return $file_id;
-}
-
-
-function _storage_file_id($filepath, $filename, &$new_file = NULL) {
-  $txn = db_transaction();
-
-  $fileinfo = @stat($filepath);
-  
-  if (!$fileinfo)
-    return FALSE;
-
-  $md5 = hash_file('md5', $filepath, TRUE);
-  
-  return storage_file_id($filename, $fileinfo['size'], $md5, 
-    mimedetect_mime(array('filepath' => $filepath, 'filename' => $filename)), $new_file);
 }
 
 
@@ -744,23 +771,6 @@ function _storage_delete_file_if_unrequired($file_id) {
   db_delete('storage_file')
     ->condition('file_id', $file_id)
     ->execute();
-}
-
-
-/**
- * Get a file extension that matches a MIME type.
- *
- * @param $mimetype
- *   MIME type the file extension should match.
- * @return
- *   File extension (excluding the dot).
- */
-function storage_mime_extension($mimetype) {
-
-  $path = drupal_get_path('module', 'storage_api');
-  require_once DRUPAL_ROOT . '/' . $path . '/mime_extension.inc';
-
-  return _storage_mime_extension($mimetype);
 }
 
 
