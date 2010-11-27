@@ -139,7 +139,7 @@ function storage_api_schema() {
   $schema['storage_file'] = array(
     'fields' => array(
       'file_id' => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
-      'filename' => array('type' => 'varchar', 'length' => 255, 'not null' => FALSE),
+      'filename' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
       'size' => array('type' => 'int', 'unsigned' => TRUE, 'size' => 'big', 'not null' => TRUE),
       'md5' => array('type' => 'blob', 'mysql_type' => 'BINARY(16)', 'length' => 16, 'not null' => TRUE),
       'mimetype' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE)

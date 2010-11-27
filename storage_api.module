@@ -681,15 +681,20 @@ function storage_api_mime_detect($filepath, $filename) {
 
 
 function _storage_api_file_id($filepath, $filename, &$new_file = NULL) {
-  $txn = db_transaction();
-  
+
+  if (is_null($filename)) {
+    $filename = basename($filepath);
+  }
+
   $fileinfo = @stat($filepath);
   
-  if (!$fileinfo)
+  if (!$fileinfo) {
     return FALSE;
+  }
 
   $md5 = hash_file('md5', $filepath, TRUE);
   
+  $txn = db_transaction();
   $file_id = db_select('storage_file')
     ->fields('storage_file', array('file_id'))
     ->condition('filename', $filename)
@@ -698,7 +703,7 @@ function _storage_api_file_id($filepath, $filename, &$new_file = NULL) {
     ->execute()
     ->fetchField();
 
-  if (!$file_id) {
+  if ($file_id === FALSE) {
   
     $file = array(
       'filename' => $filename,

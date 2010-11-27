@@ -478,7 +478,7 @@ class Storage {
     $filepath = _storage_acquire_from_url($this->source_url);
     
     if ($filepath) {
-      $file_id = _storage_get_file_id($filepath, $this->filename, $new_file);
+      $file_id = _storage_api_file_id($filepath, NULL, $new_file);
 
       if (!$this->file_id) {
         $this->file_id = $file_id;
@@ -604,7 +604,7 @@ class Storage {
 
     if ($this->module) {
 
-      $filepath = module_invoke($this->module, 'storage_generate', $this);
+      list($filepath, $filename) = module_invoke($this->module, 'storage_generate', $this);
       
       if (!$filepath)
         return FALSE;
@@ -793,8 +793,6 @@ class Storage {
  *       URL to get the file from
  *     - 'filename'
  *       The file's filename.
- *     - 'get_filename' (default FALSE)
- *       Determine the filename from the filepath / source_url.
  *     - 'module'
  *       The Drupal module that 'owns' this file.
  *     - 'type'
@@ -815,16 +813,6 @@ function storage_add($selector_id, $options = array()) {
     $options['obtained'] = REQUEST_TIME;
   }
 
-  if (isset($options['get_filename'])) {
-
-    if (isset($options['filepath'])) {
-      $options['filename'] = basename($options['filepath']);
-    }
-    elseif (isset($options['source_url'])) {
-      $options['filename'] = basename(parse_url($options['source_url'], PHP_URL_PATH));
-    }
-  }
-
   if (isset($options['filepath'])) {
     $container = _storage_get_selector_initial_container($selector_id);
     
@@ -833,7 +821,8 @@ function storage_add($selector_id, $options = array()) {
     }
     
     $options['data']['initial_container_id'] = $container->container_id;
-    $options['file_id'] = _storage_api_file_id($options['filepath'], $options['filename'], $new_file);
+    $options['file_id'] = _storage_api_file_id($options['filepath'], 
+      isset($options['filename']) ? $options['filename'] : NULL, $new_file);
   }
   
   $options['check_me'] = TRUE;
