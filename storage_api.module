@@ -682,10 +682,6 @@ function storage_api_mime_detect($filepath, $filename) {
 
 function _storage_api_file_id($filepath, $filename, &$new_file = NULL) {
 
-  if (is_null($filename)) {
-    $filename = basename($filepath);
-  }
-
   $fileinfo = @stat($filepath);
   
   if (!$fileinfo) {

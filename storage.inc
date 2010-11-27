@@ -478,7 +478,7 @@ class Storage {
     $filepath = _storage_acquire_from_url($this->source_url);
     
     if ($filepath) {
-      $file_id = _storage_api_file_id($filepath, NULL, $new_file);
+      $file_id = _storage_api_file_id($filepath, basename(parse_url($this->source_url, PHP_URL_PATH)), $new_file);
 
       if (!$this->file_id) {
         $this->file_id = $file_id;
@@ -822,9 +822,9 @@ function storage_add($selector_id, $options = array()) {
     
     $options['data']['initial_container_id'] = $container->container_id;
     $options['file_id'] = _storage_api_file_id($options['filepath'], 
-      isset($options['filename']) ? $options['filename'] : NULL, $new_file);
+      isset($options['filename']) ? $options['filename'] : basename($options['filepath']), $new_file);
   }
-  
+
   $options['check_me'] = TRUE;
   drupal_write_record('storage', $options);
   $storage = storage_load($options['storage_id']);
