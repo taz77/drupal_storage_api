@@ -51,41 +51,6 @@ function storage_api_menu() {
   );
 
 
-  $items['admin/structure/storage/services'] = array(
-    'title' => 'Services',
-    'description' => 'Configure storage services.',
-    'access arguments' => array('administer storage'),
-    'page callback' => 'storage_services',
-    'weight' => 0,
-    'file' => 'service.admin.inc',
-  );
-  
-  $items['admin/structure/storage/services/%storage_service'] = array(
-    'title callback' => 'storage_service_title',
-    'title arguments' => array(4),
-    'access arguments' => array('administer storage'),
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('storage_service_form', 4),
-    'file' => 'service.admin.inc',
-  );
-  
-  $items['admin/structure/storage/services/%storage_service/suspend'] = array(
-    'access arguments' => array('administer storage'),
-    'type' => MENU_CALLBACK,
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('storage_service_suspend_form', 4),
-    'file' => 'service.admin.inc',
-  );
-  
-  $items['admin/structure/storage/services/%storage_service/unsuspend'] = array(
-    'access arguments' => array('administer storage'),
-    'type' => MENU_CALLBACK,
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('storage_service_unsuspend_form', 4),
-    'file' => 'service.admin.inc',
-  );
-  
-  
   $items['admin/structure/storage/containers'] = array(
     'title' => 'Containers',
     'description' => 'Configure storage containers.',
@@ -271,17 +236,7 @@ function storage_load($storage_id) {
  */
 function storage_service_load($service_id) {
 
-  $fields = db_select('storage_service')
-    ->fields('storage_service')
-    ->condition('service_id', $service_id)
-    ->execute()
-    ->fetchAssoc();
-
-  if (!$fields) {
-    return FALSE;
-  }
-
-  return new StorageService($fields);
+  return new StorageService($service_id);
 }
 
 
@@ -440,28 +395,7 @@ function storage_access(Storage $storage) {
 
 
 function _storage_service_unavailable() {
-  drupal_add_http_header('503 Service Unavailable');
-  watchdog('service unavailable', check_plain($_GET['q']), NULL, WATCHDOG_WARNING);
-
-  // Keep old path for reference.
-  if (!isset($_REQUEST['destination'])) {
-    $_REQUEST['destination'] = $_GET['q'];
-  }
-
-  $path = drupal_get_normal_path(variable_get('site_503', ''));
-  if ($path && $path != $_GET['q']) {
-    // Custom 503 handler. Set the active item in case there are tabs to
-    // display, or other dependencies on the path.
-    menu_set_active_item($path);
-    $return = menu_execute_active_handler($path, FALSE);
-  }
-
-  if (empty($return) || $return == MENU_NOT_FOUND || $return == MENU_ACCESS_DENIED) {
-    drupal_set_title(t('Service unavailable'), PASS_THROUGH);
-    $return = t('The requested page is not currently available.');
-  }
-  
-  print drupal_render_page($return);
+  drupal_deliver_page(MENU_SITE_OFFLINE);
 }
 
 
@@ -879,62 +813,6 @@ function theme_storage_info_table($variables) {
     'rows' => $rows, 
     'attributes' => array('style' => 'width: auto;')
   )) . '</p>';
-}
-
-
-function _storage_update_services() {
-
-  $code_service_ids = array_keys(module_invoke_all('storage_services'));
-
-  $result = db_select('storage_service', NULL, array('fetch' => PDO::FETCH_ASSOC))
-    ->fields('storage_service', array('service_id'))
-    ->execute();
-
-  $db_service_ids = array();
-
-  foreach ($result as $service) {
-
-    if (!in_array($service['service_id'], $code_service_ids)) {
-
-      db_delete('storage_service')
-        ->condition('service_id', $service['service_id'])
-        ->execute();
-    }
-    else {
-      $db_service_ids[] = $service['service_id'];
-    }
-  }
-  
-  
-  foreach ($code_service_ids as $service_id) {
-  
-    if (!in_array($service_id, $db_service_ids)) {
-    
-      db_insert('storage_service')
-        ->fields(array(
-          'service_id' => $service_id,
-        ))
-        ->execute();  
-    }
-  }
-}  
-
-
-/**
- * Implement hook_modules_enabled() .
- */
-function storage_api_modules_enabled($modules) {
-
-  _storage_update_services();
-}
-
-
-/**
- * Implement hook_modules_disabled() .
- */
-function storage_api_modules_disabled($modules) {
-
-  _storage_update_services();
 }
 
 

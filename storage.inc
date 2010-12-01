@@ -138,13 +138,11 @@ class Storage {
     $query->join('storage_class_container', NULL, 'storage_instance.container_id = storage_class_container.container_id');
     $query->join('storage_selector', NULL, 'storage_class_container.class_id = storage_selector.class_id');
     $query->join('storage_container', NULL, 'storage_instance.container_id = storage_container.container_id');
-    $query->join('storage_service', NULL, 'storage_container.service_id = storage_service.service_id');
     
     $container = $query->condition('storage_instance.file_id', $this->file_id)
       ->condition('storage_class_container.serving', STORAGE_API_SERVING, '>=')
       ->condition('storage_selector.selector_id', $this->selector_id)
       ->condition('storage_container.suspended', 0)
-      ->condition('storage_service.suspended', 0)
       ->fields('storage_container')
       ->orderBy('migrating')
       ->orderBy('weight')
@@ -152,7 +150,7 @@ class Storage {
       ->range(0, 1)
       ->execute()
       ->fetchAssoc();
-    
+      
     if ($container) {
       $container = storage_container_new($container);
 
@@ -232,7 +230,7 @@ class Storage {
       $container = $this->servingContainer();
     
       if (!$container) {
-        $container = $this->generate;
+        $container = $this->generate();
       }
         
       $this->cacheServingContainer($container);
@@ -250,7 +248,7 @@ class Storage {
       $url = $this->source_url;
     }
     
-    if (!$url) {
+    if (!isset($url)) {
       _storage_service_unavailable();
       return;
     }
@@ -563,12 +561,10 @@ class Storage {
     $query->join('storage_class_container', NULL, 'storage_instance.container_id = storage_class_container.container_id');
     $query->join('storage_selector', NULL, 'storage_class_container.class_id = storage_selector.class_id');
     $query->join('storage_container', NULL, 'storage_instance.container_id = storage_container.container_id');
-    $query->join('storage_service', NULL, 'storage_container.service_id = storage_service.service_id');
     
     $row = $query->condition('storage_instance.file_id', $this->file_id)
       ->condition('storage_selector.selector_id', $this->selector_id)
       ->condition('storage_container.suspended', 0)
-      ->condition('storage_service.suspended', 0)
       ->fields('storage_instance')
       ->fields('storage_container')
       ->orderBy('storage_selector.migrating')
@@ -640,7 +636,7 @@ class Storage {
   }
 
 
-  public function cacheServingContainer(StorageContainer $container) {
+  public function cacheServingContainer($container) {
 
     db_update('storage')
       ->fields(array('serving_container' => serialize($container)))
@@ -665,12 +661,9 @@ class Storage {
     $query->join('storage_class', NULL, 'storage_selector.class_id = storage_class.class_id');
     $query->join('storage_class_container', NULL, 'storage_class.class_id = storage_class_container.class_id');
     $query->join('storage_container', NULL, 'storage_class_container.container_id = storage_container.container_id');
-    $query->join('storage_service', NULL, 'storage_container.service_id = storage_service.service_id');
     
-    $query->fields('storage_container')
-      ->addField('storage_service', 'suspended', 'service_suspended');
-    
-    $result = $query->condition('storage.storage_id', $this->storage_id)
+    $result = $query->fields('storage_container')
+      ->condition('storage.storage_id', $this->storage_id)
       ->condition('storage_selector.migrating', 0)
       ->orderBy('storage_class_container.weight')
       ->orderBy('storage_container.container_id')
@@ -718,23 +711,21 @@ class Storage {
 
   
   public function destroyUnrequiredInstances($container_ids) {
-    
+
     $query = db_select('storage_instance', NULL, array('fetch' => PDO::FETCH_ASSOC));
     $query->join('storage_container', NULL, 'storage_instance.container_id = storage_container.container_id');
-    $query->join('storage_service', NULL, 'storage_container.service_id = storage_service.service_id');
 
     $query->fields('storage_container')
       ->fields('storage_instance', array('reference'))
       ->condition('storage_instance.file_id', $this->file_id)
       ->orderBy('storage_container.container_id');
-      
-    $query->addField('storage_service', 'suspended', 'service_suspended');
-    
-    if (count($container_ids))
+
+    if (count($container_ids)) {
       $query->condition('storage_instance.container_id', $container_ids, 'NOT IN');
-      
+    }
+
     $failure = FALSE;
-      
+
     foreach ($query->execute() as $row) {
       $reference = $row['reference'];
       $container = storage_container_new($row);

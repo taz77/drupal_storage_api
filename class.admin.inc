@@ -51,7 +51,7 @@ function storage_classes_list() {
     $rows[] = $row;
   }
 
-  if(empty($rows)) {
+  if (empty($rows)) {
     $rows[] = array(array('data' => t('No classes configured.'), 'colspan' => 3, 'class' => 'message'));
   }
 

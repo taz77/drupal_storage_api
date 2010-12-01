@@ -10,8 +10,9 @@
 function storage_api_requirements($phase) {
   $curl = FALSE;
 
-  if (function_exists('curl_version'))
+  if (function_exists('curl_version')) {
     $curl = curl_version();
+  }
   
   $t = get_t();
   $description = $t('Storage API requires that <a href="http://php.net/manual/en/book.curl.php">cURL</a> be available to PHP.');
@@ -86,14 +87,6 @@ function storage_api_requirements($phase) {
  * Implement hook_schema() .
  */
 function storage_api_schema() {
-
-  $schema['storage_service'] = array(
-    'fields' => array(
-      'service_id' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
-      'suspended' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0)
-    ),
-    'primary key' => array('service_id')
-  );
 
   $schema['storage_container'] = array(
     'fields' => array(

@@ -385,7 +385,7 @@ function storage_audit_repair(StorageServiceInterface $container, array &$contex
     drupal_set_message(format_plural($context['results']['instances'], 
       "1 file instance deleted.", "@count file instances deleted."));
     drupal_set_message(format_plural($context['results']['recovered'],
-      "1 file recovered.", "@count file recovered."));
+      "1 file recovered.", "@count files recovered."));
   }
   else {
     $context['finished'] = $context['sandbox']['progress'] / $context['sandbox']['max'];

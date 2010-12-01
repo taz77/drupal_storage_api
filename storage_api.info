@@ -10,9 +10,7 @@ files[] = service.inc
 files[] = container.inc
 files[] = class.inc
 files[] = cron.inc
-files[] = mime_extension.inc
 
-files[] = service.admin.inc
 files[] = container.admin.inc
 files[] = class.admin.inc
 

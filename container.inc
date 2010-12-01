@@ -178,9 +178,7 @@ abstract class StorageContainer {
     $check = FALSE;
     $keep_me = TRUE;
 
-    if ($this->suspended != 0 ||
-      $this->service()->suspended != 0)
-    {
+    if ($this->suspended != 0) {
       return FALSE;
     }
     
@@ -277,9 +275,7 @@ abstract class StorageContainer {
 
   public function instanceDestroy(Storage $storage, $reference) {
 
-    if ($this->suspended != 0 ||
-      $this->service_suspended != 0)
-    {
+    if ($this->suspended != 0) {
       return FALSE;
     }
 

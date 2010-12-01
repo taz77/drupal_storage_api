@@ -5,12 +5,9 @@
 
 class StorageService {
 
-  public function __construct($fields) {
+  public function __construct($service_id) {
     
-    foreach ($fields as $key => $value) {
-      $this->$key = $value;
-    }
-    
+    $this->service_id = $service_id;
     $this->info = storage_service_info($this->service_id);
   }
   
@@ -26,10 +23,6 @@ class StorageService {
     return l($this->info['name'], $this->path());
   }
   
-  public function update() {
-    drupal_write_record('storage_service', $this, 'service_id');
-  }
-
   public function flushServingContainer() {
 
     $selector_subquery = db_select('storage_container');
