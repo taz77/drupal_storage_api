@@ -9,6 +9,7 @@ files[] = storage_api.test
 files[] = service.inc
 files[] = container.inc
 files[] = class.inc
+files[] = selector.inc
 files[] = cron.inc
 
 files[] = container.admin.inc

@@ -24,19 +24,22 @@ class Storage {
         ->condition(db_or()->isNull('storage.selector_id')->condition('storage_selector.migrating', 0))
         ->execute()
         ->fetchAssoc();
-    
-      if (!$storage)
+
+      if (!$storage) {
         throw new Exception();
+      }
     }
     
     $storage['data'] = unserialize($storage['data']);
     $storage['options'] = unserialize($storage['options']);
 
-    if ($storage['serving_container'])
+    if ($storage['serving_container']) {
       $storage['serving_container'] = unserialize($storage['serving_container']);
+    }
 
-    foreach ($storage as $key => $value)
+    foreach ($storage as $key => $value) {
       $this->$key = $value;
+    }
   }
 
   public function update() {
@@ -805,7 +808,7 @@ function storage_add($selector_id, $options = array()) {
   }
 
   if (isset($options['filepath'])) {
-    $container = _storage_get_selector_initial_container($selector_id);
+    $container = storage_selector($selector_id)->initialContainer();
     
     if (!$container) {
       throw new Exception();

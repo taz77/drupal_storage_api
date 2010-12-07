@@ -21,48 +21,18 @@ function _storage_check_files() {
 
 function _storage_check_migrations() {
 
-  // find selectors that are being migrated
-
-  $result = db_select('storage_selector', NULL, array('fetch' => PDO::FETCH_ASSOC))
+  // Find selectors that are being migrated.
+  $selector_ids = db_select('storage_selector', NULL, array('fetch' => PDO::FETCH_ASSOC))
     ->fields('storage_selector', array('selector_id'))
     ->distinct()
     ->condition('migrating', 1)
     ->orderBy('selector_id')
-    ->execute();
- 
-  foreach ($result as $selector) {
-  
-    // is the selector fully migrated?
-    
-    $migrated = !db_select('storage')
-      ->condition('selector_id', $selector['selector_id'])
-      ->condition('check_me', 1)
-      ->countQuery()
-      ->execute()
-      ->fetchField();
+    ->execute()
+    ->fetchCol();
 
-    if($migrated) {
-    
-      // remove the classes it was migrating from
-        
-      db_delete('storage_selector')
-        ->condition('selector_id', $selector['selector_id'])
-        ->condition('migrating', '1')
-        ->execute();
-        
-      $query = db_select('storage_selector');
-      $query->join('storage_class', NULL, 'storage_selector.class_id = storage_class.class_id');
-      
-      $class_name = $query->fields('storage_class', array('name'))
-        ->condition('storage_selector.selector_id', $selector['selector_id'])
-        ->execute()
-        ->fetchField();
-      
-      $message = 'Storage selector ' . $selector['selector_id'];
-      $message .= ' has been fully migrated to class <i>' . $class_name . '</i>.';
-      
-      watchdog('storage_api', $message, NULL);
-    }
+  foreach ($selector_ids as $selector_id) {
+
+    storage_selector($selector_id)->checkMigration();
   }
 }
 

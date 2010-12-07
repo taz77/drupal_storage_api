@@ -4,50 +4,47 @@
 // Copyright 2010 Jonathan Brown
 
 
+function storage_core_bridge_selector_name($field_name) {
+
+  return str_replace('_', '-', $field_name);
+}
+
 /**
  * Implements hook_stream_wrappers() .
  */
 function storage_core_bridge_stream_wrappers() {
 
-  $selectors = db_select('storage_selector', NULL, array('fetch' => PDO::FETCH_ASSOC))
-    ->fields('storage_selector', array('selector_id'))
-    ->condition('migrating', 0)
-    ->execute();
-  
-  $selector_ids = array();
-  foreach ($selectors as $selector) {
-    $selector_ids[] = $selector['selector_id'];
-  }
-  
-  
-  $items = explode('/', $_GET['q']);
-  
   if (strpos($_GET['q'], 'admin/structure/types/manage/') === 0 &&
-    isset($items[5]) && $items[5] == 'fields' &&
-    isset($items[6]))
+    arg(5) == 'fields')
   {
-    $field = $items[6];
-    $field_selectors = variable_get('storage_field_selectors', array());
-    
-    if (!isset($field_selectors[$field]) || !in_array($field_selectors[$field], $selector_ids)) {
-    
-      $selector_ids[] = $field_selectors[$field] = storage_new_selector_id();
-      variable_set('storage_field_selectors', $field_selectors);
-    }
-    
-    $field_selector_id = $field_selectors[$field];
+    $field_name = storage_core_bridge_selector_name(arg(6));
   }
   else {
-    $field_selector_id = NULL;
+    $field_name = NULL;
   }
   
+  $selectors = variable_get('storage_core_bridge_selectors', array());
+  
+  if ($field_name) {
+    if (!in_array($field_name, $selectors)) {
+    
+      storage_selector('storage_core_bridge', $field_name)->create();
+      $selectors[] = $field_name;
+      variable_set('storage_core_bridge_selectors', $selectors);
+    }
+  }
   
   $wrappers = array();  
-  foreach ($selector_ids as $selector_id) {
+  foreach ($selectors as $selector_name) {
+  
+    if ($selector_name == $field_name) {
+      $type = STREAM_WRAPPERS_NORMAL;
+    }
+    else {
+      $type = STREAM_WRAPPERS_HIDDEN;
+    }
 
-    $type = ($field_selector_id == $selector_id) ? STREAM_WRAPPERS_NORMAL : STREAM_WRAPPERS_HIDDEN;
-
-    $wrappers['storage-' . $selector_id] = array(
+    $wrappers['storage-' . $selector_name] = array(
       'name' => t('Storage class (select below)'),
       'class' => 'DrupalStorageStreamWrapper',
       'description' => t('Files managed by Storage API.'),
@@ -68,12 +65,17 @@ function storage_core_bridge_form_field_ui_field_settings_form_alter(&$form, &$f
     return;
   }
 
-  $field_selectors = variable_get('storage_field_selectors', array());
-  $selector_id = $field_selectors[$form['field']['field_name']['#value']];
-  
-  $form['field']['settings']['storage_class'] = storage_selector_item($selector_id, t('Storage class'), $description = NULL);
-  
-  $form['#submit'][] = 'storage_core_bridge_file_field_form_submit';
+  $form['field']['settings']['storage_class'] = storage_selector('storage_core_bridge', 
+    storage_core_bridge_selector_name($form['field']['field_name']['#value']))->formItem(t('Storage class'));
+
+  $form['#submit'][] = 'storage_core_bridge_field_ui_field_settings_form_submit';
+}
+
+
+function storage_core_bridge_field_ui_field_settings_form_submit($form, &$form_state) {
+
+  storage_selector('storage_core_bridge', storage_core_bridge_selector_name($form['field']['field_name']['#value']))
+    ->submit($form_state['values']['field']['settings']['storage_class']);
 }
 
 
@@ -85,19 +87,18 @@ function storage_core_bridge_form_field_ui_field_edit_form_alter(&$form, &$form_
   if ($form['#field']['type'] != 'file') {
     return;
   }
-    
-  $field_selectors = variable_get('storage_field_selectors', array());
-  $selector_id = $field_selectors[$form['#field']['field_name']];
-  
-  $form['field']['settings']['storage_class'] = storage_selector_item($selector_id, t('Storage class'), $description = NULL);
-  
-  $form['#submit'][] = 'storage_core_bridge_file_field_form_submit';
+
+  $form['field']['settings']['storage_class'] = storage_selector('storage_core_bridge', 
+    storage_core_bridge_selector_name($form['#field']['field_name']))->formItem(t('Storage class'));
+
+  $form['#submit'][] = 'storage_core_bridge_field_ui_field_edit_form_submit';
 }
 
 
-function storage_core_bridge_file_field_form_submit($form, &$form_state) {
+function storage_core_bridge_field_ui_field_edit_form_submit($form, &$form_state) {
 
-  storage_selector_submit($form_state['values']['field']['settings']['storage_class']);
+  storage_selector('storage_core_bridge', storage_core_bridge_selector_name($form['#field']['field_name']))
+    ->submit($form_state['values']['field']['settings']['storage_class']);
 }
 
 
@@ -118,7 +119,7 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
   protected $filepath;
   protected $fp;
 
-  protected function selectorId() {
+  protected function selectorName() {
   
     return substr(file_uri_scheme($this->uri), 8);
   }
@@ -204,7 +205,7 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
     );
     
     try {
-      storage_add($this->selectorId(), $options);
+      storage_add('storage_core_bridge/' . $this->selectorName(), $options);
     }
     catch (Exception $e) {}
   }

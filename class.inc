@@ -28,8 +28,9 @@ class StorageClass {
       $class['options'] = unserialize($class['options']);
     }
     
-    foreach ($class as $key => $value)
+    foreach ($class as $key => $value) {
       $this->$key = $value;
+    }
       
     try {
       if (isset($this->options['initial_container_id']))
