@@ -180,6 +180,10 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
     return TRUE;
   }
   
+  public function getDirectoryPath() {
+    return '';
+  }
+  
   public function chmod($mode) {
     return TRUE;
   }
