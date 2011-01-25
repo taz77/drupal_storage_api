@@ -1,7 +1,7 @@
 <?php
 // $Id$
 
-// Copyright 2010 Jonathan Brown
+// Copyright 2011 Jonathan Brown
 
 
 function storage_core_bridge_selector_name($field_name) {
@@ -10,7 +10,7 @@ function storage_core_bridge_selector_name($field_name) {
 }
 
 /**
- * Implements hook_stream_wrappers() .
+ * Implements hook_stream_wrappers().
  */
 function storage_core_bridge_stream_wrappers() {
 
@@ -45,9 +45,9 @@ function storage_core_bridge_stream_wrappers() {
     }
 
     $wrappers['storage-' . $selector_name] = array(
-      'name' => t('Storage class (select below)'),
+      'name' => t("Storage class (select below)"),
       'class' => 'DrupalStorageStreamWrapper',
-      'description' => t('Files managed by Storage API.'),
+      'description' => t("Files managed by Storage API."),
       'type' => $type,
     );
   }
@@ -57,16 +57,19 @@ function storage_core_bridge_stream_wrappers() {
 
 
 /**
- * Implement hook_form_FORM_ID_alter() .
+ * Implements hook_form_FORM_ID_alter().
  */
 function storage_core_bridge_form_field_ui_field_settings_form_alter(&$form, &$form_state) {
 
-  if ($form['field']['type']['#value'] != 'file') {
+  if (!in_array($form['field']['type']['#value'], array('file', 'image'))) {
     return;
   }
 
   $form['field']['settings']['storage_class'] = storage_selector('storage_core_bridge', 
     storage_core_bridge_selector_name($form['field']['field_name']['#value']))->formItem(t('Storage class'));
+
+  $form['field']['settings']['uri_scheme']['#weight'] = -2;
+  $form['field']['settings']['storage_class']['#weight'] = -1;
 
   $form['#submit'][] = 'storage_core_bridge_field_ui_field_settings_form_submit';
 }
@@ -80,16 +83,19 @@ function storage_core_bridge_field_ui_field_settings_form_submit($form, &$form_s
 
 
 /**
- * Implement hook_form_FORM_ID_alter() .
+ * Implements hook_form_FORM_ID_alter().
  */
 function storage_core_bridge_form_field_ui_field_edit_form_alter(&$form, &$form_state) {
 
-  if ($form['#field']['type'] != 'file') {
+  if (!in_array($form['#field']['type'], array('file', 'image'))) {
     return;
   }
 
   $form['field']['settings']['storage_class'] = storage_selector('storage_core_bridge', 
     storage_core_bridge_selector_name($form['#field']['field_name']))->formItem(t('Storage class'));
+    
+  $form['field']['settings']['uri_scheme']['#weight'] = -2;
+  $form['field']['settings']['storage_class']['#weight'] = -1;
 
   $form['#submit'][] = 'storage_core_bridge_field_ui_field_edit_form_submit';
 }

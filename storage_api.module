@@ -1,7 +1,7 @@
 <?php
 // $Id$
 
-// Copyright 2008-2010 Jonathan Brown
+// Copyright 2008-2011 Jonathan Brown
 
 
 define('STORAGE_API_STORAGE_ONLY', 0);
@@ -16,7 +16,7 @@ require_once DRUPAL_ROOT . '/' . $path . '/storage.inc';
 
 
 /**
- * Implement hook_permission() .
+ * Implements hook_permission().
  */
 function storage_api_permission() {
 
@@ -538,8 +538,9 @@ function _storage_delete_file_if_unrequired($file_id) {
 
 function _storage_get_service_names() {
 
-  foreach (module_invoke_all('storage_services') as $service_id => $info)
+  foreach (module_invoke_all('storage_services') as $service_id => $info) {
     $names[$service_id] = $info['name'];
+  }
     
   asort($names);
   
@@ -551,18 +552,16 @@ function _storage_bcmath() {
 
   // crappy bcmath replacements
 
-  if (!function_exists('bcdiv'))
-  {
-    function bcdiv($left_operand, $right_operand, $scale = 0)
-    {
+  if (!function_exists('bcdiv')) {
+  
+    function bcdiv($left_operand, $right_operand, $scale = 0) {
       return round($left_operand / $right_operand, $scale);
     }
   }
 
-  if (!function_exists('bccomp'))
-  {
-    function bccomp($left_operand, $right_operand, $scale = 0)
-    {
+  if (!function_exists('bccomp')) {
+  
+    function bccomp($left_operand, $right_operand, $scale = 0) {
       if ($left_operand == $right_operand)
         return 0;
         
@@ -608,7 +607,7 @@ function storage_format_size($count) {
 
 
 /**
- * Implement hook_theme() .
+ * Implements hook_theme().
  */
 function storage_api_theme($existing, $type, $theme, $path) {
 
@@ -650,7 +649,7 @@ function storage_api_new_local_storage_path() {
 
 
 /**
- * Implement hook_cron() .
+ * Implements hook_cron().
  */
 function storage_api_cron() {
 
