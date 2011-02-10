@@ -43,12 +43,21 @@ class StorageSelector {
    * Deletes a class selector.
    */
   public function destroy() {
-  
+
+    db_update('storage')
+      ->fields(array(
+        'check_me' => 1,
+        'serving_container' => serialize(FALSE),
+      ))
+      ->expression('selector_id', 'NULL')
+      ->condition('selector_id', $this->selectorId)
+      ->execute();
+
     db_delete('storage_selector')
       ->condition('selector_id', $this->selectorId)
       ->execute();
   }
-  
+
   /**
    * Generates a FAPI select element for a class selector.
    *

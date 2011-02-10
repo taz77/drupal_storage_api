@@ -138,14 +138,22 @@ function storage_core_bridge_field_ui_field_edit_form_submit(array $form, array 
  * Implements hook_field_delete_field().
  */
 function storage_core_bridge_field_delete_field($field) {
-  
+
   if (!in_array($field['type'], array('file', 'image'))) {
     return;
   }
 
+  $field_name = _storage_core_bridge_selector_name($field['field_name']);
+
   $selectors = variable_get('storage_core_bridge_selectors', array());
-  unset($selectors[_storage_core_bridge_selector_name($field['field_name'])]);
+  unset($selectors[$field_name]);
   variable_set('storage_core_bridge_selectors', $selectors);
+
+  storage_selector('storage_core_bridge', $field_name)->destroy();
+
+  if ($field['type'] == 'image') {
+    storage_selector('storage_core_bridge', 'styled-' . $field_name)->destroy();
+  }
 }
 
 
