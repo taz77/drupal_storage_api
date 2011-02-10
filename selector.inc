@@ -61,11 +61,11 @@ class StorageSelector {
    * @return
    *   The select element.
    */
-  public function formItem($title, $description = NULL) {
+  public function formItem($title = NULL, $description = NULL) {
     $selector = array(
       '#tree' => TRUE
     );
-    
+
     $result = db_select('storage_class', NULL, array('fetch' => PDO::FETCH_ASSOC))
       ->fields('storage_class')
       ->orderBy('name')
@@ -77,14 +77,21 @@ class StorageSelector {
     foreach ($result as $class) {
       $classes[$class['class_id']] = $class['name'];
     }
-    
+
+    if (!$description) {
+      $text = "This can be safely changed at any time.<br />";
+      $text .= "Configure storage classes <a href=\"!path\">here</a>.";
+
+      $description = t($text, array('!path' => url('admin/structure/storage/classes')));
+    }
+
     $selector['class_id'] = array(
       '#type' => 'select',
-      '#title' => $title,
-      '#description' => $description,
+      '#title' => $title ? $title : t("Storage class"),
+      '#description' => t($description, array('!path' => url('admin/structure/storage/classes'))),
       '#options' => $classes
     );
-    
+
     $current_class_id = db_select('storage_selector')
       ->fields('storage_selector', array('class_id'))
       ->condition('selector_id', $this->selectorId)
@@ -93,12 +100,12 @@ class StorageSelector {
       ->fetchField();
 
     $selector['class_id']['#default_value'] = $current_class_id;
-    
+
     $selector['current_class_id'] = array(
       '#type' => 'value',
       '#value' => $current_class_id
     );
-    
+
     return $selector;
   }
   

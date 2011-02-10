@@ -30,7 +30,7 @@ function storage_containers() {
     $container = storage_container_new($container);
   
     $row[] = $container->link();
-    $row[] = $container->service()->link();
+    $row[] = $container->service()->name();
 
     $capabilities = storage_containers_capabilities();
     $row[] = $capabilities[$container->capability];
@@ -277,7 +277,7 @@ function storage_container_form($form, &$form_state, StorageContainer $container
   $capabilities = storage_containers_capabilities();
 
   $info = array(
-    t('Service') => $container->service()->link(),
+    t('Service') => $container->service()->name(),
     t('Capability') => $capabilities[$container->capability],
     t('ACSC') => $container->acsc ? t('Yes') : t('No'),
     t('Suspended') => $container->suspended ? t('Yes') : t('No'),

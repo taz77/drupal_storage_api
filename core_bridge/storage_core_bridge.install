@@ -5,11 +5,47 @@
 
 
 /**
- * Implement hook_install() .
+ * Implements hook_schema().
+ */
+function storage_core_bridge_schema() {
+  
+  $schema['storage_styled_image'] = array(
+    'fields' => array(
+      'source_id' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'style' => array(
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => TRUE,
+      ),
+      'storage_id' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+    ),
+    'primary key' => array('source_id', 'style'),
+    'unique keys' => array(
+      'storage_id' => array('storage_id'),
+    ),
+    'indexes' => array(
+      'style' => array('style'),
+    ),
+  );
+
+  return $schema;
+}
+
+
+/**
+ * Implement hook_install().
  */
 function storage_core_bridge_install() {
 
-  $spec = array('type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'default' => '');
+  $spec = array('type' => 'varchar', 'length' => 255);
   $keys = array('unique keys' => array('uri' => array('uri')));
 
   db_add_field('storage', 'uri', $spec, $keys); 
@@ -17,7 +53,7 @@ function storage_core_bridge_install() {
 
 
 /**
- * Implement hook_uninstall() .
+ * Implement hook_uninstall().
  */
 function storage_core_bridge_uninstall() {
 
@@ -26,11 +62,11 @@ function storage_core_bridge_uninstall() {
 
 
 /**
- * Implement hook_schema_alter() .
+ * Implement hook_schema_alter().
  */
 function storage_core_bridge_schema_alter(&$schema) {
 
-  $schema['storage']['fields']['uri'] = array('type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'default' => '');
+  $schema['storage']['fields']['uri'] = array('type' => 'varchar', 'length' => 255);
   $schema['storage']['unique keys'] = array('uri' => array('uri'));
 }
 

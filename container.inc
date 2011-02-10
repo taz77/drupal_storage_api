@@ -99,7 +99,7 @@ abstract class StorageContainer {
   }
 
 
-  public function instanceCreate(Storage $storage, $source) {
+  public function instanceCreate(Storage $storage, array $source) {
   
     // We need write access to the directory for it to be deleted.
     if (empty($source['keep_me'])) {
@@ -133,6 +133,8 @@ abstract class StorageContainer {
     $message .= $storage->logInfo();
 
     watchdog('storage_api', $message, NULL);
+
+    return $reference;
   }
 
 

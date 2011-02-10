@@ -15,14 +15,6 @@ class StorageService {
     return check_plain($this->info['name']);
   }
   
-  public function path() {
-    return 'admin/structure/storage/services/' . $this->service_id;
-  }
-  
-  public function link() {
-    return l($this->info['name'], $this->path());
-  }
-  
   public function flushServingContainer() {
 
     $selector_subquery = db_select('storage_container');

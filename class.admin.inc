@@ -171,7 +171,7 @@ function storage_class(StorageClass $class) {
     $container = storage_container_load($container_info['container_id']);
     
     $row[] = $container->link();
-    $row[] = $container->service()->link();
+    $row[] = $container->service()->name();
     $row[] = $container->capability ? t('Yes') : t('No');
     $row[] = (int)$container_info['count'];
     $row[] = storage_format_size($container_info['size']);
@@ -238,7 +238,7 @@ function storage_class_edit_form($form, &$form_state, StorageClass $class) {
     );
 
     $form['services'][$container->container_id] = array(
-      '#markup' => $container->service()->link(),
+      '#markup' => $container->service()->name(),
     );
     
     $form['servings'][$container->container_id] = array(

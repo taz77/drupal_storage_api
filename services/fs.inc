@@ -107,7 +107,7 @@ class StorageFS extends StorageContainer implements StorageServiceInterface {
       return $filename;
     }
     else {
-      throw Exception();
+      throw new Exception();
     }
   }
   
@@ -141,7 +141,7 @@ class StorageFS extends StorageContainer implements StorageServiceInterface {
   
   public function serviceInstanceServe($reference) {
 
-    return $this->settings['base_url'] . '/' . $reference;
+    return file_create_url($this->settings['base_url'] . '/' . $reference);
   }
 }
 

@@ -155,7 +155,7 @@ function storage_api_schema() {
       'nid' => array('type' => 'int', 'unsigned' => TRUE),
       'check_me' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE),
       'data' => array('type' => 'blob', 'not null' => TRUE, 'serialize' => TRUE),
-      'serving_container' => array('type' => 'varchar', 'length' => '16383', 'not null' => FALSE),
+      'serving_container' => array('type' => 'varchar', 'length' => '16383', 'not null' => FALSE, 'serialize' => TRUE),
       'servings' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
       'last_touched' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
     ),
@@ -186,7 +186,7 @@ function storage_api_schema() {
       'container_id' => array('type' => 'int', 'unsigned' => TRUE),
       'size' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
       'uid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
-      'sid' => array('type' => 'char', 'length' => '32', 'not null' => TRUE),
+      'sid' => array('type' => 'char', 'length' => 128, 'not null' => TRUE),
       'ip_addr' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
       'referrer' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE)
     ),

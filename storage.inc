@@ -186,7 +186,7 @@ class Storage {
 
   private function generate() {
 
-    $container = _storage_get_selector_initial_container($this->selector_id);
+    $container = storage_container_load($this->data['initial_container_id']);
     
     if (!$container)
       return FALSE;
@@ -196,28 +196,44 @@ class Storage {
     if (!$filepath)
       return FALSE;
       
-    $this->filepath = $filepath;
-    $this->keep_me = $keep_me;
+    $source['filepath'] = $filepath;
+    $source['keep_me'] = $keep_me;
     
     $link = $this->nid ? l(t('view'), 'node/' . $this->nid) : NULL;
 
-    if (!_storage_create_instance($container, $this)) {
-
-      $message = 'Failed to create instance of file ' . ($this->filename ? ($this->filename . ' ') : '');
-      $message .= 'in storage container <i>' . $container->name . '</i>.';
-      $message .= ' <br />' . $this->logInfo();
-      watchdog('storage_api', $message, NULL, WATCHDOG_WARNING, $link);
-
-      return FALSE;
+    // If the storage's file is already in the system, then the instance might already exist.
+    if (empty($new_file)) {
+      $reference = $container->instanceExists($this);
     }
+
+    if (empty($reference)) {
     
-    $this->data['initial_container_id'] = $container['container_id'];
+      try {
+        $reference = $container->instanceCreate($this, $source);
+      }
+      catch (Exception $e) {
+        $message = 'Failed to create instance of file ' . ($this->filename ? ($this->filename . ' ') : '');
+        $message .= 'in storage container <i>' . $container->name() . '</i>.';
+
+        if (user_access('administer storage')) {
+          drupal_set_message($message);
+        }
+
+        $message .= ' <br />' . $this->logInfo();
+        watchdog('storage_api', $message, NULL, WATCHDOG_WARNING, $link);
+        
+        throw new Exception();
+      }
+    }
+
     $this->update();
 
     $message = 'Generated file' . ($this->filename ? (' ' . $this->filename) : '');
     $message .= '<br />' . $this->logInfo();
     watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, $link);
-
+    
+    $container->reference = $reference;
+    
     return $container;
   }
 
@@ -603,10 +619,12 @@ class Storage {
 
     if ($this->module) {
 
-      list($filepath, $filename) = module_invoke($this->module, 'storage_generate', $this);
-      
-      if (!$filepath)
+      try {
+        list($filepath, $filename) = module_invoke($this->module, 'storage_generate', $this);
+      }
+      catch (Exception $e) {
         return FALSE;
+      }
       
       $file_id = _storage_api_file_id($filepath, $filename, $new_file);
       
@@ -615,8 +633,9 @@ class Storage {
         return FALSE;
       }
 
-      if (!$this->file_id)
+      if (!$this->file_id) {
         $this->file_id = $file_id;
+      }
       
       if ($this->file_id != $file_id) {    // the file has changed
 
@@ -625,12 +644,17 @@ class Storage {
         return FALSE;
       }
       
-      $this->obtained = REQUEST_TIME;
+      $this->obtained = time();
       $this->update();
 
       // we need to reload $storage to get the filesize, etc
-//        $this = storage_load($this->storage_id);
-      $this['new_file'] = $new_file;    // _storage_ensure_instance_exists() will make use of this
+      $storage = storage_load($this->storage_id);
+      
+      foreach ($storage as $key => $value) {
+        $this->$key = $value;
+      }
+      
+      $this->new_file = $new_file;    // StorageContainer::ensureInstanceExists() will make use of this
       
       return $filepath;
     }
@@ -807,14 +831,15 @@ function storage_add($selector_id, $options = array()) {
     $options['obtained'] = REQUEST_TIME;
   }
 
+  $container = storage_selector($selector_id)->initialContainer();
+  
+  if (!$container) {
+    throw new Exception();
+  }
+  
+  $options['data']['initial_container_id'] = $container->container_id;
+
   if (isset($options['filepath'])) {
-    $container = storage_selector($selector_id)->initialContainer();
-    
-    if (!$container) {
-      throw new Exception();
-    }
-    
-    $options['data']['initial_container_id'] = $container->container_id;
     $options['file_id'] = _storage_api_file_id($options['filepath'], 
       isset($options['filename']) ? $options['filename'] : basename($options['filepath']), $new_file);
   }
@@ -825,7 +850,7 @@ function storage_add($selector_id, $options = array()) {
   
   $link = $storage->nid ? l(t('view'), 'node/' . $storage->nid) : NULL;
   
-  if ($options['filepath']) {
+  if (isset($options['filepath'])) {
   
     // If the storage's file is already in the system, then the instance might already exist.
     if (empty($new_file)) {

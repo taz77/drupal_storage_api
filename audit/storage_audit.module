@@ -71,7 +71,7 @@ function storage_audit_form(array $form, array &$form_state, StorageContainer $c
   );
   
   $info = array(
-    t("Service") => $container->service()->link(),
+    t("Service") => $container->service()->name(),
     t("Files") => $container->count(),
     t("Size") => $container->size(TRUE),
     t("Audited") => isset($audited) ? format_date($audited) : t("No"),
