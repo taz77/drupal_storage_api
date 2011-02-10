@@ -213,5 +213,95 @@ class StorageSelector {
       watchdog('storage_api', $message, NULL);
     }
   }
+
+  /**
+   * Adds a file for Storage API to manage.
+   *
+   * The file will initially be stored in file's class's initial container.
+   *
+   * @param $options
+   *   An associative array of additional options, with the following keys:
+   *     - 'filepath'
+   *       Filepath to get the file from.
+   *     - 'keep_me' (default FALSE)
+   *       Ensure the filepath is left intact.
+   *     - 'source_url'
+   *       URL to get the file from
+   *     - 'filename'
+   *       The file's filename.
+   *     - 'module'
+   *       The Drupal module that 'owns' this file.
+   *     - 'type'
+   *       Module-specific file type identifier.
+   *     - 'nid'
+   *       The nid of the node this file should be associated with.
+   *     - 'obtained' (default current time)
+   *       Unix timestamp of when the file was obtained.
+   *     - 'data'
+   *       An array of data about the file.
+   * @return
+   *   Storage of the added file.
+   */
+  public function storageAdd($options = array()) {
+    $options['selector_id'] = $this->selectorId;
+    
+    if (!isset($options['obtained'])) {
+      $options['obtained'] = REQUEST_TIME;
+    }
+
+    $container = $this->initialContainer();
+    
+    if (!$container) {
+      throw new Exception();
+    }
+    
+    $options['data']['initial_container_id'] = $container->container_id;
+
+    if (isset($options['filepath'])) {
+      $options['file_id'] = _storage_api_file_id($options['filepath'], 
+        isset($options['filename']) ? $options['filename'] : basename($options['filepath']), $new_file);
+    }
+
+    $options['check_me'] = TRUE;
+    drupal_write_record('storage', $options);
+    $storage = storage_load($options['storage_id']);
+    
+    $link = $storage->nid ? l(t('view'), 'node/' . $storage->nid) : NULL;
+    
+    if (isset($options['filepath'])) {
+    
+      // If the storage's file is already in the system, then the instance might already exist.
+      if (empty($new_file)) {
+        $exists = $container->instanceExists($storage);
+      }
+
+      if (empty($exists)) {
+      
+        try {
+          $container->instanceCreate($storage, $options);
+        }
+        catch (Exception $e) {
+          $message = 'Failed to create initial instance of file ' . ($storage->filename ? ($storage->filename . ' ') : '');
+          $message .= 'in storage container <i>' . $container->name() . '</i>.';
+
+          if (user_access('administer storage'))
+            drupal_set_message($message);
+
+          $message .= ' <br />' . $storage->logInfo();
+          watchdog('storage_api', $message, NULL, WATCHDOG_WARNING, $link);
+          
+          $storage->remove();
+          throw new Exception();
+        }
+      }
+    }
+    
+    $message = 'File added' . ($storage->filename ? (': ' . $storage->filename . ' ') : '') . ' <br />';
+    $message .= $storage->logInfo();
+    
+    watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, $link);
+
+    return $storage;
+  }
 }
 

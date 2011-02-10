@@ -185,7 +185,8 @@ function storage_core_bridge_styled_image_load($uri, $style) {
       'type' => 'styled_image',
     );
 
-    $storage = storage_add('storage_core_bridge/' . 'styled-' . substr(file_uri_scheme($uri), 8), $options);
+    $storage = storage_selector('storage_core_bridge', 'styled-' . substr(file_uri_scheme($uri), 8))
+      ->storageAdd($options);
     
     db_insert('storage_styled_image')
       ->fields(array(
@@ -348,7 +349,7 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
     );
     
     try {
-      storage_add('storage_core_bridge/' . $this->selectorName(), $options);
+      storage_selector('storage_core_bridge', $this->selectorName())->storageAdd($options);
     }
     catch (Exception $e) {}
   }
