@@ -280,7 +280,8 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
 
     $filename = file_uri_target($uri);
     
-    if (count(explode('/', $filename)) > count(explode('/', $storage_core_bridge_filename))) {
+    if ($storage_core_bridge_filename == '' || 
+      (count(explode('/', $filename)) > count(explode('/', $storage_core_bridge_filename)))) {
       $storage_core_bridge_filename = $filename;
     }
 
