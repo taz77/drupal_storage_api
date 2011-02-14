@@ -373,7 +373,10 @@ abstract class StorageContainer {
   }
 
   /**
-   * Determines if a file's reference already exists in a container.
+   * Determines if a reference exists in a container.
+   *
+   * The reference may either have a record in the database, or exist in the
+   * container itself.
    *
    * @param $reference
    *   The reference to look for.
@@ -382,12 +385,18 @@ abstract class StorageContainer {
    */
   public function referenceExists($reference) {
 
-    return (bool) db_select('storage_instance')
+    $exists = (bool) db_select('storage_instance')
       ->condition('container_id', $this->container_id)
       ->condition('reference', $reference)
       ->countQuery()
       ->execute()
       ->fetchField();
+      
+    if ($exists) {
+      return TRUE;
+    }
+    
+    return $this->serviceInstanceExists($reference);
   }
 
   /**
@@ -417,7 +426,7 @@ abstract class StorageContainer {
       do {
         $filename = $name . '_' . $count++ . $ext;
         
-      } while($this->referenceExists($filename));
+      } while ($this->referenceExists($filename));
     }
 
     return $filename;

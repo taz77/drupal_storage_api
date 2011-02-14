@@ -885,6 +885,13 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
     return $manifest;
   }
 
+  public function serviceInstanceExists($reference) {
+
+    $result = $this->request('HEAD', $this->settings['bucket'], $reference);
+    
+    return $result['http_code'] == 200;
+  }
+
   public function serviceInstanceCheck($reference) {
 
     $result = $this->request('HEAD', $this->settings['bucket'], $reference);

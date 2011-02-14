@@ -197,6 +197,10 @@ class StorageFTP extends StorageContainer implements StorageServiceInterface {
       return $filename;
   }
   
+  public function serviceInstanceExists($reference) {
+    return FALSE;
+  }
+  
   public function serviceInstanceCheck($reference) {
   }
   

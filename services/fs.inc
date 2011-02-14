@@ -136,6 +136,11 @@ class StorageFS extends StorageContainer implements StorageServiceInterface {
     }
   }
   
+  public function serviceInstanceExists($reference) {
+    
+    return @stat($this->instancePath($reference)) !== FALSE;
+  }
+
   public function serviceInstanceCheck($reference) {
     $path = $this->instancePath($reference);
     $stat = stat($path);
