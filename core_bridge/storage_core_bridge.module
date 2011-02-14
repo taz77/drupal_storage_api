@@ -277,15 +277,12 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
 
   public function url_stat($uri, $flags) {
     global $storage_core_bridge_filename;
-    $filename = file_uri_target($uri);
 
-    if ($filename == '') {
-      unset($storage_core_bridge_filename);
-      return array('mode' => 0040666);
-    }
+    $filename = file_uri_target($uri);
     
-//    if (!isset($storage_core_bridge_filename))
+    if (count(explode('/', $filename)) > count(explode('/', $storage_core_bridge_filename))) {
       $storage_core_bridge_filename = $filename;
+    }
 
     $storage = _storage_core_bridge_load($uri);
     
@@ -318,14 +315,13 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
     return trim($target, '\/');
   }
 
-  public function mkdir($uri, $mode, $options) {    // dont define?
-    dsm(__FUNCTION__);
-    dsm(func_get_args());
-
+  public function mkdir($uri, $mode, $options) {
     return TRUE;
   }
   
   public function getDirectoryPath() {
+    dsm(__FUNCTION__);
+    dsm(func_get_args());
     return '';
   }
   
@@ -427,9 +423,6 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
   
 
   public function dirname($uri = NULL) {
-    dsm(__FUNCTION__);
-    dsm(func_get_args());
-
     list($scheme, $target) = explode('://', $uri, 2);
     $target  = $this->getTarget($uri);
     $dirname = dirname($target);
