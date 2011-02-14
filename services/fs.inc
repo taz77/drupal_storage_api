@@ -78,41 +78,62 @@ class StorageFS extends StorageContainer implements StorageServiceInterface {
     $info['Free space'] = storage_format_size(@disk_free_space($this->settings['path']));
     $info['Directory'] = realpath($this->settings['path']);
 
-    if ($this->capability)
+    if ($this->capability) {
       $info['Base URL'] = url($this->settings['base_url'], array('absolute' => TRUE));
+    }
 
     return $info;
   }
   
-  public function serviceDestroy() {}
+  public function serviceDestroy() {
   
-  public function serviceInstanceCreate(Storage $storage, array $source) {
-
-    // File instances need to use the actual filename so the webserver serves them
-    // with their filename in the Content-Disposition http header.
-    
-    // This means we cannot use the Cache-control max-age http header
-    // as URLs may be reused.
-    
-    $filename = $this->uniqueFilename($storage->filename);
-    
-    $path = $this->settings['path'] . '/' . $filename;
-
-    if (empty($source['keep_me']) && !file_uri_scheme($source['filepath']))   // cannot rename a file across wrapper types
-      $success = @rename($source['filepath'], $path);
-    else
-      $success = @copy($source['filepath'], $path);
-
-    if ($success) {
-      return $filename;
-    }
-    else {
-      throw new Exception();
-    }
+    return @rmdir($this->settings['path']);
   }
   
   private function instancePath($reference) {
     return $this->settings['path'] . '/' . $reference;
+  }
+  
+  private function ensurePathExists($reference) {
+    $dirs = explode('/', $reference);
+    $basename = array_pop($dirs);
+    $path = '';
+    
+    foreach ($dirs as $dir) {
+      $count = 0;
+      $test_path = $path . $dir;
+
+      while (!is_dir($this->instancePath($test_path)) &&
+        !@mkdir($this->instancePath($test_path)))
+      {
+        $count++;
+        $test_path = $path . $dir . '_' . $count;
+      }
+      
+      $path = $test_path . '/';
+    }
+    
+    return $path . $basename;
+  }
+  
+  public function serviceInstanceCreate(Storage $storage, array $source) {
+
+    $reference = $this->uniqueFilename($this->ensurePathExists($storage->filename));
+    $path = $this->instancePath($reference);
+
+    if (empty($source['keep_me']) && !file_uri_scheme($source['filepath'])) {  // cannot rename a file across wrapper types
+      $success = @rename($source['filepath'], $path);
+    }
+    else {
+      $success = @copy($source['filepath'], $path);
+    }
+
+    if ($success) {
+      return $reference;
+    }
+    else {
+      throw new Exception();
+    }
   }
   
   public function serviceInstanceCheck($reference) {
@@ -132,6 +153,18 @@ class StorageFS extends StorageContainer implements StorageServiceInterface {
   public function serviceInstanceDestroy($reference) {
       
     @unlink($this->instancePath($reference));
+    
+    $dirs = explode('/', $reference);
+    array_pop($dirs);
+    
+    while (count($dirs)) {
+    
+      if (!@rmdir($this->instancePath(implode('/', $dirs)))) {
+        break;
+      }
+
+      array_pop($dirs);
+    }
   }
   
   public function serviceInstanceGetFilepath($reference) {

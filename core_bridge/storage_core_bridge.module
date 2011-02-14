@@ -236,8 +236,11 @@ function storage_core_bridge_storage_generate(Storage $storage) {
 
   image_style_create_derivative($style, $source, $destination);
   
-//  return array($destination, $styled_image['style'] . '/' . $source_storage->filename);
-  return array($destination, $source_storage->filename);
+  $components = explode('/', $source_storage->filename);
+  $basename = array_pop($components);
+  array_push($components, $styled_image['style'], $basename);
+  
+  return array($destination, implode('/', $components));
 }
 
 
@@ -281,7 +284,7 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
       return array('mode' => 0040666);
     }
     
-    if (!isset($storage_core_bridge_filename))
+//    if (!isset($storage_core_bridge_filename))
       $storage_core_bridge_filename = $filename;
 
     $storage = _storage_core_bridge_load($uri);

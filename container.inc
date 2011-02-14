@@ -412,10 +412,10 @@ abstract class StorageContainer {
         $name = $filename;
       }
 
-      $counter = 0;
+      $count = 0;
       
       do {
-        $filename = $name . '_' . $counter++ . $ext;
+        $filename = $name . '_' . $count++ . $ext;
         
       } while($this->referenceExists($filename));
     }
