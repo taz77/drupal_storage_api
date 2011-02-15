@@ -324,6 +324,7 @@ function _storage_audit_repair(StorageServiceInterface $container, array $instan
       ->fields(array(
           'check_me' => 1,
         ))
+      ->expression('serving_container', 'NULL')
       ->condition('file_id', $instance['file_id'])
       ->execute();
       
