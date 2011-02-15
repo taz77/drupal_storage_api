@@ -245,7 +245,7 @@ function storage_audit(StorageServiceInterface $container, array &$context) {
   }
   
   
-  $manifest = $container->serviceManifest($context['sandbox']['reference'], $finished);
+  $manifest = $container->serviceManifest($context['sandbox']['service_sandbox'], $finished);
   
   foreach ($manifest as $instance) {
   

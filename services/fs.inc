@@ -136,6 +136,59 @@ class StorageFS extends StorageContainer implements StorageServiceInterface {
     }
   }
   
+  private function scanDirectory($dir) {
+    $files = array();
+    $handle = opendir($dir);
+    
+    while (($filename = readdir($handle)) !== FALSE) {
+
+      if ($filename == '.' || $filename == '..') {
+        continue;
+      }
+    
+      $filepath = $dir . '/' . $filename;
+      
+      if (is_dir($filepath)) {
+      
+        foreach ($this->scanDirectory($filepath) as $subfilename) {
+          $files[] = $filename . '/' . $subfilename;
+        }
+      }
+      else {
+        $files[] = $filename;
+      }
+    }
+
+    closedir($handle);
+    
+    return $files;
+  }
+  
+  public function serviceManifest(&$sandbox, &$finished) {
+  
+    if (!isset($sandbox['files'])) {
+      $sandbox['files'] = $this->scanDirectory($this->settings['path']);
+    }
+
+    $count = 100;
+    $manifest = array();
+    
+    while ($count-- && ($reference = array_shift($sandbox['files']))) {
+      $filepath = $this->instancePath($reference);
+      $stat = stat($filepath);
+    
+      $manifest[] = array(
+        'reference' => $reference,
+        'size' => $stat['size'],
+        'md5' => hash_file('md5', $filepath, TRUE),
+      );
+    }
+    
+    $finished = (count($sandbox['files']) == 0);
+    
+    return $manifest;
+  }
+
   public function serviceInstanceExists($reference) {
     
     return @stat($this->instancePath($reference)) !== FALSE;

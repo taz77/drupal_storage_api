@@ -858,14 +858,14 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
     return pack('H*', substr($etag, 1, 32));
   }
 
-  public function serviceManifest(&$reference, &$finished) {
+  public function serviceManifest(&$sandbox, &$finished) {
 
     $query = array(
       'max-keys' => 100,
     );
     
-    if ($reference) {
-      $query['marker'] = $reference;
+    if ($sandbox['marker']) {
+      $query['marker'] = $sandbox['marker'];
     }
   
     $result = $this->request('GET', $this->settings['bucket'], NULL, NULL, NULL, $query);
@@ -879,7 +879,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
       );
     }
     
-    $reference = (string) $object->Key;
+    $sandbox['marker'] = (string) $object->Key;
     $finished = $result['simplexml']->IsTruncated == 'false';
     
     return $manifest;

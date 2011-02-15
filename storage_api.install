@@ -171,7 +171,7 @@ function storage_api_schema() {
     'fields' => array(
       'container_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
       'reference' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
-      'file_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
+      'file_id' => array('type' => 'int', 'unsigned' => TRUE),
     ),
     'primary key' => array('container_id', 'reference'),
     'unique keys' => array(
