@@ -233,15 +233,23 @@ function storage_audit(StorageServiceInterface $container, array &$context) {
       ->countQuery()
       ->execute()
       ->fetchField();
-      
+
+    // Mark this container as unaudited.      
+    _storage_audit_unset_audited($container->container_id);
+
+    // Delete records of extra instances discovered during previous audit.
+    db_delete('storage_instance')
+      ->condition('container_id', $container->container_id)
+      ->isNull('file_id')
+      ->execute();
+
+    // Set every instance record in container to unaudited.
     db_update('storage_instance')
       ->fields(array(
           'audit' => 0,
         ))
       ->condition('container_id', $container->container_id)
       ->execute();
-      
-    _storage_audit_unset_audited($container->container_id);
   }
   
   
