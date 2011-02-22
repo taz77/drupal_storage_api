@@ -632,30 +632,46 @@ class Storage {
         @unlink($filepath);
         return FALSE;
       }
+      
+      if ($this->file_id && ($this->file_id != $file_id)) {
+      
+        // The storage's file_id is changing. If there are any instances of the
+        // old file, create a dummy storage so these instances can be destroyed
+        // if necessary.
+        $count = db_select('storage_instance')
+          ->condition('file_id', $this->file_id)
+          ->countQuery()
+          ->execute()
+          ->fetchField();
+          
+        if ($count > 0) {
+          
+          db_insert('storage')
+            ->fields(array(
+              'file_id' => $this->file_id,
+              'obtained' => time(),
+              'check_me' => 1,
+              'data' => '',
+            ))
+            ->execute();
+        }
+      }
 
-      if (!$this->file_id) {
+      if ($this->file_id != $file_id) {
         $this->file_id = $file_id;
-      }
-      
-      if ($this->file_id != $file_id) {    // the file has changed
+        $this->obtained = time();
+        $this->update();
 
-        _storage_delete_file_if_unrequired($file_id);
-        @unlink($filepath);
-        return FALSE;
+        // we need to reload $storage to get the filesize, etc
+        $storage = storage_load($this->storage_id);
+        
+        foreach ($storage as $key => $value) {
+          $this->$key = $value;
+        }
+        
+        $this->new_file = $new_file;    // StorageContainer::ensureInstanceExists() will make use of this
       }
-      
-      $this->obtained = time();
-      $this->update();
-
-      // we need to reload $storage to get the filesize, etc
-      $storage = storage_load($this->storage_id);
-      
-      foreach ($storage as $key => $value) {
-        $this->$key = $value;
-      }
-      
-      $this->new_file = $new_file;    // StorageContainer::ensureInstanceExists() will make use of this
-      
+            
       return $filepath;
     }
 
