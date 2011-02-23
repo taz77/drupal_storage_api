@@ -488,8 +488,9 @@ class Storage {
 
 
   private function acquireFromSourceURL() {
+    $time = time();
 
-    if (REQUEST_TIME < $this->data['next_acquire_time'])
+    if ($time < $this->data['next_acquire_time'])
       return;
       
     $filepath = _storage_acquire_from_url($this->source_url);
@@ -511,7 +512,7 @@ class Storage {
         unset($this->data['next_acquire_time']);
         unset($this->data['next_acquire_delay']);
 
-        $this->obtained = REQUEST_TIME;
+        $this->obtained = $time;
         $this->update();
         
         // we need to reload $storage to get the filesize, etc
@@ -556,7 +557,7 @@ class Storage {
       $this->data['next_acquire_delay'] *= 2;
     }
     else {
-      $this->data['next_acquire_time'] = REQUEST_TIME + 60;
+      $this->data['next_acquire_time'] = $time + 60;
       $this->data['next_acquire_delay'] = 120;
     }
     
@@ -649,7 +650,7 @@ class Storage {
           db_insert('storage')
             ->fields(array(
               'file_id' => $this->file_id,
-              'obtained' => time(),
+              'obtained' => $this->obtained,
               'check_me' => 1,
               'data' => '',
             ))

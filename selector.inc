@@ -255,7 +255,7 @@ class StorageSelector {
     $options['selector_id'] = $this->selectorId;
     
     if (!isset($options['obtained'])) {
-      $options['obtained'] = REQUEST_TIME;
+      $options['obtained'] = time();
     }
 
     $container = $this->initialContainer();

@@ -27,7 +27,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
   
   private function request($op, $bucket = NULL, $object_name = NULL, Storage $storage = NULL, $source = NULL, $query = array()) {
     $result = array();
-    $date = date(DATE_RFC1123, time());   // we don't use $_SERVER['REQUEST_TIME'] in case it is too old
+    $date = date(DATE_RFC1123, time());
 
     $components = array($op, '', '', $date);
     
@@ -175,7 +175,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
 
       if ($this->capability == STORAGE_API_ACCESS_CONTROL) {
         $query['AWSAccessKeyId'] = $this->settings['access_key_id'];
-        $query['Expires'] = $_SERVER['REQUEST_TIME'] + $this->settings['url_lifetime'];
+        $query['Expires'] = REQUEST_TIME + $this->settings['url_lifetime'];
         
         $components = array(
           'GET',
@@ -208,7 +208,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
 
   private function requestCloudFront($op, $streaming = FALSE, $xml = NULL) {
     $result = array();
-    $date = date(DATE_RFC1123, time());   // we don't use $_SERVER['REQUEST_TIME'] in case it is too old
+    $date = date(DATE_RFC1123, time());
 
     $headers[] = 'Date: ' . $date;
 
@@ -319,7 +319,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
     static $id;
 
     // Make sure we can create multiple distributions at the same time.
-    return $_SERVER['REQUEST_TIME'] . '-' . ++$id;
+    return REQUEST_TIME . '-' . ++$id;
   }
 
   private function distributionCreate() {

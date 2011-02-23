@@ -40,7 +40,7 @@ function _storage_check_migrations() {
 function _storage_flush_storage_servings() {
 
   db_delete('storage_serving')
-    ->condition('timestamp', REQUEST_TIME - variable_get('statistics_flush_accesslog_timer', 259200), '<')
+    ->condition('timestamp', time() - variable_get('statistics_flush_accesslog_timer', 259200), '<')
     ->execute();
 }
 
