@@ -315,41 +315,6 @@ class Storage {
 
 
   /**
-   * Returns information required to stream a file with RTMP.
-   *
-   * Not all services support RTMP.
-   *
-   * @return
-   *   An associative array of information to stream the file with RTMP:
-   *     - 'streamer'
-   *     - 'file'
-   */
-  public function serveRTMP() {
-    
-    if ($this->serving_container === FALSE) {  // FALSE means there is no container
-      return FALSE;
-    }
-    
-    if ($this->serving_container) {
-      $container = $this->serving_container;
-    }
-    else {
-      $container = $this->servingContainer();
-      $this->cacheServingContainer($container);
-    }
-    
-    if (!$container)
-      return FALSE;
-    
-    if (!$this->access()) {
-      return FALSE;
-    }
-    
-    return $container->serviceInstanceServe($container->reference);
-  }
-
-
-  /**
    * Transfers serving statistics from one file to another.
    *
    * @param $old_storage_id

@@ -1,7 +1,7 @@
 <?php
 // $Id$
 
-// Copyright 2009-2010 Jonathan Brown
+// Copyright 2009-2011 Jonathan Brown
 
 
 class StorageFTP extends StorageContainer implements StorageServiceInterface {
@@ -231,58 +231,5 @@ class StorageFTP extends StorageContainer implements StorageServiceInterface {
 
     return $this->settings['base_url'] . $reference;
   }
-}
-
-
-/**
- * Implement hook_storage_object_instance_create() .
- */
-function storage_ftp_storage_object_instance_create(Storage $storage, array $source) {
-  
-  $this->ftp = _storage_ftp_login($this->settings);
-  
-  if (!$this->ftp)
-    return FALSE;
-    
-  $filename = $storage->object_id;
-
-  
-  // We need the filename to have an extension that matches its mime type
-  // so the webserver serves the file with the correct mime type.
-
-  $extension = storage_api_mime_extension($storage->mimetype);
-  
-  if ($extension)
-    $filename .= '.' . $extension;
-  
-  $success = @ftp_chdir($this->ftp, $this->settings['directory'] . '/objects');
-  
-  if ($success)
-   $success = @ftp_put($this->ftp, $filename, $source['filepath'], FTP_BINARY);
-   
-  if ($success && $this->settings['permissions'])
-    $success = @ftp_site($this->ftp, 'chmod ' . $this->settings['permissions'] . ' ' . $filename);
-  
-  @ftp_close($this->ftp);
-  
-  if ($success)
-    return $filename;
-}
-
-
-/**
- * Implement hook_storage_instance_serve_rtmp() .
- */
-function storage_ftp_storage_instance_serve_rtmp(Storage $storage, $reference) {
-
-  if ($this->settings['base_url_rtmp']) {
-  
-    return array(
-      'streamer' => $this->settings['base_url_rtmp'],
-      'file' => $reference,
-    );
-  }
-
-  return FALSE;
 }
 

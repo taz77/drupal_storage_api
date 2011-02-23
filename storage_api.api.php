@@ -254,19 +254,3 @@ function hook_storage_instance_get_filepath(StorageContainer $container, $file) 
 function hook_storage_instance_serve(StorageContainer $container, $file) {
 }
 
-
-/**
- * Returns information required to stream an instance with RTMP.
- *
- * @param $container
- *   Container that holds the instance.
- * @param $file
- *   File representing the object to be served.
- * @return
- *   An associative array of information to stream the file with RTMP:
- *     - 'streamer'
- *     - 'file'
- */
-function hook_storage_instance_serve_rtmp(StorageContainer $container, $file) {
-}
-

@@ -1,7 +1,7 @@
 <?php
 // $Id$
 
-// Copyright 2008-2010 Jonathan Brown
+// Copyright 2008-2011 Jonathan Brown
 
 
 class StorageS3CloudFront extends StorageContainer implements StorageServiceInterface {
@@ -926,13 +926,5 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
 
     return $this->url($reference);
   }
-}
-
-/**
- * Implement hook_storage_instance_serve_rtmp() .
- */
-function storage_s3_cloudfront_storage_instance_serve_rtmp(Storage $storage, $reference) {
-
-  return _storage_s3_cloudfront_rtmp($this, $storage['file_id']);
 }
 
