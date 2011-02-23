@@ -451,9 +451,9 @@ function storage_container_unsuspend_form_submit($form, &$form_state) {
   $message = 'Storage container <i>' . $container->name() . '</i> has been unsuspended.';
 
   drupal_set_message($message);
-  watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $container->path));
+  watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $container->path()));
   
-  $form_state['redirect'] = $container->path;
+  $form_state['redirect'] = $container->path();
 }
 
 
