@@ -1,7 +1,7 @@
 <?php
 // $Id$
 
-// Copyright 2010 Jonathan Brown
+// Copyright 2010-2011 Jonathan Brown
 
 class Storage {
 
@@ -21,7 +21,9 @@ class Storage {
         ->fields('storage_selector')
         ->fields('storage_class')
         ->condition('storage.storage_id', $storage)
-        ->condition(db_or()->isNull('storage.selector_id')->condition('storage_selector.migrating', 0))
+        ->condition(db_or()
+          ->isNull('storage.selector_id')
+          ->condition('storage_selector.migrating', 0))
         ->execute()
         ->fetchAssoc();
 
@@ -75,7 +77,11 @@ class Storage {
   public function touch() {
 
     $this->last_touched = REQUEST_TIME;
-    $this->update();
+
+    db_update('storage')
+      ->fields(array('last_touched' => $this->last_touched))
+      ->condition('storage_id', $this->storage_id)
+      ->execute();
   }
 
   /**
@@ -118,20 +124,19 @@ class Storage {
 
     $container = storage_container_load($this->data['initial_container_id']);
 
-    $query = db_select('storage_instance');
-    $query->condition('storage_instance.file_id', $this->file_id)
+    $container->reference = db_select('storage_instance')
+      ->fields('storage_instance', array('reference'))
       ->condition('storage_instance.container_id', $container->container_id)
-      ->fields('storage_instance', array('reference'));
-
-    $instance = $query
+      ->condition('storage_instance.file_id', $this->file_id)
       ->range(0, 1)
       ->execute()
-      ->fetchAssoc();
+      ->fetchField();
 
-    if (!$instance)
+    if (!$container->reference) {
       return FALSE;
+    }
 
-    return $container + $instance;
+    return $container;
   }
 
 
@@ -147,6 +152,7 @@ class Storage {
       ->condition('storage_selector.selector_id', $this->selector_id)
       ->condition('storage_container.suspended', 0)
       ->fields('storage_container')
+      ->fields('storage_instance', array('reference'))
       ->orderBy('migrating')
       ->orderBy('weight')
       ->orderBy('container_id')
@@ -155,27 +161,7 @@ class Storage {
       ->fetchAssoc();
       
     if ($container) {
-      $container = storage_container_new($container);
-
-      $query = db_select('storage_instance');
-      
-      $query->condition('storage_instance.file_id', $this->file_id)
-        ->condition('storage_instance.container_id', $container->container_id)
-        ->fields('storage_instance', array('reference'));
-        
-
-      $instance = $query
-        ->range(0, 1)
-        ->execute()
-        ->fetchAssoc();
-
-      if (!$instance)
-        return FALSE;
-
-      foreach ($instance as $key => $value)
-        $container->$key = $value;
-
-      return $container;
+      return storage_container_new($container);
     }
     
     // We couldn't serve the file from any of the containers it is supposed to be in
@@ -288,16 +274,10 @@ class Storage {
    *   The generated URL.
    */
   public function serveURL($absolute = FALSE) {
-    $serve_from_site = FALSE;
-    
-    if ($this->serving_container === FALSE || !empty($this->options['redirect'])) {  // FALSE means there is no container
-      $serve_from_site = TRUE;
-    }
-    elseif (!$this->access()) {
-      $serve_from_site = TRUE;
-    }
-    
-    if ($serve_from_site) {
+
+    if ($this->options['redirect'] || ($this->serving_container === FALSE)  // FALSE means there is no container.
+      || !$this->access())
+    {
       return url($this->path(), array('absolute' => $absolute));
     }
 
@@ -595,7 +575,6 @@ class Storage {
       ->fetchAssoc();
       
     if ($row) {
-      $reference = $row['reference'];
       $container = storage_container_new($row);
     }
     else {
@@ -604,7 +583,7 @@ class Storage {
     
     if ($container) {
     
-      $filepath = $container->serviceInstanceGetFilepath($reference);
+      $filepath = $container->serviceInstanceGetFilepath($container->reference);
       $keep_me = $container->service()->info['local'];
       return $filepath;
     }
@@ -682,8 +661,10 @@ class Storage {
 
   public function cacheServingContainer($container) {
 
+    $this->serving_container = serialize($container);
+
     db_update('storage')
-      ->fields(array('serving_container' => serialize($container)))
+      ->fields(array('serving_container' => $this->serving_container))
       ->condition('storage_id', $this->storage_id)
       ->execute();
   }
@@ -695,6 +676,8 @@ class Storage {
       ->expression('serving_container', 'NULL')
       ->condition('storage_id', $this->storage_id)
       ->execute();
+      
+    unset($this->serving_container);
   }
   
   public function check() {
