@@ -1,5 +1,4 @@
 <?php
-// $Id$
 
 // Copyright 2008-2011 Jonathan Brown
 

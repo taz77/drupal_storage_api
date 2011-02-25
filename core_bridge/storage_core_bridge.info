@@ -1,4 +1,3 @@
-; $Id$
 name = Core bridge
 description = "Allows files managed by Drupal core to be stored and served by Storage API."
 package = Storage
