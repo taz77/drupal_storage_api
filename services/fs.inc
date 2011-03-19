@@ -93,7 +93,7 @@ class StorageFS extends StorageContainer implements StorageServiceInterface {
     return $this->settings['path'] . '/' . $reference;
   }
   
-  private function ensurePathExists($reference) {
+  private function ensureDirectoryPathExists($reference) {
     $dirs = explode('/', $reference);
     $basename = array_pop($dirs);
     $path = '';
@@ -117,7 +117,7 @@ class StorageFS extends StorageContainer implements StorageServiceInterface {
   
   public function serviceInstanceCreate(Storage $storage, array $source) {
 
-    $reference = $this->uniqueFilename($this->ensurePathExists($storage->filename));
+    $reference = $this->uniqueFilename($this->ensureDirectoryPathExists($storage->filename));
     $path = $this->instancePath($reference);
 
     if (empty($source['keep_me']) && !file_uri_scheme($source['filepath'])) {  // cannot rename a file across wrapper types
@@ -163,29 +163,9 @@ class StorageFS extends StorageContainer implements StorageServiceInterface {
     return $files;
   }
   
-  public function serviceManifest(&$sandbox, &$finished) {
+  public function serviceListReferences() {
   
-    if (!isset($sandbox['files'])) {
-      $sandbox['files'] = $this->scanDirectory($this->settings['path']);
-    }
-
-    $count = 100;
-    $manifest = array();
-    
-    while ($count-- && ($reference = array_shift($sandbox['files']))) {
-      $filepath = $this->instancePath($reference);
-      $stat = stat($filepath);
-    
-      $manifest[] = array(
-        'reference' => $reference,
-        'size' => $stat['size'],
-        'md5' => hash_file('md5', $filepath, TRUE),
-      );
-    }
-    
-    $finished = (count($sandbox['files']) == 0);
-    
-    return $manifest;
+    return $this->scanDirectory($this->settings['path']);
   }
 
   public function serviceInstanceExists($reference) {
@@ -193,20 +173,6 @@ class StorageFS extends StorageContainer implements StorageServiceInterface {
     return @stat($this->instancePath($reference)) !== FALSE;
   }
 
-  public function serviceInstanceCheck($reference) {
-    $path = $this->instancePath($reference);
-    $stat = stat($path);
-    
-    if ($stat === FALSE) {
-      return FALSE;
-    }
-    
-    return array(
-      'size' => $stat['size'],
-      'md5' => hash_file('md5', $path, TRUE),
-    );
-  }
-  
   public function serviceInstanceDestroy($reference) {
       
     @unlink($this->instancePath($reference));

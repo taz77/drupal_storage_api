@@ -438,11 +438,56 @@ abstract class StorageContainer {
     return $info;
   }
 
+  public function serviceManifest(&$sandbox, &$finished) {
+  
+    if (!isset($sandbox['references'])) {
+      $sandbox['references'] = $this->serviceListReferences();
+    }
+
+    $count = 100;
+    $manifest = array();
+    
+    while ($count-- && ($reference = array_shift($sandbox['references']))) {
+      $info = $this->serviceInstanceCheck($reference);
+      
+      if ($info) {
+        $info['reference'] = $reference;
+        $manifest[] = $info;
+      }
+    }
+    
+    $finished = (count($sandbox['references']) == 0);
+    
+    return $manifest;
+  }
+
+  public function serviceInstanceCheck($reference) {
+    $filepath = $this->serviceInstanceGetFilepath($reference);
+    $stat = stat($filepath);
+    
+    if ($stat != FALSE) {
+
+      $info = array(
+        'size' => $stat['size'],
+        'md5' => hash_file('md5', $filepath, TRUE),
+      );
+    }
+    
+    if (!$this->service()->info['local']) {
+      @unlink($filepath);
+    }
+    
+    if (!isset($info)) {
+      throw new Exception();
+    }
+    
+    return $info;
+  }
+
   // Optional API functions.
   public function serviceCheck() {
     return TRUE;
   }
-  
   public function servicePostCreate() {}
   public function serviceUpdate() {}
   public function serviceMaintenance() {}

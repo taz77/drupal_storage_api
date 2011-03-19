@@ -5,35 +5,90 @@
 
 class StorageFTP extends StorageContainer implements StorageServiceInterface {
 
-  private $ftp;
+  private $ftpStream;
 
-  private function login($settings) {
+  private function login($change_directory = TRUE) {
   
-    if (!empty($this->ftp)) {
+    if (isset($this->ftpStream)) {
       return;
     }
 
-    $this->ftp = @ftp_connect($settings['host'], $settings['port'] ? $settings['port'] : NULL);
+    $this->ftpStream = ftp_connect($this->settings['host'], $this->settings['port'] ? $this->settings['port'] : NULL);
     
-    if (!$this->ftp) {
+    if (!$this->ftpStream) {
       throw new Exception();
     }
     
-    if (!@ftp_login($this->ftp, $settings['username'], $settings['password'])) {
-      @ftp_close($this->ftp);
+    if (!@ftp_login($this->ftpStream, $this->settings['username'], $this->settings['password'])) {
+      ftp_close($this->ftpStream);
       throw new Exception();
     }
     
-    @ftp_pasv($this->ftp, TRUE);
+    ftp_pasv($this->ftpStream, TRUE);
+    
+    if ($change_directory) {
+      try {
+        $this->changeDirectory($this->settings['directory']);
+      }
+      catch (Exception $e) {
+        ftp_close($this->ftpStream);
+        throw new Exception();
+      }
+    }
   }
 
   public function __destruct() {
   
-    if (!empty($this->ftp)) {
-      @ftp_close($this->ftp);
+    if ($this->ftpStream != NULL) {
+      ftp_close($this->ftpStream);
     }
   }
-   
+  
+  private function createDirectory($directory) {
+
+    if (!ftp_mkdir($this->ftpStream, $directory)) {
+      throw new Exception();
+    }
+  }
+
+  private function createDirectoryRecursive($path) {
+    $original_dir = ftp_pwd($this->ftpStream);
+    
+    foreach (explode('/', $path) as $directory) {
+    
+      try {
+        $this->changeDirectory($directory);
+      }
+      catch (Exception $e) {
+        $this->createDirectory($directory);
+        $this->changeDirectory($directory);
+      }
+    }
+
+    $this->changeDirectory($original_dir);
+  }
+  
+  private function removeDirectory($directory) {
+        
+    if (!ftp_rmdir($this->ftpStream, $directory)) {
+      throw new Exception();
+    }
+  }
+
+  private function changeDirectory($directory) {
+      
+    if (!@ftp_chdir($this->ftpStream, $directory)) {
+      throw new Exception();
+    }
+  }
+  
+  private function setMode($filename, $mode) {
+    
+    if (!ftp_chmod($this->ftpStream, octdec(str_pad($mode, 4, '0', STR_PAD_LEFT)), $filename)) {
+      throw new Exception();
+    }
+  }
+
   public function serviceSettingsForm($edit = FALSE) {
 
     $items['host'] = array(
@@ -77,13 +132,13 @@ class StorageFTP extends StorageContainer implements StorageServiceInterface {
       '#default_value' => isset($this->settings['directory']) ? $this->settings['directory'] : NULL,
     );
     
-    $items['permissions'] = array(
+    $items['mode'] = array(
       '#type' => 'textfield',
-      '#title' => t('File permissions'),
+      '#title' => t('File mode'),
       '#description' => t('Octal format, e.g. 644.<br />For serving, ensure the files are readable by the web server.<br />If omitted, the FTP server\'s default permissions will be used.'),
       '#maxlength' => 4,
       '#size' => 5,
-      '#default_value' => isset($this->settings['permissions']) ? $this->settings['permissions'] : NULL,
+      '#default_value' => isset($this->settings['mode']) ? $this->settings['mode'] : NULL,
     );
     
     if ($this->capability) {
@@ -93,13 +148,6 @@ class StorageFTP extends StorageContainer implements StorageServiceInterface {
         '#title' => t('Base URL'),
         '#description' => t('The URL of the directory specified above.'),
         '#default_value' => isset($this->settings['base_url']) ? $this->settings['base_url'] : NULL,
-      );
-
-      $items['base_url_rtmp'] = array(
-        '#type' => 'textfield',
-        '#title' => t('Base RTMP URL'),
-        '#description' => t('The RTMP URL of the directory specified above.<br />This is for Flash media streaming.'),
-        '#default_value' => isset($this->settings['base_url_rtmp']) ? $this->settings['base_url_rtmp'] : NULL,
       );
     }
 
@@ -117,38 +165,42 @@ class StorageFTP extends StorageContainer implements StorageServiceInterface {
     }
     
     if (!$this->settings['directory']) {
-      form_set_error('settings][directory', t('Password field is required.'));
+      form_set_error('settings][directory', t('Directory field is required.'));
+    }
+    
+    if (form_get_errors()) {
+      return;
     }
 
-    if (form_get_errors())
-      return;
-
     try {
-      _storage_ftp_login($this->settings);
+      $this->login(FALSE);
     }
     catch (Exception $e) {
       form_set_error('settings', t('Failed to authenticate.'));
+      return;
+    }
+    
+    if (!$edit) {
+      try {
+        $this->changeDirectory($this->settings['directory']);
+      }
+      catch (Exception $e) {
+        return;
+      }
+    
+      form_set_error('settings][directory', t('Directory already exists.'));
     }
   }
   
   public function serviceCreate() {
-    _storage_ftp_login($this->settings);
+    $this->login(FALSE);
     
-    $path = drupal_get_path('module', 'storage_api');
-
-    $success = ftp_mkdir($this->ftp, $this->settings['directory']);
-    
-    if ($success)
-      $success = ftp_chdir($this->ftp, $this->settings['directory']);
-
-    if ($success)
-      $success = ftp_put($this->ftp, '.htaccess', $path . '/files.htaccess', FTP_BINARY);
-
-    if ($success && $this->settings['permissions'])
-      $success = ftp_site($this->ftp, 'chmod ' . $this->settings['permissions'] . ' .htaccess');
-
-    if (!$success) {
-      throw new Exception();
+    try {
+      $this->createDirectoryRecursive($this->settings['directory']);
+      $this->changeDirectory($this->settings['directory']);
+    }
+    catch (Exception $e) {
+      throw $e;
     }
   }
   
@@ -161,74 +213,169 @@ class StorageFTP extends StorageContainer implements StorageServiceInterface {
       t('Directory') => $this->settings['directory'],
     );
     
-    if ($this->settings['permissions'])
-      $info[t('File permissions')] = $this->settings['permissions'];
+    if ($this->settings['mode']) {
+      $info[t('File mode')] = $this->settings['mode'];
+    }
 
-    if ($this->capability)
+    if ($this->capability) {
       $info[t('Base URL')] = url($this->settings['base_url'], array('absolute' => TRUE));
+    }
 
     return $info;
   }
   
-  public function serviceDestroy() {}
+  public function serviceDestroy() {
+    $this->login(FALSE);
   
-  public function serviceInstanceCreate(Storage $storage, array $source) {
-    _storage_ftp_login($this->settings);
+    try {
+      $this->removeDirectory($this->settings['directory']);
+    }
+    catch (Exception $e) {}
+  }
+  
+  private function enterFileDirectory($filename) {
+    $components = explode('/', $filename);
+    $basename = array_pop($components);
+    $path = '';
     
-    
-    // File instances need to use the actual filename so the webserver serves them
-    // with their filename in the Content-Disposition http header.
-    
-    // This means we cannot use the Cache-control max-age http header
-    // as URLs may be reused.
-    
-    $filename = $this->uniqueFilename($source['filename']);
-    
-    $success = @ftp_chdir($this->ftp, $this->settings['directory']);
-    
-    if ($success)
-      $success = @ftp_put($this->ftp, $filename, $source['filepath'], FTP_BINARY);
-    
-    if ($success && $this->settings['permissions'])
-      $success = @ftp_site($this->ftp, 'chmod ' . $this->settings['permissions'] . ' ' . $filename);
+    foreach ($components as &$directory) {
+      $exists = FALSE;
+      $count = 0;
+      
+      do {
+        $potential = (!$count) ? $directory : ($directory . '_' . $count++);
+        
+        try {
+          try {
+            $this->changeDirectory($potential);
+          }
+          catch (Exception $e) {
+            $this->createDirectory($potential);
+            $this->changeDirectory($potential);
+          }
+        }
+        catch (Exception $e) {
+          $count++;
+          continue;
+        }
+        
+        break;
+      }
+      while (TRUE);
 
-    if ($success)
-      return $filename;
+      $directory = $potential;      
+    }
+    
+    $components[] = $basename;
+    
+    return implode('/', $components);
+  }
+ 
+  public function serviceInstanceCreate(Storage $storage, array $source) {
+    $this->login();
+    $original_dir = ftp_pwd($this->ftpStream);
+        
+    $reference = $this->uniqueFilename($this->enterFileDirectory($storage->filename));
+    
+    $components = explode('/', $reference);
+
+    $result = ftp_put($this->ftpStream, array_pop($components), $source['filepath'], FTP_BINARY);
+    $this->changeDirectory($original_dir);
+    
+    if (!$result) {
+      throw new Exception();
+    }
+
+    if ($this->settings['mode']) {
+      $this->setMode($reference, $this->settings['mode']);
+    }
+
+    return $reference;
   }
   
+  private function listItems($dir) {
+    $files = array();
+    
+    $items = ftp_rawlist($this->ftpStream, $dir);
+    
+    foreach ($items as $item) {
+    
+      $mode = strtok($item, ' ');
+      
+      $i = 7;
+      while ($i--) {
+        strtok(' ');
+      }
+      
+      $filename = strtok('');
+      
+      switch ($mode[0]) {
+      
+        case 'd':
+          foreach ($this->listItems($dir . '/' . $filename) as $subfilename) {
+            $files[] = $filename . '/' . $subfilename;
+          }
+          break;
+
+        case '-':
+          $files[] = $filename;
+          break;
+      }
+    }
+
+    return $files;
+  }
+  
+  public function serviceListReferences() {
+    $this->login();
+    
+    return $this->listItems('.');
+  }
+
   public function serviceInstanceExists($reference) {
-    return FALSE;
-  }
-  
-  public function serviceInstanceCheck($reference) {
+    $this->login();
+    
+    return ftp_size($this->ftpStream, $reference) != -1;
   }
   
   public function serviceInstanceDestroy($reference) {
+    $this->login();
+          
+    ftp_delete($this->ftpStream, $reference);
 
-    _storage_ftp_login($this->settings);
-      
-    $result = @ftp_delete($this->ftp, $this->settings['directory'] . $reference);
+    $dirs = explode('/', $reference);
+    array_pop($dirs);
     
-    return $result;
+    while (count($dirs)) {
+    
+      try {
+        $this->removeDirectory(implode('/', $dirs));
+      }
+      catch (Exception $e) {
+        break;
+      }
+
+      array_pop($dirs);
+    }
   }
   
   public function serviceInstanceGetFilepath($reference) {
+    $this->login();
 
-    _storage_ftp_login($this->settings);
-    
     $filepath = tempnam(file_directory_temp(), '');
-    $result = @ftp_get($this->ftp, $filepath, $this->settings['directory'] . $reference, FTP_BINARY);
+    $result = ftp_get($this->ftpStream, $filepath, $reference, FTP_BINARY);
     
-    if ($result)
-      return $filepath;
+    if (!$result) {
+      @unlink($filepath);
+      throw new Exception();
+    }
 
-    @unlink($filepath);
-    return FALSE;
+    return $filepath;
   }
   
   public function serviceInstanceServe($reference) {
 
-    return $this->settings['base_url'] . $reference;
+    return $this->settings['base_url'] . '/' . $reference;
   }
 }
 

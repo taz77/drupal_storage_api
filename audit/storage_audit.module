@@ -287,7 +287,11 @@ function _storage_audit_repair(StorageServiceInterface $container, array $instan
   // Make sure we don't delete anything we shouldn't.
   if ($instance['file_id']) {
     
-    $info = $container->serviceInstanceCheck($instance['reference']);
+    try {
+      $info = $container->serviceInstanceCheck($instance['reference']);
+    }
+    catch (Exception $e) {
+    }
     
     if (is_array($info)
       && $info['size'] == $instance['size']
