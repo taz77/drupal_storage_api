@@ -326,6 +326,8 @@ function storage_api_storage_services() {
       'local' => FALSE,
       'direct' => TRUE,
       'can_copy' => FALSE,
+      'serve_secure' => FALSE,
+      'htaccess' => FALSE,
     ),
     'fs' => array(
       'name' => t('Filesystem'),
@@ -333,6 +335,8 @@ function storage_api_storage_services() {
       'local' => TRUE,
       'direct' => FALSE,
       'can_copy' => FALSE,
+      'serve_secure' => FALSE,
+      'htaccess' => TRUE,
     ),
     'ftp' => array(
       'name' => t('FTP'),
@@ -340,6 +344,8 @@ function storage_api_storage_services() {
       'local' => FALSE,
       'direct' => FALSE,
       'can_copy' => FALSE,
+      'serve_secure' => FALSE,
+      'htaccess' => TRUE,
     ),
     'rackspace' => array(
       'name' => t('Rackspace Cloud Files'),
@@ -347,6 +353,8 @@ function storage_api_storage_services() {
       'local' => FALSE,
       'direct' => FALSE,
       'can_copy' => FALSE,
+      'serve_secure' => FALSE,
+      'htaccess' => FALSE,
     ),
     's3_cloudfront' => array(
       'name' => t('Amazon S3 / CloudFront'),
@@ -355,6 +363,8 @@ function storage_api_storage_services() {
       'direct' => FALSE,
       'can_copy' => FALSE,
 //      'can_copy' => TRUE,
+      'serve_secure' => TRUE,
+      'htaccess' => FALSE,
     ),
   );
 

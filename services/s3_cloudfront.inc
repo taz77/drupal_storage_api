@@ -46,7 +46,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
         
         if ($storage) {
 
-          if ($this->capability == STORAGE_API_SERVING) {
+          if (!$this->access_control) {
             $headers[] = 'x-amz-acl: public-read';
             $components[] = 'x-amz-acl:public-read';
           }
@@ -172,7 +172,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
     else {
       $path = 'http://' . $this->settings['bucket'] . '.s3.amazonaws.com/' . $s3_object;
 
-      if ($this->capability == STORAGE_API_ACCESS_CONTROL) {
+      if ($this->access_control) {
         $query['AWSAccessKeyId'] = $this->settings['access_key_id'];
         $query['Expires'] = REQUEST_TIME + $this->settings['url_lifetime'];
         
@@ -596,7 +596,22 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
       );
     }
     
-    if ($this->capability == STORAGE_API_SERVING) {
+    if ($this->access_control) {
+    
+      $description = t('(seconds)<br />This container will produce cryptographically signed URLs that will cease to function once their lifetime is over.');
+    
+      $items['url_lifetime'] = array(
+        '#type' => 'textfield',
+        '#title' => t('URL lifetime'),
+        '#required' => TRUE,
+        '#validated' => TRUE,
+        '#default_value' => isset($this->settings['url_lifetime']) ? $this->settings['url_lifetime'] : 60 * 60,
+        '#description' => $description,
+        '#size' => 8,
+        '#maxlength' => 8,
+      );
+    }
+    else {
     
   //    $description = t('(seconds)<br />This container will produce cryptographically signed URLs that will cease to function once their lifetime is over.');
     
@@ -612,22 +627,6 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
         '#title' => t('Stream with CloudFront'),
         '#default_value' => isset($this->settings['cloudfront_streaming']) ? $this->settings['cloudfront_streaming'] : NULL,
   //      '#description' => $description,
-      );
-    }
-
-    if ($this->capability == STORAGE_API_ACCESS_CONTROL) {
-    
-      $description = t('(seconds)<br />This container will produce cryptographically signed URLs that will cease to function once their lifetime is over.');
-    
-      $items['url_lifetime'] = array(
-        '#type' => 'textfield',
-        '#title' => t('URL lifetime'),
-        '#required' => TRUE,
-        '#validated' => TRUE,
-        '#default_value' => isset($this->settings['url_lifetime']) ? $this->settings['url_lifetime'] : 60 * 60,
-        '#description' => $description,
-        '#size' => 8,
-        '#maxlength' => 8,
       );
     }
 
@@ -748,8 +747,11 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
       t('Location') => $locations[$this->settings['location']],
     );
     
-    if ($this->capability == STORAGE_API_SERVING) {
-    
+    if ($this->access_control) {
+      $info[t('URL lifetime')] = format_interval($this->settings['url_lifetime']);
+    }
+    else {
+
       if ($this->settings['cloudfront']) {
       
         if ($this->settings['cloudfront_status'] == 'Deployed')
@@ -788,9 +790,6 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
         $info[t('CloudFront streaming domain name')] = $this->settings['cloudfront_streaming_domain'];
       }
     }
-    
-    if ($this->capability == STORAGE_API_ACCESS_CONTROL)
-      $info[t('URL lifetime')] = format_interval($this->settings['url_lifetime']);
 
     return $info;
   }

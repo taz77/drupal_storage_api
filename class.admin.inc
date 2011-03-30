@@ -128,7 +128,6 @@ function storage_class(StorageClass $class) {
   $info = array(
     t('Files') => $class_info['files'],
     t('Size') => storage_format_size($class_info['size']),
-    t('Access control') => (isset($class->options['access_control']) && $class->options['access_control']) ? t('Yes') : t('No'),
     t('Redirection') => (isset($class->options['redirect']) && $class->options['redirect']) ? t('Yes') : t('No'),
     t('Serve source') => (isset($class->options['serve_source_url']) && $class->options['serve_source_url']) ? t('Yes') : t('No'),
     t('Initial container') => (isset($class->initial_container) && $class->initial_container) ? $class->initial_container->link() : t('n/a'),
@@ -171,7 +170,7 @@ function storage_class(StorageClass $class) {
     
     $row[] = $container->link();
     $row[] = $container->service()->name();
-    $row[] = $container->capability ? t('Yes') : t('No');
+    $row[] = $container_info['serving'] ? t('Yes') : t('No');
     $row[] = (int)$container_info['count'];
     $row[] = storage_format_size($container_info['size']);
     
@@ -246,7 +245,7 @@ function storage_class_edit_form($form, &$form_state, StorageClass $class) {
         0 => t('No'),
         1 => t('Yes'),
       ),
-      '#default_value' => $container->capability ? 1 : 0
+      '#default_value' => $container_info['serving'] ? 1 : 0
     );
 
     $form['deletes'][$container->container_id] = array(
@@ -259,7 +258,7 @@ function storage_class_edit_form($form, &$form_state, StorageClass $class) {
   $form['containers'] = array(
     '#type' => 'fieldset',
     '#title' => t('Class containers'),
-    '#description' => t('<p>Broadly speaking, containers at the top should be nearest the client; those at the bottom should be nearest the server.</p><p>During cron, files are propagated to all the containers in their class (starting at the top). Once this is complete, any instances of files that are not in these containers will be destroyed.</p><p>Files are served from the container nearest the top that has an instance of the file and is capable of serving - it must be a serving container, it must not be suspended, its service must not be suspended and it must also be configured to be serving within the class.</p>'),
+    '#description' => t('<p>Broadly speaking, containers at the top should be nearest the client; those at the bottom should be nearest the server.</p><p>During cron, files are propagated to all the containers in their class (starting at the top). Once this is complete, any instances of files that are not in these containers will be destroyed.</p><p>Files are served from the container nearest the top that has an instance of the file and is capable of serving - it must not be suspended and it must also be configured to be serving within the class.</p>'),
   );
 
   $result = db_select('storage_container', NULL, array('fetch' => PDO::FETCH_ASSOC))

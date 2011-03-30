@@ -1,6 +1,6 @@
 <?php
 
-// Copyright 2010 Jonathan Brown
+// Copyright 2010-2011 Jonathan Brown
 
 abstract class StorageContainer {
 
@@ -41,6 +41,31 @@ abstract class StorageContainer {
       
     return $format ? storage_format_size($size) : $size;
   }
+  
+  private function htaccessCreate() {
+
+    $lines = array(
+      'SetHandler Drupal_Security_Do_Not_Remove_See_SA_2006_006',
+      'Options None',
+      'Options +FollowSymLinks',
+    );
+    
+    if ($this->access_control) {
+      $lines[] = 'Deny from all';
+    }
+    else {
+      $lines[] = '<IfModule mod_headers.c>';
+      $lines[] = '  Header set Content-Disposition "attachment"';
+      $lines[] = '</IfModule>';
+    }
+
+    $filepath = tempnam(file_directory_temp(), '');
+    file_put_contents($filepath, implode("\n", $lines) . "\n");
+    
+    $storage = new Storage(array('filename' => '.htaccess'));
+    $this->serviceInstanceCreate($storage, array('filepath' => $filepath));
+    @unlink($filepath);
+  }
 
   /**
    * Creates a storage container.
@@ -58,6 +83,10 @@ abstract class StorageContainer {
     
     drupal_write_record('storage_container', $this);
     $this->servicePostCreate();
+    
+    if ($this->service()->info['htaccess']) {
+      $this->htaccessCreate();
+    }
 
     $msg = 'Storage container !container has been created.';
     drupal_set_message(t($msg, array('!container' => $this->link())));
@@ -350,7 +379,11 @@ abstract class StorageContainer {
    * Destroy container.
    */
   public function destroy() {
-  
+
+    if ($this->service()->info['htaccess']) {
+      $this->serviceInstanceDestroy('.htaccess');
+    }
+
     db_delete('storage_container')
       ->condition('container_id', $this->container_id)
       ->execute();
@@ -457,7 +490,7 @@ abstract class StorageContainer {
     }
     
     $finished = (count($sandbox['references']) == 0);
-    
+
     return $manifest;
   }
 

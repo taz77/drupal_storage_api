@@ -141,15 +141,12 @@ class StorageFTP extends StorageContainer implements StorageServiceInterface {
       '#default_value' => isset($this->settings['mode']) ? $this->settings['mode'] : NULL,
     );
     
-    if ($this->capability) {
-
-      $items['base_url'] = array(
-        '#type' => 'textfield',
-        '#title' => t('Base URL'),
-        '#description' => t('The URL of the directory specified above.'),
-        '#default_value' => isset($this->settings['base_url']) ? $this->settings['base_url'] : NULL,
-      );
-    }
+    $items['base_url'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Base URL'),
+      '#description' => t('The URL of the directory specified above.'),
+      '#default_value' => isset($this->settings['base_url']) ? $this->settings['base_url'] : NULL,
+    );
 
     return $items;
   }
@@ -217,7 +214,7 @@ class StorageFTP extends StorageContainer implements StorageServiceInterface {
       $info[t('File mode')] = $this->settings['mode'];
     }
 
-    if ($this->capability) {
+    if ($this->settings['base_url'] !== '') {
       $info[t('Base URL')] = url($this->settings['base_url'], array('absolute' => TRUE));
     }
 

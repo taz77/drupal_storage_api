@@ -1,21 +1,11 @@
 <?php
 
-// Copyright 2008-2010 Jonathan Brown
-
-
-function storage_containers_capabilities() {
-
-  return array(
-    STORAGE_API_STORAGE_ONLY => t('Storage only'),
-    STORAGE_API_SERVING => t('Serving'),
-    STORAGE_API_ACCESS_CONTROL => t('Serving with access control'),
-  );
-}
+// Copyright 2008-2011 Jonathan Brown
 
 
 function storage_containers() {
 
-  $header = array(t('Container'), t('Service'), t('Capability'), t('Suspended'), t('Instances'), t('Size'));
+  $header = array(t('Container'), t('Service'), t('Access control'), t('Suspended'), t('Instances'), t('Size'));
 
   $result = $query = db_select('storage_container', NULL, array('fetch' => PDO::FETCH_ASSOC))
     ->fields('storage_container')
@@ -30,11 +20,8 @@ function storage_containers() {
   
     $row[] = $container->link();
     $row[] = $container->service()->name();
-
-    $capabilities = storage_containers_capabilities();
-    $row[] = $capabilities[$container->capability];
-    
-    $row[] = $container->suspended ? 'Yes' : 'No';
+    $row[] = $container->access_control ? t('Yes') : t('No');
+    $row[] = $container->suspended ? t('Yes') : t('No');
     $row[] = $container->count();
     $row[] = $container->size(TRUE);
     
@@ -116,11 +103,11 @@ function storage_create_container_form($form, &$form_state) {
         '#default_value' => isset($form_state['storage']['service_id']) ? $form_state['storage']['service_id'] : 'fs',
       );
       
-      $form['capability'] = array(
-        '#type' => 'radios',
-        '#title' => t('Capability'),
-        '#options' => storage_containers_capabilities(),
-        '#default_value' => isset($form_state['storage']['capability']) ? $form_state['storage']['capability'] : STORAGE_API_SERVING,
+      $form['access_control'] = array(
+        '#type' => 'checkbox',
+        '#title' => t('Access control'),
+        '#default_value' => isset($form_state['storage']['access_control']) ? $form_state['storage']['access_control'] : FALSE,
+        '#description' => t("Prevents files being served to users who are not authorised.<br />Depending on the service, this can have significant performance implications.<br />Even without this enabled, URLs will only be generated for files that the user has permission to access."),
       );
       
       $form['acsc'] = array(
@@ -143,12 +130,10 @@ function storage_create_container_form($form, &$form_state) {
     
       $service_name = $container->service()->name();
     
-      $capabilities = storage_containers_capabilities();
-
       $info = array(
         t('Name') => $container->name(),
         t('Service') => $service_name,
-        t('Capability') => $capabilities[$container->capability],
+        t('Access control') => $container->access_control ? t('Yes') : t('No'),
         t('ACSC') => $container->acsc ? t('Yes') : t('No'),
       );
 
@@ -195,7 +180,7 @@ function storage_create_container_form_validate($form, &$form_state) {
     
       $form_state['storage']['name'] = $form_state['values']['name'];
       $form_state['storage']['service_id'] = $form_state['values']['service_id'];
-      $form_state['storage']['capability'] = $form_state['values']['capability'];
+      $form_state['storage']['access_control'] = $form_state['values']['access_control'];
       $form_state['storage']['acsc'] = $form_state['values']['acsc'];
       
       $container = storage_container_new($form_state['storage'], FALSE);
@@ -272,12 +257,9 @@ function storage_create_container_form_submit($form, &$form_state) {
 function storage_container_form($form, &$form_state, StorageContainer $container) {
   $form['#container'] = $container;
 
-
-  $capabilities = storage_containers_capabilities();
-
   $info = array(
     t('Service') => $container->service()->name(),
-    t('Capability') => $capabilities[$container->capability],
+    t('Access control') => $container->access_control ? t('Yes') : t('No'),
     t('ACSC') => $container->acsc ? t('Yes') : t('No'),
     t('Suspended') => $container->suspended ? t('Yes') : t('No'),
     t('Instances') => $container->count(),

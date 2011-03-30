@@ -31,10 +31,15 @@ class Storage {
       }
     }
     
-    $storage['data'] = unserialize($storage['data']);
-    $storage['options'] = unserialize($storage['options']);
+    if (isset($storage['data'])) {
+      $storage['data'] = unserialize($storage['data']);
+    }
+    
+    if (isset($storage['options'])) {
+      $storage['options'] = unserialize($storage['options']);
+    }
 
-    if ($storage['serving_container']) {
+    if (isset($storage['serving_container'])) {
       $storage['serving_container'] = unserialize($storage['serving_container']);
     }
 
@@ -90,10 +95,6 @@ class Storage {
    *   Boolean TRUE if the current user has access to the file.
    */
   public function access() {
-
-    if (empty($this->options['access_control'])) {
-      return TRUE;
-    }
 
     $results = module_invoke_all('storage_access_alter', $this->module, $this->type, $this->storage_id);
     
@@ -243,8 +244,13 @@ class Storage {
     if ($container) {
       $this->logServing($container->container_id);
       
-      // this may not return
-      $url = $container->serviceInstanceServe($container->reference);
+      // This may not return.
+      if ($container->access_control && !$container->service()->info['serve_secure']) {
+        $this->serveSecure($container);
+      }
+      else {
+        $url = $container->serviceInstanceServe($container->reference);
+      }
     }
     elseif ($this->options['serve_source_url'] && $this->source_url) {
 
@@ -257,10 +263,22 @@ class Storage {
       return;
     }
     
-    // this will definitely not return
+    // This will definitely not return.
     drupal_goto($url);    // 302 redirect (don't cache)
   }
 
+  private function serveSecure(StorageContainer $container) {
+    $this->setHTTPHeaders();
+  
+    $filepath = $container->serviceInstanceGetFilepath($container->reference);
+    @readfile($filepath);
+
+    if (!$container->service()->info['local']) {
+      @unlink($filepath);
+    }
+
+    exit();
+  }
 
   /**
    * Generates a URL that will serve the supplied file.
@@ -290,7 +308,9 @@ class Storage {
     
     if ($container) {
 
-      $url = $container->instanceServeURL($container->reference);
+      if (!$container->access_control || $container->service()->info['serve_secure']) {
+        $url = $container->instanceServeURL($container->reference);
+      }
     }
     elseif ($this->options['serve_source_url'] && $this->source_url) {
 
@@ -406,7 +426,7 @@ class Storage {
     $headers[] = 'Content-Length: ' . $this->size;
     $headers[] = 'Content-MD5: ' . base64_encode($this->md5);
     $headers[] = 'Last-Modified: ' . date(DATE_RFC1123, $this->obtained);
-    $headers[] = 'Content-Disposition: attachment; filename="' . $this->filename . '"';
+    $headers[] = 'Content-Disposition: attachment; filename="' . basename($this->filename) . '"';
     
     if ($acsc) {
       $headers[] = 'Cache-control: max-age=' . 60 * 60 * 24 * 365;  // the file will stay fresh for a whole year 
@@ -419,7 +439,7 @@ class Storage {
   /**
    * Output directly the correct HTTP headers for a specific file.
    */
-  public function SetHTTPHeaders() {
+  public function setHTTPHeaders() {
 
     // Unset the headers we don't want (they still get sent unfortunately).
     header('Set-Cookie:');

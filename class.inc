@@ -151,11 +151,6 @@ class StorageClass {
     
     $form['options'] = array(
       '#tree' => TRUE,
-      'access_control' => array(
-        '#title' => t('Enforce access control'),
-        '#type' => 'checkbox',
-        '#default_value' => isset($this->options['access_control']) ? $this->options['access_control'] : FALSE,
-      ),
       'redirect' => array(
         '#title' => t('Serve by redirection'),
         '#type' => 'checkbox',
@@ -165,7 +160,7 @@ class StorageClass {
         '#title' => t('Serve source url'),
         '#type' => 'checkbox',
         '#default_value' => isset($this->options['serve_source_url']) ? $this->options['serve_source_url'] : FALSE,
-        '#description' => t('If no instances are available, serve the source url.')
+        '#description' => t('If no instances are available, serve the source url.'),
       )
     );
 

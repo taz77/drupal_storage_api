@@ -255,21 +255,28 @@ function storage_audit(StorageServiceInterface $container, array &$context) {
   $manifest = $container->serviceManifest($context['sandbox']['service_sandbox'], $finished);
   
   foreach ($manifest as $instance) {
-  
+
+    // If the file is called .htaccess and this container is supposed to have a
+    // .htaccess file, then just ignore it.
+    if ($instance['reference'] == '.htaccess' && $container->service()->info['htaccess']) {
+      continue;
+    }
+
     _storage_audit($container, $instance);
-    
+
     $context['sandbox']['files']++;
-    $context['message'] = $context['sandbox']['files'] . ' / ' . 
-      format_plural($context['sandbox']['max'], "1 file audited.", "@count files audited.");
   }
-  
+
+  $context['message'] = $context['sandbox']['files'] . ' / ' . 
+    format_plural($context['sandbox']['max'], "1 file audited.", "@count files audited.");
+
   if ($finished) {
     _storage_audit_set_audited($container->container_id);
     $context['finished'] = 1;
     drupal_set_message(format_plural($context['sandbox']['files'], "1 file audited.", "@count files audited."));
   }
   else {
-  
+
     if ($context['sandbox']['files'] < $context['sandbox']['max']) {
       $context['sandbox']['progress'] = $context['sandbox']['files'];
     }
