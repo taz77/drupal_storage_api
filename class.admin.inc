@@ -138,7 +138,7 @@ function _storage_class_selectors(StorageClass $class) {
     $rows[] = array(array('data' => t('No selectors are using this class.'), 'colspan' => 2, 'class' => 'message'));
   }
 
-  $header = array(t('Selector Id'), t('Migrating'));
+  $header = array(t('Selector Id'), t('Migrating away'));
 
   $output = theme('table', array(
     'header' => $header,

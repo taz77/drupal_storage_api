@@ -245,6 +245,23 @@ function storage_create_container_form_submit($form, &$form_state) {
 }
 
 
+function _storage_container_classes(StorageContainer $container) {
+  $classes = array();
+
+  $result = db_select('storage_class_container', NULL, array('fetch' => PDO::FETCH_ASSOC))
+    ->fields('storage_class_container', array('class_id'))
+    ->condition('container_id', $container->container_id)
+    ->orderBy('class_id')
+    ->execute();
+
+  foreach ($result as $class_info) {
+    $classes[] = storage_class_load($class_info['class_id'])->link();
+  }
+
+  return count($classes) ? implode(', ', $classes) : t('None');
+}
+
+
 /**
  * FAPI definition for the container form.
  *
@@ -262,6 +279,7 @@ function storage_container_form($form, &$form_state, StorageContainer $container
     t('Access control') => $container->access_control ? t('Yes') : t('No'),
     t('ACSC') => $container->acsc ? t('Yes') : t('No'),
     t('Suspended') => $container->suspended ? t('Yes') : t('No'),
+    t('Classes') => _storage_container_classes($container),
     t('Instances') => $container->count(),
     t('Size') => $container->size(TRUE),
   );
