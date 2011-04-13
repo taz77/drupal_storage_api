@@ -118,6 +118,38 @@ function storage_create_class_form_submit($form, &$form_state) {
 }
 
 
+function _storage_class_selectors(StorageClass $class) {
+
+  $result = db_select('storage_selector', NULL, array('fetch' => PDO::FETCH_ASSOC))
+    ->fields('storage_selector')
+    ->condition('storage_selector.class_id', $class->class_id)
+    ->execute();
+
+  foreach ($result as $selector_info) {
+    unset($row);
+
+    $row[] = $selector_info['selector_id'];
+    $row[] = $selector_info['migrating'] ? t('Yes') : t('No');
+
+    $rows[] = $row;
+  }
+
+  if(empty($rows)) {
+    $rows[] = array(array('data' => t('No selectors are using this class.'), 'colspan' => 2, 'class' => 'message'));
+  }
+
+  $header = array(t('Selector Id'), t('Migrating'));
+
+  $output = theme('table', array(
+    'header' => $header,
+    'rows' => $rows,
+    'attributes' => array('style' => 'width: auto;'),
+  ));
+
+  return $output;
+}
+
+
 function storage_class(StorageClass $class) {
 
   $class_info = _storage_classes_query()
@@ -188,6 +220,8 @@ function storage_class(StorageClass $class) {
     'rows' => $rows,
     'attributes' => array('style' => 'width: auto;'),
   ));
+
+  $output .= _storage_class_selectors($class);
 
   return $output;
 }

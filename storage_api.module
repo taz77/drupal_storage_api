@@ -633,10 +633,10 @@ function theme_storage_info_table($variables) {
     );
   }
   
-  return '<p>' . theme('table', array(
+  return theme('table', array(
     'rows' => $rows, 
     'attributes' => array('style' => 'width: auto;')
-  )) . '</p>';
+  ));
 }
 
 
