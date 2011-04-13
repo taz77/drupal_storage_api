@@ -3,10 +3,6 @@
 // Copyright 2008-2011 Jonathan Brown
 
 
-define('STORAGE_API_STORAGE_ONLY', 0);
-define('STORAGE_API_SERVING', 1);
-define('STORAGE_API_ACCESS_CONTROL', 2);
-
 /**
  * Implements hook_permission().
  */

@@ -174,13 +174,12 @@ class StorageRackspace extends StorageContainer implements StorageServiceInterfa
     try {
       $rscf_container = $this->conn->create_container($this->settings['rscf_container']);
     
-      if ($this->capability == STORAGE_API_SERVING) {
-      
-        $rscf_container->make_public(60 * 60 * 24 * 3);    // 3 days is the maximum ttl that can be set in the api
-        $this->settings['cdn_uri'] = $rscf_container->cdn_uri;
+      if ($this->access_control) {
+        $rscf_container->make_private();    // strangely, this has to be done explicity, or it might be public
       }
       else {
-        $rscf_container->make_private();    // strangely, this has to be done explicity, or it might be public
+        $rscf_container->make_public(60 * 60 * 24 * 3);    // 3 days is the maximum ttl that can be set in the api
+        $this->settings['cdn_uri'] = $rscf_container->cdn_uri;
       }
     }  
     catch (Exception $e) {

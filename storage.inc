@@ -148,7 +148,7 @@ class Storage {
     $query->join('storage_container', NULL, 'storage_instance.container_id = storage_container.container_id');
     
     $container = $query->condition('storage_instance.file_id', $this->file_id)
-      ->condition('storage_class_container.serving', STORAGE_API_SERVING, '>=')
+      ->condition('storage_class_container.serving', 1)
       ->condition('storage_selector.selector_id', $this->selector_id)
       ->condition('storage_container.suspended', 0)
       ->fields('storage_container')
