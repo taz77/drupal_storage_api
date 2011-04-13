@@ -7,13 +7,6 @@ define('STORAGE_API_STORAGE_ONLY', 0);
 define('STORAGE_API_SERVING', 1);
 define('STORAGE_API_ACCESS_CONTROL', 2);
 
-$path = drupal_get_path('module', 'storage_api');
-require_once DRUPAL_ROOT . '/' . $path . '/service.inc';
-require_once DRUPAL_ROOT . '/' . $path . '/container.inc';
-require_once DRUPAL_ROOT . '/' . $path . '/class.inc';
-require_once DRUPAL_ROOT . '/' . $path . '/storage.inc';
-
-
 /**
  * Implements hook_permission().
  */

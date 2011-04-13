@@ -9,6 +9,7 @@ files[] = service.inc
 files[] = container.inc
 files[] = class.inc
 files[] = selector.inc
+files[] = storage.inc
 files[] = cron.inc
 
 files[] = container.admin.inc
