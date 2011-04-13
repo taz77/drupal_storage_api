@@ -112,6 +112,7 @@ function storage_create_class_form($form, &$form_state) {
 function storage_create_class_form_submit($form, &$form_state) {
 
   $class = new StorageClass($form_state['values']);
+  $class->options['initial_container_id'] = $form_state['values']['initial_container_id'];
   $class->create();
   
   $form_state['redirect'] = $class->path() . '/add';
