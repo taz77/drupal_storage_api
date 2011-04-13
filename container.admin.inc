@@ -268,7 +268,6 @@ function _storage_container_classes(StorageContainer $container) {
  * @ingroup forms
  * @see storage_container_form_suspend()
  * @see storage_container_form_unsuspend()
- * @see storage_container_form_drain()
  * @see storage_container_form_destroy()
  */
 function storage_container_form($form, &$form_state, StorageContainer $container) {
@@ -308,13 +307,6 @@ function storage_container_form($form, &$form_state, StorageContainer $container
     );
   }
 
-  $form['drain'] = array(
-    '#type' => 'submit',
-    '#value' => t('Drain'),
-    '#submit' => array('storage_container_form_drain'),
-    '#weight' => 2,
-  );
-
   $form['destroy'] = array(
     '#type' => 'submit',
     '#value' => t('Destroy'),
@@ -331,7 +323,6 @@ function storage_container_form($form, &$form_state, StorageContainer $container
  *
  * @see storage_container_form()
  * @see storage_container_form_unsuspend()
- * @see storage_container_form_drain()
  * @see storage_container_form_destroy()
  */
 function storage_container_form_suspend($form, &$form_state) {
@@ -346,7 +337,6 @@ function storage_container_form_suspend($form, &$form_state) {
  *
  * @see storage_container_form()
  * @see storage_container_form_suspend()
- * @see storage_container_form_drain()
  * @see storage_container_form_destroy()
  */
 function storage_container_form_unsuspend($form, &$form_state) {
@@ -357,27 +347,11 @@ function storage_container_form_unsuspend($form, &$form_state) {
 
 
 /**
- * Submit handler (drain) for the container form.
- *
- * @see storage_container_form()
- * @see storage_container_form_suspend()
- * @see storage_container_form_unsuspend()
- * @see storage_container_form_destroy()
- */
-function storage_container_form_drain($form, &$form_state) {
-  $container = $form['#container'];
-
-  $form_state['redirect'] = $container->path() . '/drain';
-}
-
-
-/**
  * Submit handler (destroy) for the container form.
  *
  * @see storage_container_form()
  * @see storage_container_form_suspend()
  * @see storage_container_form_unsuspend()
- * @see storage_container_form_drain()
  */
 function storage_container_form_destroy($form, &$form_state) {
   $container = $form['#container'];
@@ -451,34 +425,6 @@ function storage_container_unsuspend_form_submit($form, &$form_state) {
 
   drupal_set_message($message);
   watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $container->path()));
-  
-  $form_state['redirect'] = $container->path();
-}
-
-
-/**
- * FAPI definition for the container drain form.
- *
- * @ingroup forms
- * @see storage_container_drain_form_submit()
- */
-function storage_container_drain_form($form, &$form_state, StorageContainer $container) {
-  $form['#container'] = $container;
-
-  return confirm_form($form, 'Are you sure you want to drain storage container <i>' . 
-    $container->name() . '</i> ?', $container->path(), t(''));
-}
-
-
-/**
- * Submit handler for the container drain form.
- *
- * @see storage_container_drain_form()
- */
-function storage_container_drain_form_submit($form, &$form_state) {
-  $container = $form['#container'];
-
-  $container->drain();
   
   $form_state['redirect'] = $container->path();
 }

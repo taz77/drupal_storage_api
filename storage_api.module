@@ -101,14 +101,6 @@ function storage_api_menu() {
     'file' => 'container.admin.inc',
   );
   
-  $items['admin/structure/storage/containers/%storage_container/drain'] = array(
-    'access arguments' => array('administer storage'),
-    'type' => MENU_CALLBACK,
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('storage_container_drain_form', 4),
-    'file' => 'container.admin.inc',
-  );
-
   $items['admin/structure/storage/containers/%storage_container/destroy'] = array(
     'access arguments' => array('administer storage'),
     'type' => MENU_CALLBACK,

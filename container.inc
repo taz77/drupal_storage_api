@@ -348,34 +348,6 @@ abstract class StorageContainer {
 
 
   /**
-   * Remove a container from all classes and schedule instances to be destroyed.
-   */
-  public function drain() {
-    $selector_subquery = db_select('storage_class_container');
-    $selector_subquery->join('storage_selector', NULL, 'storage_class_container.class_id = storage_selector.class_id');
-    
-    $selector_subquery->fields('storage_selector', array('selector_id'))
-      ->condition('storage_class_container.container_id', $this->container_id);
-      
-    db_update('storage')
-      ->fields(array('check_me' => 1))
-      ->expression('serving_container', 'NULL')
-      ->condition('selector_id', $selector_subquery, 'IN')
-      ->execute();
-
-    db_delete('storage_class_container')
-      ->condition('container_id', $this->container_id)
-      ->execute();
-
-    $message = 'Storage container <i>' . $this->name() . 
-      '</i> has been removed from all classes and will be drained during cron.';
-
-    drupal_set_message($message);
-    watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $this->path()));
-  }
-
-
-  /**
    * Destroy container.
    */
   public function destroy() {
