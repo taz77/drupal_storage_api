@@ -207,7 +207,14 @@ function storage_api_schema() {
 function storage_api_install() {
 
   // Create a class.
-  $class = new StorageClass(array('name' => t('Everything')));
+  $class = new StorageClass(array(
+    'name' => t('Everything'), 
+    'options' => array(
+      'redirect' => FALSE,
+      'serve_source_url' => FALSE,
+    )
+  ));
+  
   $class->create();
   
   variable_set('storage_api_initial_class', $class->class_id);
