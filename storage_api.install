@@ -218,6 +218,7 @@ function storage_api_install() {
     'name' => t('Local'),
     'service_id' => 'fs',
     'access_control' => FALSE,
+    'acsc' => FALSE,
     'settings' => array(
       'path' => $path,
       'base_url' => $path,

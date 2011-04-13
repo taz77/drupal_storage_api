@@ -10,36 +10,47 @@ class StorageAPITestCase extends DrupalWebTestCase {
   }
 
   function setUp() {
-    parent::setUp('storage_api', 'storage_fs');
+    parent::setUp('storage_api');
 
     $web_user = $this->drupalCreateUser(array('administer storage'));
     $this->drupalLogin($web_user);
   }
 
   function testStorage() {
-  
-    $this->drupalGet('admin/structure/storage/services/fs');
-    $this->assertResponse(200, t('Filesystem service registered.'));
     
     $class = storage_class_load(1);
     $this->assertNotNull($class, t('Everything class created.'));
     $this->assertEqual($class->options['initial_container_id'], 1, t('Initial container set.'));
     
-    $container = storage_fs_default_container_create();
+    $path = storage_api_new_local_storage_path();
+
+    $container = array(
+      'name' => t('Local2'),
+      'service_id' => 'fs',
+      'access_control' => FALSE,
+      'acsc' => FALSE,
+      'settings' => array(
+        'path' => $path,
+        'base_url' => $path,
+      ),
+    );
+
+    $container = storage_container_new($container, FALSE);
+    $container->create();
     $class->options['initial_container_id'] = $container->container_id;
     drupal_write_record('storage_class', $class, 'class_id');
     $class = storage_class_load(1);
     $this->assertEqual($class->options['initial_container_id'], $container->container_id, t('Initial container changed.'));
     
-    $selector_id = storage_new_selector_id();
+    $selector = storage_selector('storage_api', 'test');
+    $selector->create();
     
     $options = array(
       'filepath' => 'CHANGELOG.txt',
       'get_filename' => TRUE,
     );
-    
-    $storage_id = storage_add($selector_id, $options);
-    $storage = storage_load($storage_id);
+
+    $storage = $selector->storageAdd($options);
     $this->assertNotNull($storage, t('Store file.'));
     
     $exists = db_select('storage_instance')
