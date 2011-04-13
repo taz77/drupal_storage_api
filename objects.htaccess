@@ -1,3 +1,0 @@
-<IfModule mod_headers.c>
-  Header set Cache-control "max-age=31536000"
-</IfModule>
