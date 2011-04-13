@@ -128,13 +128,17 @@ class StorageClass {
       l(t('view'), $this->path()));
   }
 
-  public function destroy() {
+  public function delete() {
 
     db_delete('storage_class')
       ->condition('class_id', $this->class_id)
       ->execute();
 
-    $message = 'Storage class <i>' . $this->name . '</i> has been destroyed.';
+    db_delete('storage_class_container')
+      ->condition('class_id', $this->class_id)
+      ->execute();
+
+    $message = 'Storage class <i>' . $this->name . '</i> has been deleted.';
 
     drupal_set_message($message);
     watchdog('storage_api', $message, NULL);
@@ -165,6 +169,15 @@ class StorageClass {
     );
 
     return $form;
-  }  
+  }
+
+  public function selectorCount() {
+
+    return db_select('storage_selector')
+      ->condition('class_id', $this->class_id)
+      ->countQuery()
+      ->execute()
+      ->fetchField();
+  }
 }
 

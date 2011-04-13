@@ -156,11 +156,13 @@ function storage_api_menu() {
     'file' => 'class.admin.inc',
   );
   
-  $items['admin/structure/storage/classes/%storage_class/destroy'] = array(
+  $items['admin/structure/storage/classes/%storage_class/delete'] = array(
+    'title' => 'Delete',
     'access arguments' => array('administer storage'),
-    'type' => MENU_CALLBACK,
+    'type' => MENU_LOCAL_TASK,
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('storage_class_destroy_form', 4),
+    'page arguments' => array('storage_class_delete_form', 4),
+    'weight' => 2,
     'file' => 'class.admin.inc',
   );
   

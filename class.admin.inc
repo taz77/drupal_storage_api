@@ -1,6 +1,6 @@
 <?php
 
-// Copyright 2008-2010 Jonathan Brown
+// Copyright 2008-2011 Jonathan Brown
 
 
 function _storage_trash_icon() {
@@ -320,12 +320,6 @@ function storage_class_edit_form($form, &$form_state, StorageClass $class) {
     '#value' => t('Save')
   );
 
-  $form['destroy'] = array(
-    '#type' => 'submit',
-    '#value' => t('Destroy'),
-    '#submit' => array('storage_class_edit_form_destroy')
-  );
-  
   return $form;
 }
 
@@ -426,40 +420,52 @@ function storage_class_edit_form_submit($form, &$form_state) {
 
 
 /**
- * Submit handler (destroy) for the class edit form.
- *
- * @see storage_class_edit_form()
- */
-function storage_class_edit_form_destroy($form, &$form_state) {
-  $class = $form['#class'];
-
-  $form_state['redirect'] = $class->path() . '/destroy';
-}
-
-
-/**
- * FAPI definition for the class destroy form.
+ * FAPI definition for the class delete form.
  *
  * @ingroup forms
- * @see storage_class_destroy_form_submit()
+ * @see storage_class_delete_form_submit()
  */
-function storage_class_destroy_form($form, &$form_state, StorageClass $class) {
+function storage_class_delete_form($form, &$form_state, StorageClass $class) {
   $form['#class'] = $class;
 
-  return confirm_form($form, 'Are you sure you want to destroy storage class <i>' . 
-    $class->name . '</i> ?', $class->path(), t(''));
+  if ($class->selectorCount() > 0) {
+
+    $form[] = array(
+      '#markup' => t("<p>It is not possible to delete a class until it is not in-use by any selectors.</p>") . 
+        _storage_class_selectors($class),
+    );
+  }
+  else {
+
+    $form[] = array(
+      '#markup' => t("<p>Are you sure you want to delete this storage class?</p>")
+    );
+
+    $form['submit'] = array(
+      '#type' => 'submit',
+      '#value' => t('Delete')
+    );
+  }
+
+  return $form;
 }
 
 
 /**
- * Submit handler for the class destroy form.
+ * Submit handler for the class delete form.
  *
- * @see storage_class_destroy_form()
+ * @see storage_class_delete_form()
  */
-function storage_class_destroy_form_submit($form, &$form_state) {
+function storage_class_delete_form_submit($form, &$form_state) {
   $class = $form['#class'];
-  $class->destroy();
-  $form_state['redirect'] = 'admin/structure/storage/classes';
+
+  if ($class->selectorCount() > 0) {
+    $form_state['redirect'] = $class->path() . '/delete';
+  }
+  else {
+    $class->delete();
+    $form_state['redirect'] = 'admin/structure/storage/classes';
+  }
 }
 
 
