@@ -14,7 +14,7 @@ function storage_audit_menu() {
     'type' => MENU_LOCAL_TASK,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('storage_audit_form', 4),
-    'weight' => 2,
+    'weight' => 1,
   );
 
   return $items;

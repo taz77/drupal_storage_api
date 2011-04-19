@@ -432,12 +432,11 @@ function storage_class_delete_form($form, &$form_state, StorageClass $class) {
   if ($class->selectorCount() > 0) {
 
     $form[] = array(
-      '#markup' => t("<p>It is not possible to delete a class until it is not in-use by any selectors.</p>") . 
+      '#markup' => t("<p>It is not possible to delete this class at the moment, as it is in-use:</p>") .
         _storage_class_selectors($class),
     );
   }
   else {
-
     $form[] = array(
       '#markup' => t("<p>Are you sure you want to delete this storage class?</p>")
     );

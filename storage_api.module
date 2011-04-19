@@ -81,7 +81,17 @@ function storage_api_menu() {
     'type' => MENU_LOCAL_TASK,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('storage_container_edit_form', 4),
-    'weight' => 1,
+    'weight' => 2,
+    'file' => 'container.admin.inc',
+  );
+
+  $items['admin/structure/storage/containers/%storage_container/destroy'] = array(
+    'title' => 'Destroy',
+    'access arguments' => array('administer storage'),
+    'type' => MENU_LOCAL_TASK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('storage_container_destroy_form', 4),
+    'weight' => 3,
     'file' => 'container.admin.inc',
   );
 
@@ -98,14 +108,6 @@ function storage_api_menu() {
     'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('storage_container_unsuspend_form', 4),
-    'file' => 'container.admin.inc',
-  );
-  
-  $items['admin/structure/storage/containers/%storage_container/destroy'] = array(
-    'access arguments' => array('administer storage'),
-    'type' => MENU_CALLBACK,
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('storage_container_destroy_form', 4),
     'file' => 'container.admin.inc',
   );
 

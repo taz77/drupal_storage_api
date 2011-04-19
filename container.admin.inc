@@ -245,20 +245,14 @@ function storage_create_container_form_submit($form, &$form_state) {
 }
 
 
-function _storage_container_classes(StorageContainer $container) {
-  $classes = array();
+function _storage_container_render_classes(array $classes) {
+  $links = array();
 
-  $result = db_select('storage_class_container', NULL, array('fetch' => PDO::FETCH_ASSOC))
-    ->fields('storage_class_container', array('class_id'))
-    ->condition('container_id', $container->container_id)
-    ->orderBy('class_id')
-    ->execute();
-
-  foreach ($result as $class_info) {
-    $classes[] = storage_class_load($class_info['class_id'])->link();
+  foreach ($classes as $class) {
+    $links[] = $class->link();
   }
 
-  return count($classes) ? implode(', ', $classes) : t('None');
+  return count($links) ? implode(', ', $links) : t('None');
 }
 
 
@@ -268,7 +262,6 @@ function _storage_container_classes(StorageContainer $container) {
  * @ingroup forms
  * @see storage_container_form_suspend()
  * @see storage_container_form_unsuspend()
- * @see storage_container_form_destroy()
  */
 function storage_container_form($form, &$form_state, StorageContainer $container) {
   $form['#container'] = $container;
@@ -278,7 +271,7 @@ function storage_container_form($form, &$form_state, StorageContainer $container
     t('Access control') => $container->access_control ? t('Yes') : t('No'),
     t('ACSC') => $container->acsc ? t('Yes') : t('No'),
     t('Suspended') => $container->suspended ? t('Yes') : t('No'),
-    t('Classes') => _storage_container_classes($container),
+    t('Classes') => _storage_container_render_classes($container->classes()),
     t('Instances') => $container->count(),
     t('Size') => $container->size(TRUE),
   );
@@ -307,13 +300,6 @@ function storage_container_form($form, &$form_state, StorageContainer $container
     );
   }
 
-  $form['destroy'] = array(
-    '#type' => 'submit',
-    '#value' => t('Destroy'),
-    '#submit' => array('storage_container_form_destroy'),
-    '#weight' => 2,
-  );
-
   return $form;
 }
 
@@ -323,7 +309,6 @@ function storage_container_form($form, &$form_state, StorageContainer $container
  *
  * @see storage_container_form()
  * @see storage_container_form_unsuspend()
- * @see storage_container_form_destroy()
  */
 function storage_container_form_suspend($form, &$form_state) {
   $container = $form['#container'];
@@ -337,26 +322,11 @@ function storage_container_form_suspend($form, &$form_state) {
  *
  * @see storage_container_form()
  * @see storage_container_form_suspend()
- * @see storage_container_form_destroy()
  */
 function storage_container_form_unsuspend($form, &$form_state) {
   $container = $form['#container'];
 
   $form_state['redirect'] = $container->path() . '/unsuspend';
-}
-
-
-/**
- * Submit handler (destroy) for the container form.
- *
- * @see storage_container_form()
- * @see storage_container_form_suspend()
- * @see storage_container_form_unsuspend()
- */
-function storage_container_form_destroy($form, &$form_state) {
-  $container = $form['#container'];
-
-  $form_state['redirect'] = $container->path() . '/destroy';
 }
 
 
@@ -439,8 +409,36 @@ function storage_container_unsuspend_form_submit($form, &$form_state) {
 function storage_container_destroy_form($form, &$form_state, StorageContainer $container) {
   $form['#container'] = $container;
 
-  return confirm_form($form, 'Are you sure you want to destroy storage container <i>' . 
-    $container->name() . '</i> ?', $container->path(), t(''));
+  $classes = $container->classes();
+  $count = count($classes);
+  
+  if ($count > 0) {
+    $output = t('This container is present in ');
+    $output .= format_plural($count, 'class', 'classes') . ' ';
+    $output .= _storage_container_render_classes($classes);
+    $output .= t(' - destroying it now could cause data loss.');
+
+    $form[] = array(
+      '#markup' => $output,
+    );
+  }
+
+  $form[] = array(
+    '#markup' => t("<p>Are you sure you want to destroy this storage container?</p>")
+  );
+  
+  $form['just_delete'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Just delete database records.'),
+    '#description' => t('Checking this option means that there will be no communication with the service and the container itself will remain untouched.'),
+  );
+
+  $form['confirm'] = array(
+    '#type' => 'submit',
+    '#value' => t('Confirm'),
+  );
+
+  return $form;
 }
 
 
@@ -452,7 +450,7 @@ function storage_container_destroy_form($form, &$form_state, StorageContainer $c
 function storage_container_destroy_form_submit($form, &$form_state) {
   $container = $form['#container'];
   
-  $container->destroy();
+  $container->destroy($form_state['values']['just_delete']);
   $form_state['redirect'] = 'admin/structure/storage/containers';
 }
 

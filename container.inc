@@ -347,14 +347,29 @@ abstract class StorageContainer {
   }
 
 
+  public function classes() {
+    $classes = array();
+
+    $result = db_select('storage_class_container', NULL, array('fetch' => PDO::FETCH_ASSOC))
+      ->fields('storage_class_container', array('class_id'))
+      ->condition('container_id', $this->container_id)
+      ->orderBy('class_id')
+      ->execute();
+
+    foreach ($result as $class_info) {
+      $classes[] = storage_class_load($class_info['class_id']);
+    }
+
+    return $classes;
+  }
+  
+
   /**
    * Destroy container.
    */
-  public function destroy() {
+  public function destroy($just_delete = FALSE) {
 
-    if ($this->service()->info['htaccess']) {
-      $this->serviceInstanceDestroy('.htaccess');
-    }
+    $this->flushServingContainer();
 
     db_delete('storage_container')
       ->condition('container_id', $this->container_id)
@@ -367,9 +382,10 @@ abstract class StorageContainer {
     db_delete('storage_instance')
       ->condition('container_id', $this->container_id)
       ->execute();
-      
-    $this->flushServingContainer();
-    $this->serviceDestroy();
+
+    if (!$just_delete) {
+      $this->serviceDestroy();
+    }
 
     $message = 'Storage container <i>' . $this->name() . '</i> has been destroyed.';
     drupal_set_message($message);
