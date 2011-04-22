@@ -1,6 +1,25 @@
 <?php
 
-// Copyright 2008-2009 Jonathan Brown
+// Copyright 2008-2011 Jonathan Brown
+
+
+function _storage_remove_containers() {
+
+  $result = db_select('storage_class_container', NULL, array('fetch' => PDO::FETCH_ASSOC))
+    ->fields('storage_class_container')
+    ->condition('remove', 1)
+    ->execute();
+
+  foreach ($result as $container_instance) {
+    $class = storage_class_load($container_instance['class_id']);
+    $container = storage_container_load($container_instance['container_id']);
+
+    try {
+      $class->removeContainer($container);
+    }
+    catch (Exception $e) {}
+  }
+}
 
 
 function _storage_check_files() {
@@ -30,7 +49,6 @@ function _storage_check_migrations() {
     ->fetchCol();
 
   foreach ($selector_ids as $selector_id) {
-
     storage_selector($selector_id)->checkMigration();
   }
 }
@@ -59,6 +77,7 @@ function _storage_api_container_maintenance() {
 
 function _storage_api_cron() {
 
+  _storage_remove_containers();
   _storage_check_files();
   _storage_check_migrations();
   _storage_flush_storage_servings();

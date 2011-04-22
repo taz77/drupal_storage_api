@@ -114,7 +114,8 @@ function storage_api_schema() {
       'class_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
       'container_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
       'weight' => array('type' => 'int', 'not null' => TRUE, 'default' => 0),
-      'serving' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0)
+      'serving' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0),
+      'remove' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0),
     ),
     'primary key' => array('class_id', 'container_id')
   );

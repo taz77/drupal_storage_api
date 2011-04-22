@@ -3,13 +3,6 @@
 // Copyright 2008-2011 Jonathan Brown
 
 
-function _storage_trash_icon() {
-
-  return '<img src="' . base_path() . drupal_get_path('module', 'storage_api') . '/trash.png' . 
-    '" style="vertical-align: middle;" />';
-}
-
-
 function _storage_classes_query() {
 
   $query = db_select('storage_class', NULL, array('fetch' => PDO::FETCH_ASSOC));
@@ -186,7 +179,7 @@ function storage_class(StorageClass $class) {
   $query->leftJoin($subquery, 'files', 'storage_container.container_id = files.container_id');
 
   $query->fields('storage_container')
-    ->fields('storage_class_container', array('serving'));
+    ->fields('storage_class_container');
     
   $query->addField('files', 'count', 'count');
   $query->addField('files', 'size', 'size');
@@ -204,6 +197,7 @@ function storage_class(StorageClass $class) {
     $row[] = $container->link();
     $row[] = $container->service()->name();
     $row[] = $container_info['serving'] ? t('Yes') : t('No');
+    $row[] = $container_info['remove'] ? t('Yes') : t('No');
     $row[] = (int)$container_info['count'];
     $row[] = storage_format_size($container_info['size']);
     
@@ -214,7 +208,7 @@ function storage_class(StorageClass $class) {
     $rows[] = array(array('data' => t('There are no containers in this class.'), 'colspan' => 5, 'class' => 'message'));
   }
 
-  $header = array(t('Container'), t('Service'), t('Serving'), t('Files'), t('Size'));
+  $header = array(t('Container'), t('Service'), t('Serving'), t('Remove'), t('Files'), t('Size'));
   
   $output .= theme('table', array(
     'header' => $header, 
@@ -243,13 +237,11 @@ function storage_class_edit_form($form, &$form_state, StorageClass $class) {
   $query->join('storage_container', NULL, 'storage_class_container.container_id = storage_container.container_id');
 
   $result = $query->fields('storage_container', array('container_id', 'name', 'service_id'))
-    ->fields('storage_class_container', array('weight', 'serving'))
+    ->fields('storage_class_container')
     ->condition('storage_class_container.class_id', $class->class_id)
     ->orderBy('storage_class_container.weight')
     ->orderBy('storage_container.container_id')
     ->execute();
-
-  $trash = _storage_trash_icon();
 
   $form['#container_ids'] = array();
   $form['#tree'] = TRUE;
@@ -263,30 +255,25 @@ function storage_class_edit_form($form, &$form_state, StorageClass $class) {
     $form['names'][$container->container_id] = array(
       '#markup' => $container->link(),
     );
-    
-    $form['weights'][$container->container_id] = array(
-      '#type' => 'weight', 
-      '#default_value' => $container_info['weight'],
-      '#attributes' => array('class' => array('my-elements-weight')),
-    );
 
     $form['services'][$container->container_id] = array(
       '#markup' => $container->service()->name(),
     );
-    
-    $form['servings'][$container->container_id] = array(
-      '#type' => 'select',
-      '#options' => array(
-        0 => t('No'),
-        1 => t('Yes'),
-      ),
-      '#default_value' => $container_info['serving'] ? 1 : 0
+
+    $form['weights'][$container->container_id] = array(
+      '#type' => 'weight', 
+      '#default_value' => $container_info['weight'],
+      '#attributes' => array('class' => array('container-weight')),
     );
 
-    $form['deletes'][$container->container_id] = array(
-      '#markup' => 
-        l($trash, $class->path() . '/remove/' . $container->container_id, 
-          array('html' => TRUE))
+    $form['servings'][$container->container_id] = array(
+      '#type' => 'checkbox',
+      '#default_value' => $container_info['serving'],
+    );
+
+    $form['removes'][$container->container_id] = array(
+      '#type' => 'checkbox',
+      '#default_value' => $container_info['remove'],
     );
   }
 
@@ -340,7 +327,7 @@ function theme_storage_class_edit_form($elements) {
 
   if(count($form['#container_ids'])) {
   
-    $header = array(t('Container'), t('Service'), t('Weight'), t('Serving'), NULL);
+    $header = array(t('Container'), t('Service'), t('Weight'), t('Serving'), t('Remove'));
     $rows = array();
 
     foreach ($form['#container_ids'] as $container_id) {
@@ -349,9 +336,17 @@ function theme_storage_class_edit_form($elements) {
       $row[] = drupal_render($form['names'][$container_id]);
       $row[] = drupal_render($form['services'][$container_id]);
       $row[] = drupal_render($form['weights'][$container_id]);
-      $row[] = drupal_render($form['servings'][$container_id]);
-      $row[] = drupal_render($form['deletes'][$container_id]);
-      
+
+      $row[] = array(
+        'data' => drupal_render($form['servings'][$container_id]),
+        'align' => 'center',
+      );
+
+      $row[] = array(
+        'data' => drupal_render($form['removes'][$container_id]),
+        'align' => 'center',
+      );
+
       $rows[] = array(
         'data' => $row,
         'class' => array('draggable'),
@@ -362,13 +357,13 @@ function theme_storage_class_edit_form($elements) {
       '#markup' => theme('table', array(
         'header' => $header, 
         'rows' => $rows, 
-        'attributes' => array('id' => 'my-module-table', 'style' => 'width: auto;')
+        'attributes' => array('id' => 'class-containers-table', 'style' => 'width: auto;')
     )));
   }
 
   $output .= drupal_render($form['containers']);
 
-  drupal_add_tabledrag('my-module-table', 'order', 'sibling', 'my-elements-weight');
+  drupal_add_tabledrag('class-containers-table', 'order', 'sibling', 'container-weight');
 
   $output .= drupal_render_children($form);
   return $output;
@@ -395,6 +390,7 @@ function storage_class_edit_form_submit($form, &$form_state) {
       'container_id' => $container_id,
       'weight' => $form_state['values']['weights'][$container_id],
       'serving' => $form_state['values']['servings'][$container_id],
+      'remove' => $form_state['values']['removes'][$container_id],
     );
 
     drupal_write_record('storage_class_container', $update, array('class_id', 'container_id'));
@@ -509,7 +505,8 @@ function storage_class_add_container_form($form, &$form_state, StorageClass $cla
     '#title' => t('Container'),
     '#type' => 'select',
     '#required' => TRUE,
-    '#options' => $containers
+    '#options' => $containers,
+    '#default_value' => array_shift(array_keys($containers)),
   );
   
   $form['submit'] = array(
@@ -531,35 +528,6 @@ function storage_class_add_container_form_submit($form, &$form_state) {
   $container = storage_container_load($form_state['values']['container_id']);
   
   $class->addContainer($container);
-  $form_state['redirect'] = $class->path();
-}
-
-
-/**
- * FAPI definition for the class remove container form.
- *
- * @ingroup forms
- * @see storage_class_remove_container_form_submit()
- */
-function storage_class_remove_container_form($form, $form_state, StorageClass $class, StorageContainer $container) {
-  $form['#class'] = $class;
-  $form['#container'] = $container;
-
-  return confirm_form($form, 'Are you sure you want to remove storage container <i>' . $container->name() . 
-    '</i> from class <i>' . $class->name() . '</i>?', $class->path() . '/edit', t(''));
-}
-
-
-/**
- * Submit handler for the class remove container form.
- *
- * @see storage_class_remove_container_form()
- */
-function storage_class_remove_container_form_submit($form, &$form_state) {
-  $class = $form['#class'];
-  $container = $form['#container'];
-  
-  $class->removeContainer($container);
   $form_state['redirect'] = $class->path();
 }
 

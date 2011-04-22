@@ -85,13 +85,50 @@ class StorageClass {
     watchdog('storage_api', $msg, $args, WATCHDOG_NOTICE, l(t('view'), $this->path()));
   }
 
+  /**
+   * Ensure it is safe to remove the container from the class.
+   */
+  private function removeContainerEnsureSafe(StorageContainer $container) {
+
+    // Get a distinct list of all file_ids of instances in other containers 
+    // in the class.
+    $subquery = db_select('storage_class_container');
+    $subquery->join('storage_instance', NULL, 'storage_class_container.container_id = storage_instance.container_id');
+
+    $subquery->condition('storage_class_container.class_id', $this->class_id)
+      ->condition('storage_class_container.container_id', $container->container_id, '!=')
+      ->fields('storage_instance', array('file_id'))
+      ->distinct();
+
+    // How many instances are there of storages in this class that are in
+    // the container to be removed, but are not in another container in the class.
+    $query = db_select('storage_selector');
+    $query->join('storage', NULL, 'storage_selector.selector_id = storage.selector_id');
+    $query->join('storage_instance', NULL, 'storage.file_id = storage_instance.file_id');
+
+    $count = $query->condition('storage_selector.class_id', $this->class_id)
+      ->condition('storage_instance.container_id', $container->container_id)
+      ->condition('storage_instance.file_id', $subquery, 'NOT IN')
+      ->countQuery()
+      ->execute()
+      ->fetchField();
+
+    // If any data-loss would occur, abort.
+    if ($count > 0) {
+      throw new Exception();
+    }
+  }
+
   public function removeContainer(StorageContainer $container) {
+
+    // Ensure it is safe to remove the container from the class.
+    $this->removeContainerEnsureSafe($container);
 
     db_delete('storage_class_container')
       ->condition('class_id', $this->class_id)
       ->condition('container_id', $container->container_id)
       ->execute();
-    
+
     $selector_subquery = db_select('storage_selector')
       ->fields('storage_selector', array('selector_id'))
       ->condition('class_id', $this->class_id);
