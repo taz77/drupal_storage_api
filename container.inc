@@ -273,33 +273,44 @@ abstract class StorageContainer {
 
   public function instanceDestroyIfUnrequired(Storage $storage, $reference) {
 
-    // Are there any other instances in this container that use the same file?
-    
-    // We don't destroy file instances in a container in a class that a file is migrating away from
-    // because that instance might not have been migrated yet 
-    // - so there is no {storage_selector}.migrating = 0 condition
-
-    $query = db_select('storage');
-    $query->join('storage_selector', NULL, 'storage.selector_id = storage_selector.selector_id');
-    $query->join('storage_class_container', NULL, 'storage_selector.class_id = storage_class_container.class_id');
-
-    $count = $query->condition('storage.storage_id', $storage->storage_id, '!=')
+    // Find other storages that use the same file.
+    $storage_ids = db_select('storage')
+      ->fields('storage', array('storage_id'))
       ->condition('storage.file_id', $storage->file_id)
-      ->condition('storage_class_container.container_id', $this->container_id)
-      ->countQuery()
+      ->condition('storage.storage_id', $storage->storage_id, '!=')
       ->execute()
-      ->fetchField();
-      
-    $failure = FALSE;
-    
-    if ($count == 0) {
-      $success = $this->instanceDestroy($storage, $reference);
-      
-      if (!$success)
-        $failure = TRUE;
+      ->fetchCol();
+
+    if (count($storage_ids)) {
+
+      // Are any of the other storages supposed to have an instance in this
+      // container?
+      $query = db_select('storage');
+      $query->join('storage_selector', NULL, 'storage.selector_id = storage_selector.selector_id');
+      $query->join('storage_class_container', NULL, 'storage_selector.class_id = storage_class_container.class_id');
+
+      $count = $query->condition('storage.storage_id', $storage_ids, 'IN')
+        ->condition('storage_class_container.container_id', $this->container_id)
+        ->countQuery()
+        ->execute()
+        ->fetchField();
+
+      if ($count > 0) {
+        return TRUE;
+      }
+
+      // Do any of the other storages have this container as their initial
+      // container?
+      foreach ($storage_ids as $storage_id) {
+        $storage = storage_load($storage_id);
+
+        if (isset($storage->data['initial_container_id']) && ($storage->data['initial_container_id'] == $this->container_id)) {
+          return TRUE;
+        }
+      }
     }
-    
-    return !$failure;
+
+    return $this->instanceDestroy($storage, $reference);
   }
 
 
