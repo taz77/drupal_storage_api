@@ -1,6 +1,6 @@
 <?php
 
-// Copyright 2010 Jonathan Brown
+// Copyright 2010-2011 Jonathan Brown
 
 
 class StorageSelector {
@@ -263,11 +263,15 @@ class StorageSelector {
       throw new Exception();
     }
     
-    $options['data']['initial_container_id'] = $container->container_id;
+    $options['initial_container_id'] = $container->container_id;
 
     if (isset($options['filepath'])) {
       $options['file_id'] = _storage_api_file_id($options['filepath'], 
         isset($options['filename']) ? $options['filename'] : basename($options['filepath']), $new_file);
+    }
+
+    if (!isset($options['data']) || !is_array($options['data'])) {
+      $options['data'] = array();
     }
 
     $options['check_me'] = TRUE;

@@ -301,12 +301,15 @@ abstract class StorageContainer {
 
       // Do any of the other storages have this container as their initial
       // container?
-      foreach ($storage_ids as $storage_id) {
-        $storage = storage_load($storage_id);
+      $count = db_select('storage')
+        ->condition('storage_id', $storage_ids, 'IN')
+        ->condition('initial_container_id', $this->container_id)
+        ->countQuery()
+        ->execute()
+        ->fetchField();
 
-        if (isset($storage->data['initial_container_id']) && ($storage->data['initial_container_id'] == $this->container_id)) {
-          return TRUE;
-        }
+      if ($count > 0) {
+        return TRUE;
       }
     }
 

@@ -122,11 +122,11 @@ class Storage {
 
   public function initialContainerInstance() {
 
-    if (!isset($this->data['initial_container_id'])) {
+    if (!isset($this->initial_container_id)) {
       return FALSE;
     }
 
-    $container = storage_container_load($this->data['initial_container_id']);
+    $container = storage_container_load($this->initial_container_id);
 
     $container->reference = db_select('storage_instance')
       ->fields('storage_instance', array('reference'))
@@ -176,11 +176,11 @@ class Storage {
 
   private function generate() {
 
-    if (!isset($this->data['initial_container_id'])) {
+    if (!isset($this->initial_container_id)) {
       return FALSE;
     }
 
-    $container = storage_container_load($this->data['initial_container_id']);
+    $container = storage_container_load($this->initial_container_id);
     
     if (!$container) {
       return FALSE;
@@ -714,7 +714,7 @@ class Storage {
     }
     
     if ($this->selector_id) {
-      unset($this->data['initial_container_id']);
+      unset($this->initial_container_id);
       $this->check_me = FALSE;
       $this->update();
     }

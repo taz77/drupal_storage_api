@@ -1,6 +1,6 @@
 <?php
 
-// Copyright 2010 Jonathan Brown
+// Copyright 2010-2011 Jonathan Brown
 
 class StorageClass {
 
@@ -90,7 +90,7 @@ class StorageClass {
    */
   private function removeContainerEnsureSafe(StorageContainer $container) {
 
-    // Get a distinct list of all file_ids of instances in other containers 
+    // Get a distinct list of all file_ids of instances in other containers
     // in the class.
     $subquery = db_select('storage_class_container');
     $subquery->join('storage_instance', NULL, 'storage_class_container.container_id = storage_instance.container_id');
@@ -101,7 +101,8 @@ class StorageClass {
       ->distinct();
 
     // How many instances are there of storages in this class that are in
-    // the container to be removed, but are not in another container in the class.
+    // the container to be removed, but are not in another container in the
+    // class.
     $query = db_select('storage_selector');
     $query->join('storage', NULL, 'storage_selector.selector_id = storage.selector_id');
     $query->join('storage_instance', NULL, 'storage.file_id = storage_instance.file_id');
