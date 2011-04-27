@@ -122,7 +122,7 @@ function storage_api_menu() {
   );
 
   $items['admin/structure/storage/classes/create'] = array(
-    'title' => 'Create',
+    'title' => 'Create class',
     'access arguments' => array('administer storage'),
     'type' => MENU_LOCAL_ACTION,
     'page callback' => 'drupal_get_form',
