@@ -40,7 +40,7 @@ function storage_core_bridge_schema() {
 
 
 /**
- * Implement hook_install().
+ * Implements hook_install().
  */
 function storage_core_bridge_install() {
 
@@ -48,20 +48,22 @@ function storage_core_bridge_install() {
   $keys = array('unique keys' => array('uri' => array('uri')));
 
   db_add_field('storage', 'uri', $spec, $keys); 
+  variable_set('storage_core_bridge_selectors', array());
 }
 
 
 /**
- * Implement hook_uninstall().
+ * Implements hook_uninstall().
  */
 function storage_core_bridge_uninstall() {
 
   db_drop_field('storage', 'uri');
+  variable_del('storage_core_bridge_selectors');
 }
 
 
 /**
- * Implement hook_schema_alter().
+ * Implements hook_schema_alter().
  */
 function storage_core_bridge_schema_alter(&$schema) {
 

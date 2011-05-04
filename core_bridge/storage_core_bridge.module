@@ -3,9 +3,72 @@
 // Copyright 2010-2011 Jonathan Brown
 
 
-function _storage_core_bridge_selector_name($field_name) {
+function storage_core_bridge_selector($field_name) {
 
-  return str_replace('_', '-', $field_name);
+  return storage_selector('storage_core_bridge', $field_name);
+}
+
+
+function storage_core_bridge_styled_image_selector($field_name) {
+
+  return storage_selector('storage_core_bridge', $field_name . '__styled');
+}
+
+
+function storage_core_bridge_styled_image_selector_form_item($field_name) {
+
+  $description = "Styled images will be stored in this class.<br />";
+  $description .= "This can be safely changed at any time.";
+
+  return storage_core_bridge_styled_image_selector($field_name)->formItem(t("Styled storage class"), t($description));
+}
+
+
+/**
+ * Implements hook_field_create_field().
+ */
+function storage_core_bridge_field_create_field(array $field) {
+
+  if (!in_array($field['type'], array('file', 'image'))) {
+    return;
+  }
+
+  storage_core_bridge_selector($field['field_name'])->create();
+
+  if ($field['type'] == 'image') {
+    storage_core_bridge_styled_image_selector($field['field_name'])->create();
+  }
+
+  $selectors = variable_get('storage_core_bridge_selectors');
+  $selectors[] = $field['field_name'];
+  variable_set('storage_core_bridge_selectors', $selectors);
+}
+
+
+/**
+ * Implements hook_field_delete_field().
+ */
+function storage_core_bridge_field_delete_field(array $field) {
+
+  if (!in_array($field['type'], array('file', 'image'))) {
+    return;
+  }
+
+  storage_core_bridge_selector($field['field_name'])->destroy();
+
+  if ($field['type'] == 'image') {
+    storage_core_bridge_styled_image_selector($field['field_name'])->destroy();
+  }
+
+  $selectors = variable_get('storage_core_bridge_selectors');
+
+  foreach ($selectors as $key => $name) {
+    if ($name == $field['field_name']) {
+      unset($selectors[$key]);
+    }
+  }
+
+  variable_set('storage_core_bridge_selectors', $selectors);
 }
 
 
@@ -15,28 +78,18 @@ function _storage_core_bridge_selector_name($field_name) {
 function storage_core_bridge_stream_wrappers() {
 
   if (strpos($_GET['q'], 'admin/structure/types/manage/') === 0 && arg(5) == 'fields') {
-  
-    $field_name = _storage_core_bridge_selector_name(arg(6));
+    $field_name = arg(6);
   }
   else {
     $field_name = NULL;
   }
   
-  $selectors = variable_get('storage_core_bridge_selectors', array());
+  $selectors = variable_get('storage_core_bridge_selectors');
+  $wrappers = array();
   
-  if ($field_name) {
-    if (!in_array($field_name, $selectors)) {
-    
-      storage_selector('storage_core_bridge', $field_name)->create();
-      $selectors[] = $field_name;
-      variable_set('storage_core_bridge_selectors', $selectors);
-    }
-  }
-  
-  $wrappers = array();  
   foreach ($selectors as $selector_name) {
 
-    $wrappers['storage-' . $selector_name] = array(
+    $wrappers['storage-' . str_replace('_', '-', $selector_name)] = array(
       'name' => t("Storage class (select below)"),
       'class' => 'DrupalStorageStreamWrapper',
       'description' => t("Files managed by Storage API."),
@@ -48,15 +101,6 @@ function storage_core_bridge_stream_wrappers() {
 }
 
 
-function _storage_core_bridge_styled_selector($field_name) {
-
-  $description = "Styled images will be stored in this class.<br />";
-  $description .= "This can be safely changed at any time.";
-
-  return storage_selector('storage_core_bridge', 'styled-' . _storage_core_bridge_selector_name($field_name))
-    ->formItem(t("Styled storage class"), t($description));
-}
-
 /**
  * Implements hook_form_FORM_ID_alter().
  */
@@ -66,15 +110,17 @@ function storage_core_bridge_form_field_ui_field_settings_form_alter(array &$for
     return;
   }
 
-  $form['field']['settings']['storage_class'] = storage_selector('storage_core_bridge', 
-    _storage_core_bridge_selector_name($form['field']['field_name']['#value']))->formItem();
+  $form['field']['settings']['storage_class'] =
+    storage_core_bridge_selector($form['field']['field_name']['#value'])->formItem();
 
   $form['field']['settings']['uri_scheme']['#weight'] = -3;
   $form['field']['settings']['storage_class']['#weight'] = -2;
 
   if ($form['field']['type']['#value'] == 'image') {
-    $form['field']['settings']['storage_class_styled'] = 
-      _storage_core_bridge_styled_selector($form['field']['field_name']['#value']);
+
+    $form['field']['settings']['storage_class_styled'] =
+      storage_core_bridge_styled_image_selector_form_item($form['field']['field_name']['#value']);
+
     $form['field']['settings']['storage_class_styled']['#weight'] = -1;
   }
 
@@ -84,12 +130,11 @@ function storage_core_bridge_form_field_ui_field_settings_form_alter(array &$for
 
 function storage_core_bridge_field_ui_field_settings_form_submit(array $form, array &$form_state) {
 
-  storage_selector('storage_core_bridge', _storage_core_bridge_selector_name($form['field']['field_name']['#value']))
+  storage_core_bridge_selector($form['field']['field_name']['#value'])
     ->submit($form_state['values']['field']['settings']['storage_class']);
 
   if ($form['field']['type']['#value'] == 'image') {
-    storage_selector('storage_core_bridge', 'styled-' . 
-      _storage_core_bridge_selector_name($form['field']['field_name']['#value']))
+    storage_core_bridge_styled_image_selector($form['field']['field_name']['#value'])
       ->submit($form_state['values']['field']['settings']['storage_class_styled']);
   }
 }
@@ -104,15 +149,16 @@ function storage_core_bridge_form_field_ui_field_edit_form_alter(array &$form, a
     return;
   }
 
-  $form['field']['settings']['storage_class'] = storage_selector('storage_core_bridge', 
-    _storage_core_bridge_selector_name($form['#field']['field_name']))->formItem();
+  $form['field']['settings']['storage_class'] =
+    storage_core_bridge_selector($form['#field']['field_name'])->formItem();
     
   $form['field']['settings']['uri_scheme']['#weight'] = -3;
   $form['field']['settings']['storage_class']['#weight'] = -2;
   
   if ($form['#field']['type'] == 'image') {
-    $form['field']['settings']['storage_class_styled'] = 
-      _storage_core_bridge_styled_selector($form['#field']['field_name']);
+    $form['field']['settings']['storage_class_styled'] =
+      storage_core_bridge_styled_image_selector_form_item($form['#field']['field_name']);
+
     $form['field']['settings']['storage_class_styled']['#weight'] = -1;
   }
 
@@ -122,41 +168,17 @@ function storage_core_bridge_form_field_ui_field_edit_form_alter(array &$form, a
 
 function storage_core_bridge_field_ui_field_edit_form_submit(array $form, array &$form_state) {
 
-  storage_selector('storage_core_bridge', _storage_core_bridge_selector_name($form['#field']['field_name']))
+  storage_core_bridge_selector($form['#field']['field_name'])
     ->submit($form_state['values']['field']['settings']['storage_class']);
     
   if ($form['#field']['type'] == 'image') {
-    storage_selector('storage_core_bridge', 'styled-' . 
-      _storage_core_bridge_selector_name($form['#field']['field_name']))
+    storage_core_bridge_styled_image_selector($form['#field']['field_name'])
       ->submit($form_state['values']['field']['settings']['storage_class_styled']);
   }
 }
 
 
-/**
- * Implements hook_field_delete_field().
- */
-function storage_core_bridge_field_delete_field($field) {
-
-  if (!in_array($field['type'], array('file', 'image'))) {
-    return;
-  }
-
-  $field_name = _storage_core_bridge_selector_name($field['field_name']);
-
-  $selectors = variable_get('storage_core_bridge_selectors', array());
-  unset($selectors[$field_name]);
-  variable_set('storage_core_bridge_selectors', $selectors);
-
-  storage_selector('storage_core_bridge', $field_name)->destroy();
-
-  if ($field['type'] == 'image') {
-    storage_selector('storage_core_bridge', 'styled-' . $field_name)->destroy();
-  }
-}
-
-
-function _storage_core_bridge_storage_id($uri) {
+function storage_core_bridge_storage_id($uri) {
 
   return db_select('storage')
     ->fields('storage', array('storage_id'))
@@ -166,20 +188,26 @@ function _storage_core_bridge_storage_id($uri) {
 }
 
 
-function _storage_core_bridge_load($uri) {
+function storage_core_bridge_load($uri) {
 
-  return storage_load(_storage_core_bridge_storage_id($uri));
+  return storage_load(storage_core_bridge_storage_id($uri));
 }
 
 
-function storage_core_bridge_styled_image_load($uri, $style) {
+function storage_core_bridge_uri_selector_name($uri) {
 
-  $source_id = _storage_core_bridge_storage_id($uri);
+  return str_replace('-', '_', substr(file_uri_scheme($uri), 8));
+}
+
+
+function storage_core_bridge_styled_image_load($uri, $style_name) {
+
+  $source_id = storage_core_bridge_storage_id($uri);
 
   $storage_id = db_select('storage_styled_image')
     ->fields('storage_styled_image', array('storage_id'))
     ->condition('storage_styled_image.source_id', $source_id)
-    ->condition('storage_styled_image.style', $style)
+    ->condition('storage_styled_image.style', $style_name)
     ->execute()
     ->fetchField();
     
@@ -192,13 +220,14 @@ function storage_core_bridge_styled_image_load($uri, $style) {
       'type' => 'styled_image',
     );
 
-    $storage = storage_selector('storage_core_bridge', 'styled-' . substr(file_uri_scheme($uri), 8))
+    $selector_name = storage_core_bridge_uri_selector_name($uri);
+    $storage = storage_core_bridge_styled_image_selector($selector_name)
       ->storageAdd($options);
     
     db_insert('storage_styled_image')
       ->fields(array(
         'source_id' => $source_id,
-        'style' => $style,
+        'style' => $style_name,
         'storage_id' => $storage->storage_id,
       ))
       ->execute();
@@ -246,7 +275,7 @@ function storage_core_bridge_storage_generate(Storage $storage) {
 /**
  * Implements hook_image_style_flush().
  */
-function storage_core_bridge_image_style_flush($style) {
+function storage_core_bridge_image_style_flush(array $style) {
 
   $storage_ids = db_select('storage_styled_image')
     ->fields('storage_styled_image', array('storage_id'))
@@ -257,21 +286,122 @@ function storage_core_bridge_image_style_flush($style) {
   foreach ($storage_ids as $storage_id) {
     storage_load($storage_id)->remove();
   }
-  
+
   db_delete('storage_styled_image')
     ->condition('storage_styled_image.style', $style['name'])
     ->execute();
 }
 
 
+function storage_core_bridge_image_delete_derivatives($source_id) {
+
+  $storage_ids = db_select('storage_styled_image')
+    ->fields('storage_styled_image', array('storage_id'))
+    ->condition('storage_styled_image.source_id', $source_id)
+    ->execute()
+    ->fetchCol();
+
+  foreach ($storage_ids as $storage_id) {
+    storage_load($storage_id)->remove();
+  }
+
+  db_delete('storage_styled_image')
+    ->condition('storage_styled_image.source_id', $source_id)
+    ->execute();
+}
+
+
 class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
   protected $uri;
+  protected $mode;
   protected $filepath;
   protected $fp;
 
-  protected function selectorName() {
+
+  /**
+   * StreamWrapperInterface methods.
+   */
+
+  public function stream_open($uri, $mode, $options, &$opened_url) {
+    $this->uri = $uri;
+    $this->mode = $mode[0];
+    
+    switch ($this->mode) {
+
+      case 'w':
+        $this->filepath = drupal_tempnam('temporary://', 'storage');
+        $this->fp = fopen($this->filepath, "w");
+        break;
+
+      case 'r':
+        $storage = storage_core_bridge_load($uri);
+        $this->filepath = $storage->getLocalFilepath($this->keep_me);
+        $this->fp = fopen($this->filepath, "r");
+        break;
+    }
+    
+    return TRUE;
+  }
   
-    return substr(file_uri_scheme($this->uri), 8);
+  public function stream_close() {
+    global $storage_core_bridge_filename;
+    fclose($this->fp);
+
+    if ($this->mode == 'w') {
+
+      $options = array(
+        'filepath' => $this->filepath,
+        'filename' => $storage_core_bridge_filename,
+        'module' => 'storage_core_bridge',
+        'uri' => $this->uri,
+      );
+
+      try {
+        $selector_name = storage_core_bridge_uri_selector_name($this->uri);
+        $storage = storage_core_bridge_selector($selector_name)
+          ->storageAdd($options);
+      }
+      catch (Exception $e) {}
+    }
+  }
+  
+  public function stream_read($count) {
+    return fread($this->fp, $count);
+  }
+
+  public function stream_write($data) {
+    return fwrite($this->fp, $data);
+  }
+  
+  public function stream_eof() {
+    return feof($this->fp);
+  }
+  
+  public function stream_seek($offset, $whence) {
+    return fseek($this->fp, $offset, $whence);
+  }
+  
+  public function stream_flush() {
+    return fflush($this->fp);
+  }
+  
+  public function stream_tell() {
+    return ftell($this->fp);
+  }
+  
+  public function stream_stat() {
+    return $this->url_stat($this->uri);
+  }
+  
+  public function unlink($uri) {
+    $storage = storage_core_bridge_load($uri);
+    $storage->remove();
+    storage_core_bridge_image_delete_derivatives($storage->storage_id);
+    return TRUE;
+  }
+
+  public function mkdir($uri, $mode, $options) {
+    return TRUE;
   }
 
   public function url_stat($uri, $flags) {
@@ -279,16 +409,18 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
 
     $filename = file_uri_target($uri);
     
-    if ($storage_core_bridge_filename == '' || 
-      (count(explode('/', $filename)) > count(explode('/', $storage_core_bridge_filename)))) {
+    if ($storage_core_bridge_filename == '' ||
+      (count(explode('/', $filename)) > count(explode('/', $storage_core_bridge_filename))))
+    {
       $storage_core_bridge_filename = $filename;
     }
 
-    $storage = _storage_core_bridge_load($uri);
+    $storage = storage_core_bridge_load($uri);
     
-    if (!$storage)
+    if (!$storage) {
       return FALSE;
-      
+    }
+
     $stat = array(
       'mode' => 0100666,
       'size' => $storage->size,
@@ -300,93 +432,17 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
     return $stat;
   }
   
+  
+  /**
+   * DrupalStreamWrapperInterface methods.
+   */
+
   public function setUri($uri) {
     $this->uri = $uri;
   }
-  
-  public function getTarget($uri = NULL) {
-    if (!isset($uri)) {
-      $uri = $this->uri;
-    }
 
-    list($scheme, $target) = explode('://', $uri, 2);
-
-    // Remove erroneous leading or trailing, forward-slashes and backslashes.
-    return trim($target, '\/');
-  }
-
-  public function mkdir($uri, $mode, $options) {
-    return TRUE;
-  }
-  
-  public function getDirectoryPath() {
-    dsm(__FUNCTION__);
-    dsm(func_get_args());
-    return '';
-  }
-  
-  public function chmod($mode) {
-    return TRUE;
-  }
-  
-  public function stream_open($uri, $mode, $options, &$opened_url) {
-    $this->uri = $uri;
-    $this->filepath = drupal_tempnam('temporary://', 'storage');
-    $this->fp = fopen($this->filepath, "w");
-    return TRUE;
-  }
-  
-  public function stream_write($data) {
-    return fwrite($this->fp, $data);
-  }
-  
-  public function stream_flush() {
-    return fflush($this->fp);
-  }
-  
-  public function stream_close() {
-    global $storage_core_bridge_filename;
-    fclose($this->fp);
-    
-    $options = array(
-      'filepath' => $this->filepath,
-      'filename' => $storage_core_bridge_filename,
-      'module' => 'storage_core_bridge',
-      'uri' => $this->uri,
-    );
-    
-    try {
-      storage_selector('storage_core_bridge', $this->selectorName())->storageAdd($options);
-    }
-    catch (Exception $e) {}
-  }
-  
-  public function realpath() {
+  public function getUri() {
     return $this->uri;
-  }
-  
-  private function deleteStyledImages(Storage $storage) {
-  
-    $storage_ids = db_select('storage_styled_image')
-      ->fields('storage_styled_image', array('storage_id'))
-      ->condition('storage_styled_image.source_id', $storage->storage_id)
-      ->execute()
-      ->fetchCol();
-      
-    foreach ($storage_ids as $storage_id) {
-      storage_load($storage_id)->remove();
-    }
-    
-    db_delete('storage_styled_image')
-      ->condition('storage_styled_image.source_id', $storage->storage_id)
-      ->execute();
-  }
-
-  public function unlink($uri) {
-    $storage = _storage_core_bridge_load($uri);
-    $storage->remove();
-    $this->deleteStyledImages($storage);
-    return TRUE;
   }
   
   public function getExternalUrl() {
@@ -399,99 +455,41 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
       $storage = storage_core_bridge_styled_image_load($scheme . '://' . implode('/', $components), $style);
     }
     else {
-      $storage = _storage_core_bridge_load($this->uri);
+      $storage = storage_core_bridge_load($this->uri);
     }
 
     return $storage->serveURL(TRUE);
   }
   
-  
   public static function getMimeType($uri, $mapping = NULL) {
-    dsm(__FUNCTION__);
-    dsm(func_get_args());
-
-    $storage = _storage_core_bridge_load($this->uri);
+    $storage = storage_core_bridge_load($uri);
     return $storage->mimetype;
   }
 
-  public function getUri() {
-    dsm(__FUNCTION__);
-    dsm(func_get_args());
-    
+  public function chmod($mode) {
+    return TRUE;
+  }
+
+  public function realpath() {
     return $this->uri;
   }
-  
 
   public function dirname($uri = NULL) {
-    list($scheme, $target) = explode('://', $uri, 2);
-    $target  = $this->getTarget($uri);
-    $dirname = dirname($target);
-
-    if ($dirname == '.') {
-      $dirname = '';
-    }
-
-    return $scheme . '://' . $dirname;
+    return file_uri_scheme($uri) . '://';
   }
 
-  public function stream_lock($operation) {
-    dsm(__FUNCTION__);
-    dsm(func_get_args());
-  }
-  
-  public function stream_read($count) {
-    dsm(__FUNCTION__);
-    dsm(func_get_args());
-  }
-  
-  public function stream_eof() {
-    dsm(__FUNCTION__);
-    dsm(func_get_args());
-  }
-  
-  public function stream_seek($offset, $whence) {
-    dsm(__FUNCTION__);
-    dsm(func_get_args());
-  }
-  
-  public function stream_tell() {
-    dsm(__FUNCTION__);
-    dsm(func_get_args());
-  }
-  
-  public function stream_stat() {
-    dsm(__FUNCTION__);
-    dsm(func_get_args());
-  }
-  
-  public function rename($from_uri, $to_uri) {
-    dsm(__FUNCTION__);
-    dsm(func_get_args());
-  }
-  
-  public function rmdir($uri, $options) {
-    dsm(__FUNCTION__);
-    dsm(func_get_args());
-  }
-  
-  public function dir_opendir($uri, $options) {
-    dsm(__FUNCTION__);
-    dsm(func_get_args());
-  }
-  
-  public function dir_readdir() {
-    dsm(__FUNCTION__);
-    dsm(func_get_args());
-  }
-  
-  public function dir_rewinddir() {
-    dsm(__FUNCTION__);
-    dsm(func_get_args());
-  }
-  
-  public function dir_closedir() {
-    dsm(__FUNCTION__);
-    dsm(func_get_args());
-  }
+
+  /**
+   * Unimplemented methods.
+   */
+
+  public function stream_lock($operation) {}
+  public function rename($from_uri, $to_uri) {}
+  public function rmdir($uri, $options) {}
+  public function dir_opendir($uri, $options) {}
+  public function dir_readdir() {}
+  public function dir_rewinddir() {}
+  public function dir_closedir() {}
+  public function getDirectoryPath() {}
 }
 
