@@ -533,61 +533,34 @@ function _storage_get_service_names() {
 }
 
 
-function _storage_bcmath() {
-
-  // crappy bcmath replacements
-
-  if (!function_exists('bcdiv')) {
-  
-    function bcdiv($left_operand, $right_operand, $scale = 0) {
-      return round($left_operand / $right_operand, $scale);
-    }
-  }
-
-  if (!function_exists('bccomp')) {
-  
-    function bccomp($left_operand, $right_operand, $scale = 0) {
-      if ($left_operand == $right_operand)
-        return 0;
-        
-      if ($left_operand > $right_operand)
-        return 1;
-        
-      return -1;
-    }
-  }
-}
-
-
 /**
- * Format a byte count to make it easy to read.
+ * Generates a human-readable representation of a byte count.
  *
- * See http://en.wikipedia.org/wiki/Kilobyte .
+ * See http://en.wikipedia.org/wiki/Kilobyte for more information.
  *
- * @param $count
- *   Byte count to be formatted.
+ * @param $size
+ *   A byte count.
+ *
  * @return
- *   Formatted size.
+ *   A human readable representation of the byte count.
  */
-function storage_format_size($count) {
-  _storage_bcmath();
+function storage_format_size($size) {
 
-  if (bccomp($count, 1000) < 0) {
-    return format_plural((int)$count, '1 byte', '@count bytes');
-  }
-  
-  $count = bcdiv($count, 1000, 2);
-  $u = 0;
-  
-  while (bccomp($count, 1000) >= 0) {
-
-    $count = bcdiv($count, 1000, 2);
-    $u++;
+  if ($size < 1000) {
+    return format_plural($size, '1 byte', '@count bytes');
   }
 
   $units = array('kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB');
-  
-  return $count . ' ' . $units[$u];
+
+  foreach ($units as $unit) {
+    $size /= 1000;
+
+    if ($size < 1000) {
+      break;
+    }
+  }
+
+  return round($size, 2) . ' ' . $unit;
 }
 
 
