@@ -286,7 +286,7 @@ class Storage {
       @unlink($filepath);
     }
 
-    exit();
+    drupal_exit();
   }
 
   /**

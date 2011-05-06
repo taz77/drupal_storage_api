@@ -169,7 +169,8 @@ class StorageDB extends StorageContainer implements StorageServiceInterface {
       $reference
     ));
     
-    exit();
+    db_set_active();
+    drupal_exit();
   }
 }
 
