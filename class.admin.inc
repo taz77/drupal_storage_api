@@ -325,7 +325,7 @@ function theme_storage_class_edit_form($elements) {
   $output = drupal_render($form['name']);
   $output .= drupal_render($form['options']);
 
-  if(count($form['#container_ids'])) {
+  if (count($form['#container_ids'])) {
   
     $header = array(t('Container'), t('Service'), t('Weight'), t('Serving'), t('Remove'));
     $rows = array();

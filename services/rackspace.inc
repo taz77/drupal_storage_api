@@ -4,7 +4,6 @@
 
 
 class StorageRackspace extends StorageContainer implements StorageServiceInterface {
-
   private $conn;
 
   private function log_exception($e, $dsm = TRUE) {
@@ -40,8 +39,9 @@ class StorageRackspace extends StorageContainer implements StorageServiceInterfa
     catch(AuthenticationException $e) {
       _storage_rackspace_log_exception($e, FALSE);
       
-      if (user_access('administer storage'))
+      if (user_access('administer storage')) {
         drupal_set_message(t('Invalid username or access key.'));
+      }
         
       throw new Exception();
     }
@@ -58,8 +58,9 @@ class StorageRackspace extends StorageContainer implements StorageServiceInterfa
     $rscf_containers = &drupal_static(__FUNCTION__);
     $rscf_containers = array();
     
-    if ($rscf_containers[$this->container_id])
+    if ($rscf_containers[$this->container_id]) {
       return $rscf_containers[$this->container_id];
+    }
 
     $this->init($this->settings);
     
@@ -143,8 +144,9 @@ class StorageRackspace extends StorageContainer implements StorageServiceInterfa
       form_set_error('settings][rscf_container', t('Cloud Files container name field is required.'));
     }
     
-    if (form_get_errors())
+    if (form_get_errors()) {
       return;
+    }
     
     try {
       $this->init($this->settings);
@@ -267,8 +269,9 @@ class StorageRackspace extends StorageContainer implements StorageServiceInterfa
 
     $rscf_container = $this->rscf_container($this);
 
-    if (!$rscf_container)
+    if (!$rscf_container) {
       return FALSE;
+    }
 
     $filepath = tempnam(file_directory_temp(), '');
     

@@ -498,7 +498,7 @@ abstract class StorageContainer {
 
   public function serviceInstanceCheck($reference) {
     $filepath = $this->serviceInstanceGetFilepath($reference);
-    $stat = stat($filepath);
+    $stat = @stat($filepath);
     
     if ($stat != FALSE) {
 

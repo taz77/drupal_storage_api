@@ -296,8 +296,9 @@ class StorageSelector {
           $message = 'Failed to create initial instance of file ' . ($storage->filename ? ($storage->filename . ' ') : '');
           $message .= 'in storage container <i>' . $container->name() . '</i>.';
 
-          if (user_access('administer storage'))
+          if (user_access('administer storage')) {
             drupal_set_message($message);
+          }
 
           $message .= ' <br />' . $storage->logInfo();
           watchdog('storage_api', $message, NULL, WATCHDOG_WARNING, $link);
