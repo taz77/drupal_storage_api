@@ -48,7 +48,7 @@ function storage_core_bridge_install() {
   $keys = array('unique keys' => array('uri' => array('uri')));
 
   db_add_field('storage', 'uri', $spec, $keys); 
-  variable_set('storage_core_bridge_selectors', array());
+  variable_set('storage_core_bridge_fields', array());
 }
 
 
@@ -58,7 +58,7 @@ function storage_core_bridge_install() {
 function storage_core_bridge_uninstall() {
 
   db_drop_field('storage', 'uri');
-  variable_del('storage_core_bridge_selectors');
+  variable_del('storage_core_bridge_fields');
 }
 
 

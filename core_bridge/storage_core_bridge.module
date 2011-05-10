@@ -40,9 +40,9 @@ function storage_core_bridge_field_create_field(array $field) {
     storage_core_bridge_styled_image_selector($field['field_name'])->create();
   }
 
-  $selectors = variable_get('storage_core_bridge_selectors');
-  $selectors[] = $field['field_name'];
-  variable_set('storage_core_bridge_selectors', $selectors);
+  $fields = variable_get('storage_core_bridge_fields');
+  $fields[] = $field['field_name'];
+  variable_set('storage_core_bridge_fields', $fields);
 }
 
 
@@ -61,15 +61,15 @@ function storage_core_bridge_field_delete_field(array $field) {
     storage_core_bridge_styled_image_selector($field['field_name'])->destroy();
   }
 
-  $selectors = variable_get('storage_core_bridge_selectors');
+  $fields = variable_get('storage_core_bridge_fields');
 
-  foreach ($selectors as $key => $name) {
+  foreach ($fields as $key => $name) {
     if ($name == $field['field_name']) {
-      unset($selectors[$key]);
+      unset($fields[$key]);
     }
   }
 
-  variable_set('storage_core_bridge_selectors', $selectors);
+  variable_set('storage_core_bridge_fields', $fields);
 }
 
 
@@ -79,22 +79,22 @@ function storage_core_bridge_field_delete_field(array $field) {
 function storage_core_bridge_stream_wrappers() {
 
   if (strpos($_GET['q'], 'admin/structure/types/manage/') === 0 && arg(5) == 'fields') {
-    $field_name = arg(6);
+    $active_field = arg(6);
   }
   else {
-    $field_name = NULL;
+    $active_field = NULL;
   }
   
-  $selectors = variable_get('storage_core_bridge_selectors');
+  $fields = variable_get('storage_core_bridge_fields');
   $wrappers = array();
   
-  foreach ($selectors as $selector_name) {
+  foreach ($fields as $field) {
 
-    $wrappers['storage-' . str_replace('_', '-', $selector_name)] = array(
+    $wrappers['storage-' . str_replace('_', '-', $field)] = array(
       'name' => t("Storage class (select below)"),
       'class' => 'DrupalStorageStreamWrapper',
       'description' => t("Files managed by Storage API."),
-      'type' => ($selector_name == $field_name) ? STREAM_WRAPPERS_NORMAL : STREAM_WRAPPERS_HIDDEN,
+      'type' => ($field == $active_field) ? STREAM_WRAPPERS_NORMAL : STREAM_WRAPPERS_HIDDEN,
     );
   }
   
