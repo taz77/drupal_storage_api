@@ -233,6 +233,9 @@ class StorageSelector {
    *       Filepath to get the file from.
    *     - 'keep_me' (default FALSE)
    *       Ensure the filepath is left intact.
+   *     - 'file_id'
+   *       If the same file is already in the system, its file_id can be
+   *       specified.
    *     - 'source_url'
    *       URL to get the file from
    *     - 'filename'

@@ -216,17 +216,34 @@ function storage_core_bridge_styled_image_load($uri, $style_name) {
     $storage = storage_load($storage_id);
   }
   else {
+    $source_storage = storage_load($source_id);
     $options = array(
       'module' => 'storage_core_bridge',
       'type' => 'styled_image',
     );
 
-    // Determine filename of styled image.
-    $source_storage = storage_load($source_id);
+    // Determine the filename of the styled image.
     $components = explode('/', $source_storage->filename);
     $basename = array_pop($components);
     array_push($components, $style_name, $basename);
     $options['filename'] = implode('/', $components);
+
+    // Try to determine the file_id of the styled image. This means
+    // deduplication can occur without the image being generated.
+    $query = db_select('storage', 'source_storage');
+    $query->join('storage_styled_image', NULL, 'source_storage.storage_id = storage_styled_image.source_id');
+    $query->join('storage', NULL, 'storage_styled_image.storage_id = storage.storage_id');
+
+    $file_id = $query->condition('source_storage.file_id', $source_storage->file_id)
+      ->condition('storage_styled_image.style', $style_name)
+      ->fields('storage', array('file_id'))
+      ->range(0, 1)
+      ->execute()
+      ->fetchField();
+
+    if ($file_id) {
+      $options['file_id'] = $file_id;
+    }
 
     $field_name = storage_core_bridge_uri_field_name($uri);
     $storage = storage_core_bridge_styled_image_selector($field_name)->storageAdd($options);
