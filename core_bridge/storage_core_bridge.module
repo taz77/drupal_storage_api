@@ -220,6 +220,13 @@ function storage_core_bridge_styled_image_load($uri, $style_name) {
       'type' => 'styled_image',
     );
 
+    // Determine filename of styled image.
+    $source_storage = storage_load($source_id);
+    $components = explode('/', $source_storage->filename);
+    $basename = array_pop($components);
+    array_push($components, $style_name, $basename);
+    $options['filename'] = implode('/', $components);
+
     $selector_name = storage_core_bridge_uri_selector_name($uri);
     $storage = storage_core_bridge_styled_image_selector($selector_name)
       ->storageAdd($options);
@@ -264,11 +271,7 @@ function storage_core_bridge_storage_generate(Storage $storage) {
 
   image_style_create_derivative($style, $source, $destination);
   
-  $components = explode('/', $source_storage->filename);
-  $basename = array_pop($components);
-  array_push($components, $styled_image['style'], $basename);
-  
-  return array($destination, implode('/', $components));
+  return $destination;
 }
 
 

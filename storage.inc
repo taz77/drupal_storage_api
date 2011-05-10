@@ -35,6 +35,11 @@ class Storage {
       $storage['data'] = unserialize($storage['data']);
     }
     
+    // Even if the storage doesn't yet have a file_id, it may have a filename.
+    if (isset($storage['data']['filename'])) {
+      $storage['filename'] = $storage['data']['filename'];
+    }
+
     if (isset($storage['options'])) {
       $storage['options'] = unserialize($storage['options']);
     }
@@ -593,13 +598,13 @@ class Storage {
     if ($this->module) {
 
       try {
-        list($filepath, $filename) = module_invoke($this->module, 'storage_generate', $this);
+        $filepath = module_invoke($this->module, 'storage_generate', $this);
       }
       catch (Exception $e) {
         return FALSE;
       }
       
-      $file_id = _storage_api_file_id($filepath, $filename, $new_file);
+      $file_id = _storage_api_file_id($filepath, $this->filename, $new_file);
       
       if (!$file_id) {
         @unlink($filepath);
@@ -633,6 +638,7 @@ class Storage {
       if ($this->file_id != $file_id) {
         $this->file_id = $file_id;
         $this->obtained = time();
+        unset($this->data['filename']);
         $this->update();
 
         // we need to reload $storage to get the filesize, etc
