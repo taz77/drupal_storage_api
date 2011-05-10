@@ -20,7 +20,8 @@ function storage_core_bridge_styled_image_selector_form_item($field_name) {
   $description = "Styled images will be stored in this class.<br />";
   $description .= "This can be safely changed at any time.";
 
-  return storage_core_bridge_styled_image_selector($field_name)->formItem(t("Styled storage class"), t($description));
+  return storage_core_bridge_styled_image_selector($field_name)
+    ->formItem(t("Styled storage class"), t($description));
 }
 
 
@@ -194,7 +195,7 @@ function storage_core_bridge_load($uri) {
 }
 
 
-function storage_core_bridge_uri_selector_name($uri) {
+function storage_core_bridge_uri_field_name($uri) {
 
   return str_replace('-', '_', substr(file_uri_scheme($uri), 8));
 }
@@ -227,9 +228,8 @@ function storage_core_bridge_styled_image_load($uri, $style_name) {
     array_push($components, $style_name, $basename);
     $options['filename'] = implode('/', $components);
 
-    $selector_name = storage_core_bridge_uri_selector_name($uri);
-    $storage = storage_core_bridge_styled_image_selector($selector_name)
-      ->storageAdd($options);
+    $field_name = storage_core_bridge_uri_field_name($uri);
+    $storage = storage_core_bridge_styled_image_selector($field_name)->storageAdd($options);
     
     db_insert('storage_styled_image')
       ->fields(array(
@@ -360,9 +360,8 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
       );
 
       try {
-        $selector_name = storage_core_bridge_uri_selector_name($this->uri);
-        $storage = storage_core_bridge_selector($selector_name)
-          ->storageAdd($options);
+        $field_name = storage_core_bridge_uri_field_name($this->uri);
+        $storage = storage_core_bridge_selector($field_name)->storageAdd($options);
       }
       catch (Exception $e) {}
     }
