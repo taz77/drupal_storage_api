@@ -56,7 +56,6 @@ class StorageClass {
       ->fields(array(
         'class_id' => $this->class_id,
         'container_id' => $container->container_id,
-        'serving' => TRUE,
       ))
       ->execute();  
     

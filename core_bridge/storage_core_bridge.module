@@ -443,7 +443,7 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
     $stat = array(
       'mode' => 0100666,
       'size' => $storage->size,
-      'atime' => $storage->last_touched,
+      'atime' => $storage->obtained,
       'mtime' => $storage->obtained,
       'ctime' => $storage->obtained,
     );

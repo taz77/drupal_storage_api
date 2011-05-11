@@ -439,18 +439,17 @@ function _storage_api_file_id($filepath, $filename, &$new_file = NULL) {
   $txn = db_transaction();
   $file_id = db_select('storage_file')
     ->fields('storage_file', array('file_id'))
-    ->condition('filename', $filename)
-    ->condition('size', $fileinfo['size'])
     ->condition('md5', $md5)
+    ->condition('filename', $filename)
     ->execute()
     ->fetchField();
 
   if ($file_id === FALSE) {
   
     $file = array(
+      'md5' => $md5,
       'filename' => $filename,
       'size' => $fileinfo['size'],
-      'md5' => $md5,
       'mimetype' => storage_api_mime_detect($filepath, $filename),
     );
 

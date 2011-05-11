@@ -63,7 +63,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
           $components[1] = base64_encode($storage->md5);
           $components[2] = $storage->mimetype;
           
-          $headers = array_merge($headers, $storage->HTTPHeaders($this->acsc));
+          $headers = array_merge($headers, $storage->HTTPHeaders($this->enhanced_caching));
           
           $curl_options[CURLOPT_INFILE] = $fp;
           $curl_options[CURLOPT_INFILESIZE] = $storage->size;
@@ -820,7 +820,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
 
   public function serviceInstanceCreate(Storage $storage, array $source) {
     
-    if ($this->acsc) {
+    if ($this->enhanced_caching) {
       $reference = $storage->file_id . '/' . $storage->filename;
     }
     else {

@@ -65,9 +65,9 @@ class Storage {
       'size' => $this->size,
       'uid' => $user->uid,
       'sid' => session_id(),
-      'ip_addr' => ip2long(ip_address()),
+      'ip_address' => ip_address(),
       'timestamp' => REQUEST_TIME,
-      'referrer' => substr($_SERVER['HTTP_REFERER'], 0, 255)
+      'referrer' => substr($_SERVER['HTTP_REFERER'], 0, 4095),
     );
     
     if ($container_id) {
@@ -77,18 +77,7 @@ class Storage {
     drupal_write_record('storage_serving', $serving);
     
     db_update('storage')
-      ->fields(array('last_touched' => REQUEST_TIME))
-      ->expression('servings', 'servings + :one', array(':one' => 1))   // apparently literals can't be in fragments
-      ->condition('storage_id', $this->storage_id)
-      ->execute();
-  }
-  
-  public function touch() {
-
-    $this->last_touched = REQUEST_TIME;
-
-    db_update('storage')
-      ->fields(array('last_touched' => $this->last_touched))
+      ->expression('servings', 'servings + 1')
       ->condition('storage_id', $this->storage_id)
       ->execute();
   }
@@ -334,9 +323,6 @@ class Storage {
     if (!isset($url)) {
       $url = $this->path();
     }
-    else {
-      $this->touch();
-    }
 
     return url($url, array('absolute' => $absolute));
   }
@@ -346,35 +332,6 @@ class Storage {
     return 'system/storage/serve/' . $this->storage_id . ($this->filename ? ('/' . $this->filename) : '');
   }
 
-
-  /**
-   * Transfers serving statistics from one file to another.
-   *
-   * @param $old_storage_id
-   *   storage_id of the file the statistics are being transferred from.
-   */
-  public function inheritServings($old_storage_id) {
-
-    if (!$old_storage_id)
-      return;
-
-    db_update('storage_serving')
-      ->fields(array('storage_id' => $this->storage_id))
-      ->condition('storage_id', $old_storage_id)
-      ->execute();
-
-    $old_stats = db_select('storage')
-      ->fields('storage', array('servings', 'last_touched'))
-      ->condition('storage_id', $old_storage_id)
-      ->execute()
-      ->fetchAssoc();
-
-    db_update('storage')
-      ->expression('servings', 'servings + :servings', array(':servings' => $old_stats['servings']))
-      ->expression('last_touched', 'GREATEST(last_touched, :last_touched)', array(':last_touched' => $old_stats['last_touched']))
-      ->condition('storage_id', $this->storage_id)
-      ->execute();
-  }
 
   public function logInfo() {
 
@@ -435,14 +392,14 @@ class Storage {
    * @return
    *   An array of HTTP headers.
    */
-  public function HTTPHeaders($acsc = FALSE) {
+  public function HTTPHeaders($enhanced_caching = FALSE) {
     $headers[] = 'Content-Type: ' . $this->mimetype;
     $headers[] = 'Content-Length: ' . $this->size;
     $headers[] = 'Content-MD5: ' . base64_encode($this->md5);
     $headers[] = 'Last-Modified: ' . date(DATE_RFC1123, $this->obtained);
     $headers[] = 'Content-Disposition: attachment; filename="' . basename($this->filename) . '"';
     
-    if ($acsc) {
+    if ($enhanced_caching) {
       $headers[] = 'Cache-control: max-age=' . 60 * 60 * 24 * 365;  // the file will stay fresh for a whole year 
     }
 

@@ -110,7 +110,7 @@ function storage_create_container_form($form, &$form_state) {
         '#description' => t("Prevents files being served to users who are not authorised.<br />Depending on the service, this can have significant performance implications.<br />Even without this enabled, URLs will only be generated for files that the user has permission to access."),
       );
       
-      $form['acsc'] = array(
+      $form['enhanced_caching'] = array(
         '#type' => 'checkbox',
         '#title' => t('Aggressive client-side caching'),
         '#description' => t('Some services can generate URLs that will never be resued for a different file. This means the web browser doesn\'t have to check if the URL still points to the same file, incresing performance. However, URLs will not look as clean.'),
@@ -134,7 +134,7 @@ function storage_create_container_form($form, &$form_state) {
         t('Name') => $container->name(),
         t('Service') => $service_name,
         t('Access control') => $container->access_control ? t('Yes') : t('No'),
-        t('ACSC') => $container->acsc ? t('Yes') : t('No'),
+        t('Enhanced caching') => $container->enhanced_caching ? t('Yes') : t('No'),
       );
 
       $form['info'] = array(
@@ -181,7 +181,7 @@ function storage_create_container_form_validate($form, &$form_state) {
       $form_state['storage']['name'] = $form_state['values']['name'];
       $form_state['storage']['service_id'] = $form_state['values']['service_id'];
       $form_state['storage']['access_control'] = $form_state['values']['access_control'];
-      $form_state['storage']['acsc'] = $form_state['values']['acsc'];
+      $form_state['storage']['enhanced_caching'] = $form_state['values']['enhanced_caching'];
       
       $container = storage_container_new($form_state['storage'], FALSE);
       
@@ -269,7 +269,7 @@ function storage_container_form($form, &$form_state, StorageContainer $container
   $info = array(
     t('Service') => $container->service()->name(),
     t('Access control') => $container->access_control ? t('Yes') : t('No'),
-    t('ACSC') => $container->acsc ? t('Yes') : t('No'),
+    t('Enhanced caching') => $container->enhanced_caching ? t('Yes') : t('No'),
     t('Suspended') => $container->suspended ? t('Yes') : t('No'),
     t('Classes') => _storage_container_render_classes($container->classes()),
     t('Instances') => $container->count(),

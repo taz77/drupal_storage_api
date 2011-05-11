@@ -281,7 +281,6 @@ class StorageSelector {
       $options['data']['filename'] = $options['filename'];
     }
 
-    $options['check_me'] = TRUE;
     drupal_write_record('storage', $options);
     $storage = storage_load($options['storage_id']);
     
