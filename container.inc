@@ -35,7 +35,7 @@ abstract class StorageContainer {
     $query->join('storage_file', NULL, 'storage_instance.file_id = storage_file.file_id');
     $query->addExpression('SUM(storage_file.size)', 'size');
 
-    $size = $query->condition('container_id', $this->container_id)
+    $size = (int) $query->condition('container_id', $this->container_id)
       ->execute()
       ->fetchField();
       
