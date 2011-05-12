@@ -9,9 +9,7 @@
 function storage_audit_install() {
 
   $spec = array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 1);
-  $keys = array('indexes' => array('audit' => array('audit')));
-
-  db_add_field('storage_instance', 'audit', $spec, $keys); 
+  db_add_field('storage_instance', 'audit', $spec);
 }
 
 
@@ -31,5 +29,4 @@ function storage_audit_schema_alter(&$schema) {
 
   $schema['storage_instance']['fields']['audit'] = array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE,
     'default' => 1);
-  $schema['storage_instance']['indexes']['audit'] = array('audit');
 }

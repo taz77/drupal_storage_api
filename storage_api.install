@@ -168,11 +168,14 @@ function storage_api_schema() {
   $schema['storage_instance'] = array(
     'fields' => array(
       'container_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
-      'file_id' => array('type' => 'int', 'unsigned' => TRUE),
       'reference' => array('type' => 'varchar', 'length' => 4095, 'not null' => TRUE),
+      'file_id' => array('type' => 'int', 'unsigned' => TRUE),
     ),
     'unique keys' => array(
-      'instance' => array('container_id', 'file_id'),
+      'file_id' => array('container_id', 'file_id'),
+    ),
+    'indexes' => array(
+      'reference' => array('container_id', 'reference'),
     ),
   );
   
