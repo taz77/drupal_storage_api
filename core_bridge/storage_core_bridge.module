@@ -350,13 +350,13 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
 
       case 'w':
         $this->filepath = drupal_tempnam('temporary://', 'storage');
-        $this->fp = fopen($this->filepath, "w");
+        $this->fp = fopen($this->filepath, 'wb');
         break;
 
       case 'r':
         $storage = storage_core_bridge_load($uri);
         $this->filepath = $storage->getLocalFilepath($this->keep_me);
-        $this->fp = fopen($this->filepath, "r");
+        $this->fp = fopen($this->filepath, 'rb');
         break;
     }
     
@@ -397,11 +397,9 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
   }
   
   public function stream_seek($offset, $whence) {
-    return fseek($this->fp, $offset, $whence);
-  }
-  
-  public function stream_flush() {
-    return fflush($this->fp);
+    // fseek() returns 0 on success and -1 on a failure.
+    // stream_seek()   1 on success and  0 on a failure.
+    return !fseek($this->fp, $offset, $whence);
   }
   
   public function stream_tell() {
@@ -503,6 +501,7 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
    */
 
   public function stream_lock($operation) {}
+  public function stream_flush() {}
   public function rename($from_uri, $to_uri) {}
   public function rmdir($uri, $options) {}
   public function dir_opendir($uri, $options) {}
