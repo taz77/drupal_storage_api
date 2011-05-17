@@ -50,7 +50,12 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
             $headers[] = 'x-amz-acl: public-read';
             $components[] = 'x-amz-acl:public-read';
           }
-          
+
+          if (!empty($this->settings['reduced_redundancy'])) {
+            $headers[] = 'x-amz-storage-class: REDUCED_REDUNDANCY';
+            $components[] = 'x-amz-storage-class:REDUCED_REDUNDANCY';
+          }
+
           if (!empty($source['copy_source'])) {
             $headers[] = 'x-amz-copy-source: ' . $source['copy_source'];
             $components[] = 'x-amz-copy-source:' . $source['copy_source'];
@@ -596,7 +601,13 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
         '#default_value' => isset($this->settings['location']) ? $this->settings['location'] : NULL,
       );
     }
-    
+
+    $items['reduced_redundancy'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Reduced redundancy'),
+      '#default_value' => isset($this->settings['reduced_redundancy']) ? $this->settings['reduced_redundancy'] : NULL,
+    );
+
     if ($this->access_control) {
     
       $description = t('(seconds)<br />This container will produce cryptographically signed URLs that will cease to function once their lifetime is over.');
