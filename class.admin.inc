@@ -506,7 +506,7 @@ function storage_class_add_container_form($form, &$form_state, StorageClass $cla
     '#type' => 'select',
     '#required' => TRUE,
     '#options' => $containers,
-    '#default_value' => array_shift(array_keys($containers)),
+    '#default_value' => 0,
   );
   
   $form['submit'] = array(
