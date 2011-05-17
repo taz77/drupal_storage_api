@@ -169,9 +169,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
   private function url($s3_object) {
     $query = array();
 
-    if ($this->settings['cloudfront'] && 
-      $this->settings['cloudfront_status'] == 'Deployed')
-    {
+    if ($this->settings['cloudfront'] && $this->settings['cloudfront_status'] == 'Deployed') {
       $path = 'http://' . $this->settings['cloudfront_domain'] . '/' . $s3_object;
     }
     else {
@@ -234,8 +232,8 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
     else {
       $path = '/2009-12-01/distribution';
 
-      if (isset($this->settings['streaming_id'])) {
-        $id = $this->settings['streaming_id'];
+      if (isset($this->settings['cloudfront_id'])) {
+        $id = $this->settings['cloudfront_id'];
       }
     }
 
@@ -381,77 +379,63 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
 
   private function distributionDeploy() {
 
-    $deploy = variable_get('storage_s3_cloudfront_deploy', array());
+    $result = $this->requestCloudFront('GET');
     
-    foreach ($deploy as $container_id => $null) {
-    
-      $container = storage_container_load($container_id);
-      
-      $result = $this->requestCloudFront('GET');
-      
-      if (!$result['http_code'])
-        continue;
-      
-      if ($result['http_code'] != 200) {
-        $container->settings['cloudfront'] = FALSE;
-        $message = 'Failed to deploy CloudFront distribution for storage container <i>' . $container->name() . '</i>.';
-      }
-      else {
-        $container->settings['cloudfront_status'] = (string) $result['simplexml']->Status;
-        
-        if ($container->settings['cloudfront_status'] != 'Deployed')
-          continue;
-
-        $message = 'Deployed CloudFront distribution for storage container <i>' . $container->name() . '</i>.';
-      }
-    
-      $container->update();
-      $container->flushServingContainer();
-      
-      unset($deploy[$container_id]);
-      variable_set('storage_s3_cloudfront_deploy', $deploy);
-
-      watchdog('storage_s3', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $container->path()));
+    // If we can't get through to AWS then abort.
+    if (!$result['http_code']) {
+      return;
     }
+    
+    if ($result['http_code'] != 200) {
+      $this->settings['cloudfront'] = FALSE;
+      $message = 'Failed to deploy CloudFront distribution for storage container <i>' . $this->name() . '</i>.';
+    }
+    else {
+      $this->settings['cloudfront_status'] = (string) $result['simplexml']->Status;
+      
+      if ($this->settings['cloudfront_status'] != 'Deployed') {
+        return;
+      }
+
+      $message = 'Deployed CloudFront distribution for storage container <i>' . $this->name() . '</i>.';
+    }
+
+    $this->update();
+    $this->flushServingContainer();
+
+    watchdog('storage_s3', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $this->path()));
   }
 
   private function distributionDeployStreaming() {
 
-    $deploy = variable_get('storage_s3_cloudfront_streaming_deploy', array());
+    $result = $this->requestCloudFront('GET', TRUE);
     
-    foreach ($deploy as $container_id => $null) {
-    
-      $container = storage_container_load($container_id);
-      
-      $result = $this->requestCloudFront('GET', TRUE);
-      
-      if (!$result['http_code'])
-        continue;
-
-      if ($result['http_code'] != 200) {
-        $container->settings['cloudfront_streaming'] = FALSE;
-        $message = 'Failed to deploy CloudFront streaming distribution for storage container <i>' . 
-          $container->name() . '</i>.';
-      }
-      else {
-        $container->settings['cloudfront_streaming_status'] = (string) $result['simplexml']->Status;
-        
-        if ($container->settings['cloudfront_streaming_status'] != 'Deployed')
-          continue;
-    
-        $message = 'Deployed CloudFront streaming distribution for storage container <i>' . $container->name() . '</i>.';
-      }
-
-      $container->update();
-      $container->flushServingContainer();
-
-      unset($deploy[$container_id]);
-      variable_set('storage_s3_cloudfront_streaming_deploy', $deploy);
-      
-      watchdog('storage_s3', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $container->path()));
+    // If we can't get through to AWS then abort.
+    if (!$result['http_code']) {
+      return;
     }
+    
+    if ($result['http_code'] != 200) {
+      $this->settings['cloudfront_streaming'] = FALSE;
+      $message = 'Failed to deploy CloudFront streaming distribution for storage container <i>' . $this->name() . '</i>.';
+    }
+    else {
+      $this->settings['cloudfront_streaming_status'] = (string) $result['simplexml']->Status;
+      
+      if ($this->settings['cloudfront_streaming_status'] != 'Deployed') {
+        return;
+      }
+
+      $message = 'Deployed CloudFront streaming distribution for storage container <i>' . $this->name() . '</i>.';
+    }
+
+    $this->update();
+    $this->flushServingContainer();
+
+    watchdog('storage_s3', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $this->path()));
   }
 
+/*
   private function distributionDelete() {
 
     $delete = variable_get('storage_s3_cloudfront_delete', array());
@@ -557,8 +541,8 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
       variable_set('storage_s3_cloudfront_streaming_delete', $delete);
     }
   }
-  
-  
+*/
+
   public function serviceSettingsForm($edit = FALSE) {
 
     $items['credentials_info'] = array(
@@ -706,26 +690,20 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
 
     if ($this->settings['cloudfront']) {
       $this->distributionCreate();
-      
-      $deploy = variable_get('storage_s3_cloudfront_deploy', array());
-      $deploy[$this->container_id] = TRUE;
-      variable_set('storage_s3_cloudfront_deploy', $deploy);
+      $update = TRUE;
     }
 
     if ($this->settings['cloudfront_streaming']) {
       $this->distributionCreateStreaming();
-      
-      $deploy = variable_get('storage_s3_cloudfront_streaming_deploy', array());
-      $deploy[$this->container_id] = TRUE;
-      variable_set('storage_s3_cloudfront_streaming_deploy', $deploy);
+      $update = TRUE;
     }
+
+    return isset($update);
   }
 
   public function serviceUpdate() {
 
-    if ($this->settings['cloudfront'] && 
-      !isset($this->settings['cloudfront_id']))
-    {
+    if ($this->settings['cloudfront'] && !isset($this->settings['cloudfront_id'])) {
       $this->distributionCreate();
       
       if ($this->settings['cloudfront']) {
@@ -825,10 +803,19 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
   }
   
   public function serviceMaintenance() {
-    $this->distributionDeploy();
-    $this->distributionDeployStreaming();
+
+    if ($this->settings['cloudfront'] && $this->settings['cloudfront_status'] != 'Deployed') {
+      $this->distributionDeploy();
+    }
+
+    if ($this->settings['cloudfront_streaming'] && $this->settings['cloudfront_streaming_status'] != 'Deployed') {
+      $this->distributionDeployStreaming();
+    }
+
+/*
     $this->distributionDelete();
     $this->distributionDeleteStreaming();
+*/
   }
 
   public function serviceInstanceCreate(Storage $storage, array $source) {

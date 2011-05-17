@@ -82,7 +82,10 @@ abstract class StorageContainer {
     }
     
     drupal_write_record('storage_container', $this);
-    $this->servicePostCreate();
+
+    if ($this->servicePostCreate()) {
+      $this->update();
+    }
     
     if ($this->service()->info['htaccess']) {
       $this->htaccessCreate();
