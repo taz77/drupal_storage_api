@@ -600,13 +600,13 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
         '#options' => $this->locations(),
         '#default_value' => isset($this->settings['location']) ? $this->settings['location'] : NULL,
       );
-    }
 
-    $items['reduced_redundancy'] = array(
-      '#type' => 'checkbox',
-      '#title' => t('Reduced redundancy'),
-      '#default_value' => isset($this->settings['reduced_redundancy']) ? $this->settings['reduced_redundancy'] : NULL,
-    );
+      $items['reduced_redundancy'] = array(
+        '#type' => 'checkbox',
+        '#title' => t('Reduced redundancy'),
+        '#default_value' => isset($this->settings['reduced_redundancy']) ? $this->settings['reduced_redundancy'] : NULL,
+      );
+    }
 
     if ($this->access_control) {
     
@@ -757,6 +757,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
     $info = array(
       t('Bucket') => $this->settings['bucket'],
       t('Location') => $locations[$this->settings['location']],
+      t('Reduced redundancy') => $this->settings['reduced_redundancy'] ? t('Yes') : t('No'),
     );
     
     if ($this->access_control) {
