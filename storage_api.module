@@ -616,3 +616,24 @@ function storage_api_cron() {
   _storage_api_cron();
 }
 
+
+/**
+ * Implements hook_libraries_info().
+ */
+function storage_api_libraries_info() {
+
+  $libraries['php-cloudfiles'] = array(
+    'name' => 'php-cloudfiles',
+    'vendor url' => 'https://github.com/rackspace/php-cloudfiles',
+    'download url' => 'https://github.com/rackspace/php-cloudfiles/downloads',
+    'version' => 'whatever',
+    'files' => array(
+      'php' => array(
+        'cloudfiles.php',
+      ),
+    ),
+  );
+
+  return $libraries;
+}
+

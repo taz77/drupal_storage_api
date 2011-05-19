@@ -546,6 +546,7 @@ interface StorageServiceInterface {
   public function serviceMaintenance();
   public function serviceInstanceCreate(Storage $storage, array $source);
   public function serviceInstanceCopy(Storage $storage, $reference, $source_container);
+  public function serviceInstanceExists($reference);
   public function serviceInstanceCheck($reference);
   public function serviceInstanceDestroy($reference);
   public function serviceInstanceGetFilepath($reference);

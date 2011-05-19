@@ -1,6 +1,6 @@
 <?php
 
-// Copyright 2009-2010 Jonathan Brown
+// Copyright 2009-2011 Jonathan Brown
 
 
 class StorageRackspace extends StorageContainer implements StorageServiceInterface {
@@ -10,16 +10,18 @@ class StorageRackspace extends StorageContainer implements StorageServiceInterfa
 
     watchdog('storage_rackspace', 'php-cloudfiles exception: @msg', array('@msg' => $e->getMessage()), WATCHDOG_ERROR);
     
-    if ($dsm && user_access('administer storage'))
+    if ($dsm && user_access('administer storage')) {
       drupal_set_message(t('php-cloudfiles exception: @msg', array('@msg' => $e->getMessage())), 'error');
+    }
   }
 
   private function init($settings) {
 
-    $path = drupal_get_path('module', 'storage_rackspace');
-    require_once DRUPAL_ROOT . '/' . $path . '/php-cloudfiles/cloudfiles.php';
+    if (module_exists('libraries')) {
+      $library = libraries_load('php-cloudfiles');
+    }
 
-    if (!class_exists('CF_Authentication')) {
+    if (!isset($library) || $library['loaded'] == FALSE) {
       watchdog('storage_rackspace', 'php-cloudfiles not found', array(), WATCHDOG_ERROR);
       
       if (user_access('administer storage')) {
@@ -37,7 +39,7 @@ class StorageRackspace extends StorageContainer implements StorageServiceInterfa
       $auth->authenticate();
     }
     catch(AuthenticationException $e) {
-      _storage_rackspace_log_exception($e, FALSE);
+      $this->log_exception($e, FALSE);
       
       if (user_access('administer storage')) {
         drupal_set_message(t('Invalid username or access key.'));
@@ -46,7 +48,7 @@ class StorageRackspace extends StorageContainer implements StorageServiceInterfa
       throw new Exception();
     }
     catch(Exception $e) {
-      _storage_rackspace_log_exception($e);
+      $this->log_exception($e);
       return FALSE;
     }
 
@@ -56,9 +58,8 @@ class StorageRackspace extends StorageContainer implements StorageServiceInterfa
 
   private function rscf_container() {
     $rscf_containers = &drupal_static(__FUNCTION__);
-    $rscf_containers = array();
     
-    if ($rscf_containers[$this->container_id]) {
+    if (isset($rscf_containers[$this->container_id])) {
       return $rscf_containers[$this->container_id];
     }
 
@@ -79,14 +80,15 @@ class StorageRackspace extends StorageContainer implements StorageServiceInterfa
   
   public function serviceCheck() {
 
-    $path = drupal_get_path('module', 'storage_api');
-    @include_once DRUPAL_ROOT . '/' . $path . '/services/php-cloudfiles/cloudfiles.php';
+    if (module_exists('libraries')) {
+      $library = libraries_detect('php-cloudfiles');
 
-    if (class_exists('CF_Authentication')) {
-      return;
-    }
+      if ($library['installed'] == TRUE) {
+        return TRUE;
+      }
+    }    
     
-    $message = t('Download <a href="http://github.com/rackspace/php-cloudfiles/downloads" target="_blank">php-cloudfiles</a>, decompress it, rename the directory to <em>php-cloudfiles</em> and put it in %directory.', array('%directory' => $path . '/services')) . '<br />';
+    $message = t('Download <a href="http://github.com/rackspace/php-cloudfiles/downloads" target="_blank">php-cloudfiles</a>, decompress it, rename the directory to <em>php-cloudfiles</em> and put it in %directory.', array('%directory' => $path . 'sites/all/libraries')) . '<br />';
     $message .= t('Alternatively you can use <a href="http://git-scm.com/" target="_blank">Git</a>:') . '<br />';
     $message .= '<code>git clone git://github.com/rackspace/php-cloudfiles.git</code>';
     
@@ -207,31 +209,36 @@ class StorageRackspace extends StorageContainer implements StorageServiceInterfa
       $this->conn->delete_container($this->settings['rscf_container']);
     }
     catch (Exception $e) {
-      _storage_rackspace_log_exception($e);
+      $this->log_exception($e);
       throw new Exception();
     }
   }
   
   public function serviceInstanceCreate(Storage $storage, array $source) {
 
-    $name = $storage->file_id . '/' . $storage->filename;
-    
+    if ($this->enhanced_caching) {
+      $reference = $storage->file_id . '/' . $storage->filename;
+    }
+    else {
+      $reference = $this->uniqueFilename($storage->filename);
+    }
+
     try {
-      $rscf_container = $this->rscf_container($this);
+      $rscf_container = $this->rscf_container();
     }
     catch (Exception $e) {
       throw new Exception();
     }
 
     try {
-      $object = $rscf_container->create_object($name);
+      $object = $rscf_container->create_object($reference);
       $object->content_type = $storage->mimetype;
       $object->set_etag(base64_encode($storage->md5));
       $object->load_from_filename($source['filepath'], FALSE);
 
       $object->metadata = array(
+        'storage_id' => $storage->storage_id,
         'file_id' => $storage->file_id,
-        'object_id' => $storage->object_id,
         'filename' => $storage->filename,
       );
 
@@ -241,33 +248,50 @@ class StorageRackspace extends StorageContainer implements StorageServiceInterfa
       log_exception($e);
 
       try {
-        $rscf_container->delete_object($name);
+        $rscf_container->delete_object($reference);
       }
       catch(Exception $e) {}
 
       throw new Exception();
     }
+
+    return $reference;
   }
   
-  public function serviceInstanceCheck($reference) {
-  }
+  public function serviceInstanceExists($reference) {
   
+    $rscf_container = $this->rscf_container();
+
+    if (!$rscf_container) {
+      return FALSE;
+    }
+
+    try {
+      $object = $rscf_container->get_object($reference);
+    }
+    catch(Exception $e) {
+      return FALSE;
+    }
+
+    return TRUE;
+  }
+
   public function serviceInstanceDestroy($reference) {
 
-    $rscf_container = $this->rscf_container($this);
+    $rscf_container = $this->rscf_container();
       
     try {
       $rscf_container->delete_object($reference);
     }
     catch(Exception $e) {
-      _storage_rackspace_log_exception($e);
+      $this->log_exception($e);
       throw new Exception();
     }
   }
   
   public function serviceInstanceGetFilepath($reference) {
 
-    $rscf_container = $this->rscf_container($this);
+    $rscf_container = $this->rscf_container();
 
     if (!$rscf_container) {
       return FALSE;
@@ -280,7 +304,7 @@ class StorageRackspace extends StorageContainer implements StorageServiceInterfa
       $object->save_to_filename($filepath);
     }
     catch(Exception $e) {
-      _storage_rackspace_log_exception($e);
+      $this->log_exception($e);
       @unlink($filepath);
       throw new Exception();
     }
