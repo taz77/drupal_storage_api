@@ -170,7 +170,7 @@ class StorageRackspace extends StorageContainer implements StorageServiceInterfa
       form_set_error('settings');
     }
     
-    if ($rscf_container) {
+    if (isset($rscf_container)) {
       form_set_error('settings][rscf_container', t('Cloud Files container %name already exists.', 
         array('%name' => $this['settings']['rscf_container'])));
     }
