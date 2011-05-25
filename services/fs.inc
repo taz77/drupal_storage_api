@@ -55,6 +55,8 @@ class StorageFS extends StorageContainer implements StorageServiceInterface {
     $storage_api_path = drupal_get_path('module', 'storage_api');
 
     if (!file_prepare_directory($this->settings['path'], FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS)) {
+      form_set_error('settings][path', t('The directory %directory could not be created. Please check permissions.',
+        array('%directory' => $this->settings['path'])));
       throw new Exception();
     }
   }
