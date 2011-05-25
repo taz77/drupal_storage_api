@@ -205,7 +205,7 @@ function storage_class(StorageClass $class) {
   }
 
   if(empty($rows)) {
-    $rows[] = array(array('data' => t('There are no containers in this class.'), 'colspan' => 5, 'class' => 'message'));
+    $rows[] = array(array('data' => t('There are no containers in this class.'), 'colspan' => 6, 'class' => 'message'));
   }
 
   $header = array(t('Container'), t('Service'), t('Serving'), t('Remove'), t('Files'), t('Size'));
