@@ -103,17 +103,12 @@ class StorageFS extends StorageContainer implements StorageServiceInterface {
     return $path . $basename;
   }
   
-  public function serviceInstanceCreate(Storage $storage, array $source) {
+  public function serviceInstanceCreate(Storage $storage, $uri) {
 
     $reference = $this->uniqueFilename($this->ensureDirectoryPathExists($storage->filename));
     $path = $this->instancePath($reference);
 
-    if (empty($source['keep_me']) && !file_uri_scheme($source['filepath'])) {  // cannot rename a file across wrapper types
-      $success = @rename($source['filepath'], $path);
-    }
-    else {
-      $success = @copy($source['filepath'], $path);
-    }
+    $success = copy($uri, $path);
 
     if ($success) {
       return $reference;
@@ -161,6 +156,11 @@ class StorageFS extends StorageContainer implements StorageServiceInterface {
     return @stat($this->instancePath($reference)) !== FALSE;
   }
 
+  public function serviceInstanceGet($reference) {
+
+    return $this->instancePath($reference);
+  }
+  
   public function serviceInstanceDestroy($reference) {
       
     @unlink($this->instancePath($reference));
@@ -176,11 +176,6 @@ class StorageFS extends StorageContainer implements StorageServiceInterface {
 
       array_pop($dirs);
     }
-  }
-  
-  public function serviceInstanceGetFilepath($reference) {
-
-    return $this->instancePath($reference);
   }
   
   public function serviceInstanceServe($reference) {

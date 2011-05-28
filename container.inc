@@ -59,12 +59,12 @@ abstract class StorageContainer {
       $lines[] = '</IfModule>';
     }
 
-    $filepath = tempnam(file_directory_temp(), '');
-    file_put_contents($filepath, implode("\n", $lines) . "\n");
+    $temp_uri = storage_api_temp_uri();
+    file_put_contents($temp_uri, implode("\n", $lines) . "\n");
     
     $storage = new Storage(array('filename' => '.htaccess'));
-    $this->serviceInstanceCreate($storage, array('filepath' => $filepath));
-    @unlink($filepath);
+    $this->serviceInstanceCreate($storage, $temp_uri);
+    unlink($temp_uri);
   }
 
   /**
@@ -130,21 +130,9 @@ abstract class StorageContainer {
   }
 
 
-  public function instanceCreate(Storage $storage, array $source) {
+  public function instanceCreate(Storage $storage, $uri) {
   
-    // We need write access to the directory for it to be deleted.
-    if (empty($source['keep_me'])) {
-    
-      if (!is_writable(dirname($source['filepath']))) {
-        $source['keep_me'] = TRUE;
-      }
-    }
-    
-    $reference = $this->serviceInstanceCreate($storage, $source);
-
-    if (!$source['keep_me']) {
-      @unlink($source['filepath']);
-    }
+    $reference = $this->serviceInstanceCreate($storage, $uri);
 
     $instance = array(
       'container_id' => $this->container_id,
@@ -209,7 +197,6 @@ abstract class StorageContainer {
 
   public function ensureInstanceExists(Storage $storage) {
     $check = FALSE;
-    $keep_me = TRUE;
 
     if ($this->suspended != 0) {
       return FALSE;
@@ -232,11 +219,11 @@ abstract class StorageContainer {
       }
     }
 
-    $filepath = $storage->getLocalFilepath($keep_me);
+    $uri = $storage->getUri();
     
     $exists = FALSE;
     
-    if ($filepath) {
+    if ($uri) {
     
       // If it's a new file, there is no point in checking for an instance.
       if ($check && !$storage->new_file) {
@@ -244,19 +231,12 @@ abstract class StorageContainer {
       }
       
       if (!$exists) {
-
-        $source = array(
-          'filepath' => $filepath,
-          'keep_me' => $keep_me,
-        );
-
-        $this->instanceCreate($storage, $source);
+        $this->instanceCreate($storage, $uri);
         $exists = TRUE;
       }
       
-      if (!$keep_me) {
-        @unlink($filepath);
-      }
+      // Delete the intermediate file if it is temporary.
+      storage_api_temp_uri_dispose($uri);
     }
     
     return $exists;
@@ -456,6 +436,7 @@ abstract class StorageContainer {
       }
       else {
         $name = $filename;
+        $ext = '';
       }
 
       $count = 0;
@@ -500,21 +481,20 @@ abstract class StorageContainer {
   }
 
   public function serviceInstanceCheck($reference) {
-    $filepath = $this->serviceInstanceGetFilepath($reference);
-    $stat = @stat($filepath);
+    $uri = $this->serviceInstanceGet($reference);
+    $stat = @stat($uri);
     
     if ($stat != FALSE) {
 
       $info = array(
         'size' => $stat['size'],
-        'md5' => hash_file('md5', $filepath, TRUE),
+        'md5' => hash_file('md5', $uri, TRUE),
       );
     }
     
-    if (!$this->service()->info['local']) {
-      @unlink($filepath);
-    }
-    
+    // Delete the file if it is temporary.
+    storage_api_temp_uri_dispose($uri);
+
     if (!isset($info)) {
       throw new Exception();
     }
@@ -544,12 +524,12 @@ interface StorageServiceInterface {
   public function serviceUpdate();
   public function serviceDestroy();
   public function serviceMaintenance();
-  public function serviceInstanceCreate(Storage $storage, array $source);
+  public function serviceInstanceCreate(Storage $storage, $uri);
   public function serviceInstanceCopy(Storage $storage, $reference, $source_container);
   public function serviceInstanceExists($reference);
   public function serviceInstanceCheck($reference);
+  public function serviceInstanceGet($reference);
   public function serviceInstanceDestroy($reference);
-  public function serviceInstanceGetFilepath($reference);
   public function serviceInstanceServe($reference);
 }
 

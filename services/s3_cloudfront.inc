@@ -24,7 +24,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
     return $headers;
   }
   
-  private function request($op, $bucket = NULL, $object_name = NULL, Storage $storage = NULL, $source = NULL, $query = array()) {
+  private function request($op, $bucket = NULL, $object_name = NULL, Storage $storage = NULL, $uri = NULL, $query = array()) {
     $result = array();
     $date = date(DATE_RFC1123, time());
 
@@ -62,8 +62,8 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
           }
         }
 
-        if ($source['filepath']) {
-          $fp = fopen($source['filepath'], 'r');
+        if ($uri) {
+          $fp = fopen($uri, 'r');
           
           $components[1] = base64_encode($storage->md5);
           $components[2] = $storage->mimetype;
@@ -98,8 +98,8 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
         
       case 'GET':
         if ($object_name) {
-          $result['filepath'] = tempnam(file_directory_temp(), '');
-          $fp = fopen($result['filepath'], 'w');
+          $result['temp_uri'] = storage_api_temp_uri();
+          $fp = fopen($result['temp_uri'], 'w');
           $curl_options[CURLOPT_FILE] = $fp;
         }
         
@@ -134,9 +134,9 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
       fclose($fp);
     }
       
-    if (isset($result['filepath']) && $result['http_code'] != 200) {
-      @unlink($result['filepath']);
-      unset($result['filepath']);
+    if (isset($result['temp_uri']) && $result['http_code'] != 200) {
+      drupal_unlink($result['temp_uri']);
+      unset($result['temp_uri']);
     }
     
     if (is_string($transfer) && $transfer != '') {
@@ -818,7 +818,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
 */
   }
 
-  public function serviceInstanceCreate(Storage $storage, array $source) {
+  public function serviceInstanceCreate(Storage $storage, $uri) {
     
     if ($this->enhanced_caching) {
       $reference = $storage->file_id . '/' . $storage->filename;
@@ -827,7 +827,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
       $reference = $this->uniqueFilename($storage->filename);
     }
 
-    $result = $this->request('PUT', $this->settings['bucket'], $reference, $storage, $source);
+    $result = $this->request('PUT', $this->settings['bucket'], $reference, $storage, $uri);
     
     if ($result['http_code'] == 200) {
       return $reference;
@@ -904,6 +904,13 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
     );
   }
   
+  public function serviceInstanceGet($reference) {
+    
+    $result = $this->request('GET', $this->settings['bucket'], $reference);
+
+    return $result['temp_uri'];
+  }
+
   public function serviceInstanceDestroy($reference) {
     
     $result = $this->request('DELETE', $this->settings['bucket'], $reference);
@@ -913,13 +920,6 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
     }
   }
   
-  public function serviceInstanceGetFilepath($reference) {
-    
-    $result = $this->request('GET', $this->settings['bucket'], $reference);
-
-    return $result['filepath'];
-  }
-
   public function serviceInstanceServe($reference) {
 
     return $this->url($reference);

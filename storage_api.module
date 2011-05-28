@@ -391,8 +391,8 @@ function _storage_service_unavailable() {
 }
 
 
-function storage_api_mime_detect($filepath, $filename) {
-  $filepath = drupal_realpath($filepath);
+function storage_api_mime_detect($uri, $filename) {
+  $filepath = drupal_realpath($uri);
   $mime = FALSE;
 
   if (extension_loaded('fileinfo')) {
@@ -426,15 +426,15 @@ function storage_api_mime_detect($filepath, $filename) {
 }
 
 
-function _storage_api_file_id($filepath, $filename, &$new_file = NULL) {
+function _storage_api_file_id($uri, $filename, &$new_file = NULL) {
 
-  $fileinfo = @stat($filepath);
+  $fileinfo = @stat($uri);
   
   if (!$fileinfo) {
     return FALSE;
   }
 
-  $md5 = hash_file('md5', $filepath, TRUE);
+  $md5 = hash_file('md5', $uri, TRUE);
   
   $txn = db_transaction();
   $file_id = db_select('storage_file')
@@ -450,7 +450,7 @@ function _storage_api_file_id($filepath, $filename, &$new_file = NULL) {
       'md5' => $md5,
       'filename' => $filename,
       'size' => $fileinfo['size'],
-      'mimetype' => storage_api_mime_detect($filepath, $filename),
+      'mimetype' => storage_api_mime_detect($uri, $filename),
     );
 
     drupal_write_record('storage_file', $file);
@@ -465,8 +465,8 @@ function _storage_api_file_id($filepath, $filename, &$new_file = NULL) {
 
 function _storage_acquire_from_url($url) {
 
-  $filepath = tempnam(file_directory_temp(), '');
-  $fp = fopen($filepath, "w");
+  $temp_uri = storage_api_temp_uri();
+  $fp = fopen($temp_uri, "w");
 
   $options = array(
     CURLOPT_FOLLOWLOCATION => TRUE,
@@ -487,14 +487,14 @@ function _storage_acquire_from_url($url) {
   switch ((int)($info['http_code'] / 100)) {
   
     case 2:
-      return $filepath;
+      return $temp_uri;
       
     case 4:
-      @unlink($filepath);
+      unlink($temp_uri);
       return FALSE;         // hard failure
       
     default:
-      @unlink($filepath);
+      unlink($temp_uri);
       return NULL;          // soft failure
   }
 }
@@ -596,6 +596,32 @@ function theme_storage_info_table($variables) {
     'rows' => $rows, 
     'attributes' => array('style' => 'width: auto;')
   ));
+}
+
+
+/**
+ * Creates a temporary URI.
+ *
+ * @return
+ *   A temporary URI.
+ */
+function storage_api_temp_uri() {
+
+  return drupal_tempnam('temporary://', 'storage_api-');
+}
+
+
+/**
+ * Deletes a URI if it is temporary.
+ *
+ * @param $uri
+ *   The URI to be deleted if it is temporary.
+ */
+function storage_api_temp_uri_dispose($uri) {
+
+  if (file_uri_scheme($uri) == 'temporary') {
+    @unlink($uri);
+  }
 }
 
 

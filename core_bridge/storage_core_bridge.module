@@ -283,10 +283,11 @@ function storage_core_bridge_storage_generate(Storage $storage) {
   }
   
   $style = image_style_load($styled_image['style']);
-  $source = $source_storage->getLocalFilepath($keepme);
-  $destination = tempnam(file_directory_temp(), '');
+  $source = $source_storage->getUri();
+  $destination = storage_api_temp_uri();
 
   image_style_create_derivative($style, $source, $destination);
+  storage_api_temp_uri_dispose($source);
   
   return $destination;
 }
@@ -334,7 +335,7 @@ function storage_core_bridge_image_delete_derivatives($source_id) {
 class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
   protected $uri;
   protected $mode;
-  protected $filepath;
+  protected $temp_uri;
   protected $fp;
 
 
@@ -349,14 +350,14 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
     switch ($this->mode) {
 
       case 'w':
-        $this->filepath = drupal_tempnam('temporary://', 'storage');
-        $this->fp = fopen($this->filepath, 'wb');
+        $this->temp_uri = storage_api_temp_uri();
+        $this->fp = fopen($this->temp_uri, 'wb');
         break;
 
       case 'r':
         $storage = storage_core_bridge_load($uri);
-        $this->filepath = $storage->getLocalFilepath($this->keep_me);
-        $this->fp = fopen($this->filepath, 'rb');
+        $this->temp_uri = $storage->getUri();
+        $this->fp = fopen($this->temp_uri, 'rb');
         break;
     }
     
@@ -370,7 +371,7 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
     if ($this->mode == 'w') {
 
       $options = array(
-        'filepath' => $this->filepath,
+        'source_uri' => $this->temp_uri,
         'filename' => $storage_core_bridge_filename,
         'module' => 'storage_core_bridge',
         'uri' => $this->uri,
@@ -382,6 +383,9 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
       }
       catch (Exception $e) {}
     }
+
+    // Delete the intermediate file if it is temporary.
+    storage_api_temp_uri_dispose($this->temp_uri);
   }
   
   public function stream_read($count) {

@@ -180,14 +180,12 @@ class Storage {
       return FALSE;
     }
 
-    $filepath = $this->getLocalFilepath($keep_me);
+    $uri = $this->getUri();
     
-    if (!$filepath)
+    if (!$uri) {
       return FALSE;
+    }
       
-    $source['filepath'] = $filepath;
-    $source['keep_me'] = $keep_me;
-    
     $link = $this->nid ? l(t('view'), 'node/' . $this->nid) : NULL;
 
     // If the storage's file is already in the system, then the instance might already exist.
@@ -198,9 +196,10 @@ class Storage {
     if (empty($reference)) {
     
       try {
-        $reference = $container->instanceCreate($this, $source);
+        $reference = $container->instanceCreate($this, $uri);
       }
       catch (Exception $e) {
+        storage_api_temp_uri_dispose($uri);
         $message = 'Failed to create instance of file ' . ($this->filename ? ($this->filename . ' ') : '');
         $message .= 'in storage container <i>' . $container->name() . '</i>.';
 
@@ -215,6 +214,7 @@ class Storage {
       }
     }
 
+    storage_api_temp_uri_dispose($uri);
     $this->update();
 
     $message = 'Generated file' . ($this->filename ? (' ' . $this->filename) : '');
@@ -273,12 +273,11 @@ class Storage {
   private function serveSecure(StorageContainer $container) {
     $this->setHTTPHeaders();
   
-    $filepath = $container->serviceInstanceGetFilepath($container->reference);
-    @readfile($filepath);
+    $uri = $container->serviceInstanceGet($container->reference);
+    @readfile($uri);
 
-    if (!$container->service()->info['local']) {
-      @unlink($filepath);
-    }
+    // Delete the intermediate file if it is temporary.
+    storage_api_temp_uri_dispose($uri);
 
     drupal_exit();
   }
@@ -428,10 +427,10 @@ class Storage {
     if ($time < $this->data['next_acquire_time'])
       return;
       
-    $filepath = _storage_acquire_from_url($this->source_url);
+    $uri = _storage_acquire_from_url($this->source_url);
     
-    if ($filepath) {
-      $file_id = _storage_api_file_id($filepath, basename(parse_url($this->source_url, PHP_URL_PATH)), $new_file);
+    if ($uri) {
+      $file_id = _storage_api_file_id($uri, basename(parse_url($this->source_url, PHP_URL_PATH)), $new_file);
 
       if (!$this->file_id) {
         $this->file_id = $file_id;
@@ -440,8 +439,8 @@ class Storage {
       if ($this->file_id != $file_id) {    // the file has changed
 
         _storage_delete_file_if_unrequired($file_id);
-        @unlink($filepath);
-        $filepath = FALSE;
+        unlink($uri);
+        $uri = FALSE;
       }
       else {
         unset($this->data['next_acquire_time']);
@@ -461,11 +460,11 @@ class Storage {
       
         watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, $link);
 
-        return $filepath;
+        return $uri;
       }
     }
     
-    if ($filepath === FALSE) {   // hard failure
+    if ($uri === FALSE) {   // hard failure
 
       unset($this->data['next_acquire_time']);
       unset($this->data['next_acquire_delay']);
@@ -501,16 +500,14 @@ class Storage {
 
 
   /**
-   * Get a filepath that can be used to access a file locally.
+   * Gets a URI that can be used to access a file locally.
    *
-   * The file will be made available locally (this may involve downloading it or generating it). If $keep_me is set to TRUE, then the filepath must not be deleted / modified. If it is set to FALSE, then it must be deleted with unlink() after use.
+   * The file will be made available locally (this may involve downloading it or generating it).
    *
-   * @param $keep_me
-   *   Variable to receive the keep_me status of the returned filepath.
    * @return
-   *   A filepath where the file can be accessed.
+   *   A URI where the file can be accessed.
    */
-  public function getLocalFilepath(&$keep_me) {
+  public function getUri() {
 
     $query = db_select('storage_instance');
     $query->join('storage_class_container', NULL, 'storage_instance.container_id = storage_class_container.container_id');
@@ -537,34 +534,31 @@ class Storage {
     }
     
     if ($container) {
-    
-      $filepath = $container->serviceInstanceGetFilepath($container->reference);
-      $keep_me = $container->service()->info['local'];
-      return $filepath;
+      return $container->serviceInstanceGet($container->reference);
     }
     
     if ($this->source_url) {
 
-      $filepath = $this->acquireFromSourceURL();
+      $uri = $this->acquireFromSourceURL();
 
-      if ($filepath) {
-        return $filepath;
+      if ($uri) {
+        return $uri;
       }
     }
 
     if ($this->module) {
 
       try {
-        $filepath = module_invoke($this->module, 'storage_generate', $this);
+        $uri = module_invoke($this->module, 'storage_generate', $this);
       }
       catch (Exception $e) {
         return FALSE;
       }
       
-      $file_id = _storage_api_file_id($filepath, $this->filename, $new_file);
+      $file_id = _storage_api_file_id($uri, $this->filename, $new_file);
       
       if (!$file_id) {
-        @unlink($filepath);
+        unlink($uri);
         return FALSE;
       }
       
@@ -585,7 +579,6 @@ class Storage {
             ->fields(array(
               'file_id' => $this->file_id,
               'obtained' => $this->obtained,
-              'check_me' => 1,
               'data' => '',
             ))
             ->execute();
@@ -608,7 +601,7 @@ class Storage {
         $this->new_file = $new_file;    // StorageContainer::ensureInstanceExists() will make use of this
       }
             
-      return $filepath;
+      return $uri;
     }
 
     return FALSE;

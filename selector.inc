@@ -229,10 +229,8 @@ class StorageSelector {
    *
    * @param $options
    *   An associative array of additional options, with the following keys:
-   *     - 'filepath'
-   *       Filepath to get the file from.
-   *     - 'keep_me' (default FALSE)
-   *       Ensure the filepath is left intact.
+   *     - 'source_uri'
+   *       URI to get the file from.
    *     - 'file_id'
    *       If the same file is already in the system, its file_id can be
    *       specified.
@@ -272,9 +270,9 @@ class StorageSelector {
       $options['data'] = array();
     }
 
-    if (isset($options['filepath'])) {
-      $options['file_id'] = _storage_api_file_id($options['filepath'], 
-        isset($options['filename']) ? $options['filename'] : basename($options['filepath']), $new_file);
+    if (isset($options['source_uri'])) {
+      $options['file_id'] = _storage_api_file_id($options['source_uri'], 
+        isset($options['filename']) ? $options['filename'] : basename($options['source_uri']), $new_file);
     }
     elseif (isset($options['filename'])) {
       // Store the filename so it can be in the generator URL.
@@ -286,7 +284,7 @@ class StorageSelector {
     
     $link = $storage->nid ? l(t('view'), 'node/' . $storage->nid) : NULL;
     
-    if (isset($options['filepath'])) {
+    if (isset($options['source_uri'])) {
     
       // If the storage's file is already in the system, then the instance might already exist.
       if (empty($new_file)) {
@@ -296,7 +294,7 @@ class StorageSelector {
       if (empty($exists)) {
       
         try {
-          $container->instanceCreate($storage, $options);
+          $container->instanceCreate($storage, $options['source_uri']);
         }
         catch (Exception $e) {
           $message = 'Failed to create initial instance of file ' . ($storage->filename ? ($storage->filename . ' ') : '');

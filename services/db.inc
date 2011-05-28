@@ -87,7 +87,7 @@ class StorageDB extends StorageContainer implements StorageServiceInterface {
     return $success;
   }
   
-  public function serviceInstanceCreate(Storage $storage, array $source) {
+  public function serviceInstanceCreate(Storage $storage, $uri) {
     
     db_set_active($this->settings['db']);
     
@@ -98,7 +98,7 @@ class StorageDB extends StorageContainer implements StorageServiceInterface {
     ",
       $this->settings['table'],
       $storage->object_id,
-      bin2hex(file_get_contents($source['filepath']))
+      bin2hex(file_get_contents($uri))
     );
     
     db_set_active();
@@ -109,6 +109,32 @@ class StorageDB extends StorageContainer implements StorageServiceInterface {
   public function serviceInstanceCopy(Storage $storage, $reference, $source_container){}
   
   public function serviceInstanceCheck($reference) {
+  }
+  
+  public function serviceInstanceGet($reference) {
+    
+    $temp_uri = storage_api_temp_uri();
+    
+    db_set_active($this->settings['db']);
+
+    $success = file_put_contents($temp_uri,
+      db_result(db_query("
+        SELECT contents
+        FROM {%s}
+        WHERE object_id = %d
+      ",
+        $this->settings['table'],
+        $reference
+      ))
+    );
+
+    db_set_active();
+    
+    if (!$success) {
+      return FALSE;
+    }
+
+    return $temp_uri;
   }
   
   public function serviceInstanceDestroy($reference) {
@@ -126,33 +152,6 @@ class StorageDB extends StorageContainer implements StorageServiceInterface {
     db_set_active();
     
     return $success;
-  }
-  
-  public function serviceInstanceGetFilepath($reference) {
-    
-    $filepath = tempnam(file_directory_temp(), '');
-    
-    db_set_active($this->settings['db']);
-
-    $success = file_put_contents($filepath,
-      db_result(db_query("
-        SELECT contents
-        FROM {%s}
-        WHERE object_id = %d
-      ",
-        $this->settings['table'],
-        $reference
-      ))
-    );
-
-    db_set_active();
-    
-    if (!$success) {
-      @unlink($filepath);
-      return FALSE;
-    }
-
-    return $filepath;
   }
   
   public function serviceInstanceServe($reference) {

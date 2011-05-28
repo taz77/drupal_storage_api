@@ -268,7 +268,7 @@ class StorageFTP extends StorageContainer implements StorageServiceInterface {
     return implode('/', $components);
   }
  
-  public function serviceInstanceCreate(Storage $storage, array $source) {
+  public function serviceInstanceCreate(Storage $storage, $uri) {
     $this->login();
     $original_dir = ftp_pwd($this->ftpStream);
         
@@ -276,7 +276,7 @@ class StorageFTP extends StorageContainer implements StorageServiceInterface {
     
     $components = explode('/', $reference);
 
-    $result = ftp_put($this->ftpStream, array_pop($components), $source['filepath'], FTP_BINARY);
+    $result = ftp_put($this->ftpStream, array_pop($components), $uri, FTP_BINARY);
     $this->changeDirectory($original_dir);
     
     if (!$result) {
@@ -356,18 +356,18 @@ class StorageFTP extends StorageContainer implements StorageServiceInterface {
     }
   }
   
-  public function serviceInstanceGetFilepath($reference) {
+  public function serviceInstanceGet($reference) {
     $this->login();
 
-    $filepath = tempnam(file_directory_temp(), '');
-    $result = ftp_get($this->ftpStream, $filepath, $reference, FTP_BINARY);
+    $temp_uri = storage_api_temp_uri();
+    $result = ftp_get($this->ftpStream, $temp_uri, $reference, FTP_BINARY);
     
     if (!$result) {
-      @unlink($filepath);
+      unlink($temp_uri);
       throw new Exception();
     }
 
-    return $filepath;
+    return $temp_uri;
   }
   
   public function serviceInstanceServe($reference) {

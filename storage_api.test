@@ -44,7 +44,7 @@ class StorageAPITestCase extends DrupalWebTestCase {
     $selector->create();
     
     $options = array(
-      'filepath' => 'CHANGELOG.txt',
+      'uri' => 'CHANGELOG.txt',
       'get_filename' => TRUE,
     );
 

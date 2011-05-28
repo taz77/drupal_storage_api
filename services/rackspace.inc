@@ -214,7 +214,7 @@ class StorageRackspace extends StorageContainer implements StorageServiceInterfa
     }
   }
   
-  public function serviceInstanceCreate(Storage $storage, array $source) {
+  public function serviceInstanceCreate(Storage $storage, $uri) {
 
     if ($this->enhanced_caching) {
       $reference = $storage->file_id . '/' . $storage->filename;
@@ -234,7 +234,7 @@ class StorageRackspace extends StorageContainer implements StorageServiceInterfa
       $object = $rscf_container->create_object($reference);
       $object->content_type = $storage->mimetype;
       $object->set_etag(base64_encode($storage->md5));
-      $object->load_from_filename($source['filepath'], FALSE);
+      $object->load_from_filename($uri, FALSE);
 
       $object->metadata = array(
         'storage_id' => $storage->storage_id,
@@ -289,7 +289,7 @@ class StorageRackspace extends StorageContainer implements StorageServiceInterfa
     }
   }
   
-  public function serviceInstanceGetFilepath($reference) {
+  public function serviceInstanceGet($reference) {
 
     $rscf_container = $this->rscf_container();
 
@@ -297,19 +297,19 @@ class StorageRackspace extends StorageContainer implements StorageServiceInterfa
       return FALSE;
     }
 
-    $filepath = tempnam(file_directory_temp(), '');
+    $temp_uri = storage_api_temp_uri();
     
     try {
       $object = $rscf_container->get_object($reference);
-      $object->save_to_filename($filepath);
+      $object->save_to_filename($temp_uri);
     }
     catch(Exception $e) {
       $this->log_exception($e);
-      @unlink($filepath);
+      unlink($temp_uri);
       throw new Exception();
     }
 
-    return $filepath;
+    return $temp_uri;
   }
   
   public function serviceInstanceServe($reference) {
