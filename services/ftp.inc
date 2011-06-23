@@ -16,12 +16,12 @@ class StorageFTP extends StorageContainer implements StorageServiceInterface {
     $this->ftpStream = ftp_connect($this->settings['host'], $this->settings['port'] ? $this->settings['port'] : NULL);
     
     if (!$this->ftpStream) {
-      throw new Exception();
+      throw new StorageException();
     }
     
     if (!@ftp_login($this->ftpStream, $this->settings['username'], $this->settings['password'])) {
       ftp_close($this->ftpStream);
-      throw new Exception();
+      throw new StorageException();
     }
     
     ftp_pasv($this->ftpStream, TRUE);
@@ -30,9 +30,9 @@ class StorageFTP extends StorageContainer implements StorageServiceInterface {
       try {
         $this->changeDirectory($this->settings['directory']);
       }
-      catch (Exception $e) {
+      catch (StorageException $e) {
         ftp_close($this->ftpStream);
-        throw new Exception();
+        throw new StorageException();
       }
     }
   }
@@ -47,7 +47,7 @@ class StorageFTP extends StorageContainer implements StorageServiceInterface {
   private function createDirectory($directory) {
 
     if (!ftp_mkdir($this->ftpStream, $directory)) {
-      throw new Exception();
+      throw new StorageException();
     }
   }
 
@@ -59,7 +59,7 @@ class StorageFTP extends StorageContainer implements StorageServiceInterface {
       try {
         $this->changeDirectory($directory);
       }
-      catch (Exception $e) {
+      catch (StorageException $e) {
         $this->createDirectory($directory);
         $this->changeDirectory($directory);
       }
@@ -71,21 +71,21 @@ class StorageFTP extends StorageContainer implements StorageServiceInterface {
   private function removeDirectory($directory) {
         
     if (!ftp_rmdir($this->ftpStream, $directory)) {
-      throw new Exception();
+      throw new StorageException();
     }
   }
 
   private function changeDirectory($directory) {
       
     if (!@ftp_chdir($this->ftpStream, $directory)) {
-      throw new Exception();
+      throw new StorageException();
     }
   }
   
   private function setMode($filename, $mode) {
     
     if (!ftp_chmod($this->ftpStream, octdec(str_pad($mode, 4, '0', STR_PAD_LEFT)), $filename)) {
-      throw new Exception();
+      throw new StorageException();
     }
   }
 
@@ -172,7 +172,7 @@ class StorageFTP extends StorageContainer implements StorageServiceInterface {
     try {
       $this->login(FALSE);
     }
-    catch (Exception $e) {
+    catch (StorageException $e) {
       form_set_error('settings', t('Failed to authenticate.'));
       return;
     }
@@ -181,7 +181,7 @@ class StorageFTP extends StorageContainer implements StorageServiceInterface {
       try {
         $this->changeDirectory($this->settings['directory']);
       }
-      catch (Exception $e) {
+      catch (StorageException $e) {
         return;
       }
     
@@ -191,14 +191,8 @@ class StorageFTP extends StorageContainer implements StorageServiceInterface {
   
   public function serviceCreate() {
     $this->login(FALSE);
-    
-    try {
-      $this->createDirectoryRecursive($this->settings['directory']);
-      $this->changeDirectory($this->settings['directory']);
-    }
-    catch (Exception $e) {
-      throw $e;
-    }
+    $this->createDirectoryRecursive($this->settings['directory']);
+    $this->changeDirectory($this->settings['directory']);
   }
   
   public function serviceInfo() {
@@ -227,7 +221,7 @@ class StorageFTP extends StorageContainer implements StorageServiceInterface {
     try {
       $this->removeDirectory($this->settings['directory']);
     }
-    catch (Exception $e) {}
+    catch (StorageException $e) {}
   }
   
   private function enterFileDirectory($filename) {
@@ -246,12 +240,12 @@ class StorageFTP extends StorageContainer implements StorageServiceInterface {
           try {
             $this->changeDirectory($potential);
           }
-          catch (Exception $e) {
+          catch (StorageException $e) {
             $this->createDirectory($potential);
             $this->changeDirectory($potential);
           }
         }
-        catch (Exception $e) {
+        catch (StorageException $e) {
           $count++;
           continue;
         }
@@ -280,7 +274,7 @@ class StorageFTP extends StorageContainer implements StorageServiceInterface {
     $this->changeDirectory($original_dir);
     
     if (!$result) {
-      throw new Exception();
+      throw new StorageException();
     }
 
     if ($this->settings['mode']) {
@@ -348,7 +342,7 @@ class StorageFTP extends StorageContainer implements StorageServiceInterface {
       try {
         $this->removeDirectory(implode('/', $dirs));
       }
-      catch (Exception $e) {
+      catch (StorageException $e) {
         break;
       }
 
@@ -364,7 +358,7 @@ class StorageFTP extends StorageContainer implements StorageServiceInterface {
     
     if (!$result) {
       unlink($temp_uri);
-      throw new Exception();
+      throw new StorageException();
     }
 
     return $temp_uri;

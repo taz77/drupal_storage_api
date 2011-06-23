@@ -58,8 +58,12 @@ class StorageDB extends StorageContainer implements StorageServiceInterface {
     ",
       $this->settings['table']
     );
-    
+
     db_set_active();
+
+    if (!$success) {
+      throw new StorageException();
+    }
   }
   
   public function serviceInfo() {
@@ -84,7 +88,9 @@ class StorageDB extends StorageContainer implements StorageServiceInterface {
     
     db_set_active();
     
-    return $success;
+    if (!$success) {
+      throw new StorageException();
+    }
   }
   
   public function serviceInstanceCreate(Storage $storage, $uri) {
@@ -102,8 +108,10 @@ class StorageDB extends StorageContainer implements StorageServiceInterface {
     );
     
     db_set_active();
-    
-    return $success;
+
+    if (!$success) {
+      throw new StorageException();
+    }
   }
   
   public function serviceInstanceCopy(Storage $storage, $reference, $source_container){}
@@ -129,9 +137,10 @@ class StorageDB extends StorageContainer implements StorageServiceInterface {
     );
 
     db_set_active();
-    
+
     if (!$success) {
-      return FALSE;
+      unlink($temp_uri);
+      throw new StorageException();
     }
 
     return $temp_uri;
@@ -150,8 +159,10 @@ class StorageDB extends StorageContainer implements StorageServiceInterface {
     );
 
     db_set_active();
-    
-    return $success;
+
+    if (!$success) {
+      throw new StorageException();
+    }
   }
   
   public function serviceInstanceServe($reference) {

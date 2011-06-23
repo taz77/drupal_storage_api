@@ -57,7 +57,7 @@ class StorageFS extends StorageContainer implements StorageServiceInterface {
     if (!file_prepare_directory($this->settings['path'], FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS)) {
       form_set_error('settings][path', t('The directory %directory could not be created. Please check permissions.',
         array('%directory' => $this->settings['path'])));
-      throw new Exception();
+      throw new StorageException();
     }
   }
   
@@ -114,13 +114,17 @@ class StorageFS extends StorageContainer implements StorageServiceInterface {
       return $reference;
     }
     else {
-      throw new Exception();
+      throw new StorageException();
     }
   }
   
   private function scanDirectory($dir) {
     $files = array();
     $handle = opendir($dir);
+    
+    if (!$handle) {
+      throw new StorageException();
+    }
     
     while (($filename = readdir($handle)) !== FALSE) {
 

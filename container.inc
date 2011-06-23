@@ -69,16 +69,19 @@ abstract class StorageContainer {
 
   /**
    * Creates a storage container.
+   *
+   * @throws StorageException
+   *   When it wasn't possible to create the container.
    */
   public function create() {
   
     try {
       $this->serviceCreate();
     }
-    catch (Exception $e) {
+    catch (StorageException $e) {
       $msg = 'Failed to create storage container !container.';
       watchdog('storage_api', $msg, array('!container' => $this->name()), WATCHDOG_ERROR);
-      throw new Exception(t($msg, array('!container' => $this->name())));
+      throw new StorageException(t($msg, array('!container' => $this->name())));
     }
     
     drupal_write_record('storage_container', $this);
@@ -195,16 +198,25 @@ abstract class StorageContainer {
     }
   }
 
+  /**
+   * Ensure that an instance exists in the container.
+   *
+   * @param $storage
+   *   The storage that there must be an instance of.
+   *
+   * @throws StorageException
+   *   When it isn't possible to ensure that the instance exists.
+   */
   public function ensureInstanceExists(Storage $storage) {
     $check = FALSE;
 
     if ($this->suspended != 0) {
-      return FALSE;
+      throw new StorageException();
     }
     
     if ($storage->file_id) {
       if ($this->instanceExists($storage)) {
-        return TRUE;
+        return;
       }
     }
     else {
@@ -215,31 +227,31 @@ abstract class StorageContainer {
     // Is it possible to short circuit?
     if ($this->service()->info['can_copy'] && !$check) {
       if ($this->tryInstanceCopy($storage)) {
-        return TRUE;
+        return;
       }
     }
 
     $uri = $storage->getUri();
-    
     $exists = FALSE;
-    
-    if ($uri) {
-    
-      // If it's a new file, there is no point in checking for an instance.
-      if ($check && !$storage->new_file) {
-        $exists = $this->instanceExists($storage);
-      }
-      
-      if (!$exists) {
-        $this->instanceCreate($storage, $uri);
-        $exists = TRUE;
-      }
-      
-      // Delete the intermediate file if it is temporary.
-      storage_api_temp_uri_dispose($uri);
+
+    // If it's a new file, there is no point in checking for an instance.
+    if ($check && !$storage->new_file) {
+      $exists = $this->instanceExists($storage);
     }
     
-    return $exists;
+    if (!$exists) {
+      try {
+        $this->instanceCreate($storage, $uri);
+      }
+      catch (StorageException $e) {}
+    }
+    
+    // Delete the intermediate file if it is temporary.
+    storage_api_temp_uri_dispose($uri);
+    
+    if (isset($e)) {
+      throw $e;
+    }
   }
 
 
@@ -254,6 +266,17 @@ abstract class StorageContainer {
   }
 
 
+  /**
+   * Destroy an instance if it isn't required by any other storages.
+   *
+   * @param $storage
+   *   The storage to have its instance destroyed.
+   * @param $reference
+   *   The reference of the instance to be destroyed.
+   *
+   * @throws StorageException
+   *   When the instance should be destroyed, but it isn't possible.
+   */
   public function instanceDestroyIfUnrequired(Storage $storage, $reference) {
 
     // Find other storages that use the same file.
@@ -279,7 +302,7 @@ abstract class StorageContainer {
         ->fetchField();
 
       if ($count > 0) {
-        return TRUE;
+        return;
       }
 
       // Do any of the other storages have this container as their initial
@@ -292,18 +315,29 @@ abstract class StorageContainer {
         ->fetchField();
 
       if ($count > 0) {
-        return TRUE;
+        return;
       }
     }
 
-    return $this->instanceDestroy($storage, $reference);
+    $this->instanceDestroy($storage, $reference);
   }
 
 
+  /**
+   * Destroy an instance in the container
+   *
+   * @param $storage
+   *   The storage to have its instance destroyed.
+   * @param $reference
+   *   The reference of the instance to be destroyed.
+   *
+   * @throws StorageException
+   *   When it isn't possible to destroy the instance.
+   */
   public function instanceDestroy(Storage $storage, $reference) {
 
     if ($this->suspended != 0) {
-      return FALSE;
+      throw new StorageException();
     }
 
     $this->serviceInstanceDestroy($reference);
@@ -318,8 +352,6 @@ abstract class StorageContainer {
     $message .= $storage->logInfo();
 
     watchdog('storage_api', $message, NULL);
-
-    return TRUE;
   }
   
   
@@ -467,12 +499,16 @@ abstract class StorageContainer {
     $manifest = array();
     
     while ($count-- && ($reference = array_shift($sandbox['references']))) {
-      $info = $this->serviceInstanceCheck($reference);
-      
-      if ($info) {
-        $info['reference'] = $reference;
-        $manifest[] = $info;
+    
+      try {
+        $info = $this->serviceInstanceCheck($reference);
       }
+      catch (StorageException $e) {
+        continue;
+      }
+
+      $info['reference'] = $reference;
+      $manifest[] = $info;
     }
     
     $finished = (count($sandbox['references']) == 0);
@@ -480,32 +516,36 @@ abstract class StorageContainer {
     return $manifest;
   }
 
+  /**
+   * Get information about an instance.
+   *
+   * @param $reference
+   *   The reference of the instance the be examined.
+   *
+   * @throws StorageException
+   *   When it isn't possible to get information about the instance.
+   */
   public function serviceInstanceCheck($reference) {
     $uri = $this->serviceInstanceGet($reference);
     $stat = @stat($uri);
     
-    if ($stat != FALSE) {
-
-      $info = array(
-        'size' => $stat['size'],
-        'md5' => hash_file('md5', $uri, TRUE),
-      );
-    }
-    
     // Delete the file if it is temporary.
     storage_api_temp_uri_dispose($uri);
 
-    if (!isset($info)) {
-      throw new Exception();
+    if ($stat === FALSE) {
+      throw new StorageException();
     }
-    
+
+    $info = array(
+      'size' => $stat['size'],
+      'md5' => hash_file('md5', $uri, TRUE),
+    );
+
     return $info;
   }
 
   // Optional API functions.
-  public function serviceCheck() {
-    return TRUE;
-  }
+  public function serviceCheck() {}
   public function servicePostCreate() {}
   public function serviceUpdate() {}
   public function serviceMaintenance() {}

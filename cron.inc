@@ -17,7 +17,7 @@ function _storage_remove_containers() {
     try {
       $class->removeContainer($container);
     }
-    catch (Exception $e) {}
+    catch (StorageException $e) {}
   }
 }
 
@@ -32,7 +32,11 @@ function _storage_check_files() {
     ->fetchCol();
 
   foreach ($storage_ids as $storage_id) {
-    storage_load($storage_id)->check();
+
+    try {
+      storage_load($storage_id)->check();
+    }
+    catch (StorageException $e) {}
   }
 }
 

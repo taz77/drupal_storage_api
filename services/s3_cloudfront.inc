@@ -205,7 +205,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
       );
     }
 
-    throw new Exception();
+    throw new StorageException();
   }
 
   private function requestCloudFront($op, $streaming = FALSE, $xml = NULL) {
@@ -670,14 +670,14 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
         form_set_error('settings][bucket', t('Bucket %name is already owned by this account, but is not empty.', 
           array('%name' => $this->settings['bucket'])));
           
-        throw new Exception();
+        throw new StorageException();
       }
     }
     else {
       $result = $this->request('PUT', $this->settings['bucket']);
 
       if ($result['http_code'] != 200) {
-        throw new Exception();
+        throw new StorageException();
       }
 
       $message = 'Acquired S3 bucket <i>' . $this->settings['bucket'] . '</i>.';
@@ -833,7 +833,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
       return $reference;
     }
     else {
-      throw new Exception();
+      throw new StorageException();
     }
   }
 
@@ -895,7 +895,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
     $result = $this->request('HEAD', $this->settings['bucket'], $reference);
     
     if ($result['http_code'] != 200) {
-      return FALSE;
+      throw new StorageException();
     }
     
     return array(
@@ -916,7 +916,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
     $result = $this->request('DELETE', $this->settings['bucket'], $reference);
     
     if ($result['http_code'] != 204) {
-      throw new Exception();
+      throw new StorageException();
     }
   }
   

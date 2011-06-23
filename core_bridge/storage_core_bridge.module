@@ -189,6 +189,18 @@ function storage_core_bridge_storage_id($uri) {
 }
 
 
+/**
+ * Loads a storage a URI.
+ *
+ * @param $uri
+ *   The URI of the storage to load.
+ *
+ * @return
+ *   The storage.
+ *
+ * @throws StorageException
+ *   When it isn't possible to load the storage.
+ */
 function storage_core_bridge_load($uri) {
 
   return storage_load(storage_core_bridge_storage_id($uri));
@@ -201,6 +213,20 @@ function storage_core_bridge_uri_field_name($uri) {
 }
 
 
+/**
+ * Loads the storage of a styled image from a source URI.
+ *
+ * @param $uri
+ *   The URI of the storage of the source image.
+ * @param $style_name
+ *   The name of the image style.
+ *
+ * @return
+ *   The storage of a styled image.
+ *
+ * @throws StorageException
+ *   When it isn't possible to load the storage of the styled image.
+ */
 function storage_core_bridge_styled_image_load($uri, $style_name) {
 
   $source_id = storage_core_bridge_storage_id($uri);
@@ -271,17 +297,9 @@ function storage_core_bridge_storage_generate(Storage $storage) {
     ->condition('storage_styled_image.storage_id', $storage->storage_id)
     ->execute()
     ->fetchAssoc();
-    
-  if (!$styled_image) {
-    throw new Exception();
-  }
-  
+
   $source_storage = storage_load($styled_image['source_id']);
-  
-  if (!$source_storage) {
-    throw new Exception();
-  }
-  
+
   $style = image_style_load($styled_image['style']);
   $source = $source_storage->getUri();
   $destination = storage_api_temp_uri();
@@ -377,11 +395,12 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
         'uri' => $this->uri,
       );
 
+      $field_name = storage_core_bridge_uri_field_name($this->uri);
+
       try {
-        $field_name = storage_core_bridge_uri_field_name($this->uri);
         $storage = storage_core_bridge_selector($field_name)->storageAdd($options);
       }
-      catch (Exception $e) {}
+      catch (StorageException $e) {}
     }
 
     // Delete the intermediate file if it is temporary.
@@ -470,16 +489,21 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
     $components = explode('/', file_uri_target($this->uri));
     $scheme = file_uri_scheme($this->uri);
 
-    if ((array_shift($components) == 'styles') && ($style = array_shift($components)) && 
-      (array_shift($components) == $scheme))
-    {
-      $storage = storage_core_bridge_styled_image_load($scheme . '://' . implode('/', $components), $style);
-    }
-    else {
-      $storage = storage_core_bridge_load($this->uri);
-    }
+    try {
+      if ((array_shift($components) == 'styles') && ($style = array_shift($components)) && 
+        (array_shift($components) == $scheme))
+      {
+        $storage = storage_core_bridge_styled_image_load($scheme . '://' . implode('/', $components), $style);
+      }
+      else {
+        $storage = storage_core_bridge_load($this->uri);
+      }
 
-    return $storage->serveURL(TRUE);
+      return $storage->serveURL(TRUE);
+    }
+    catch (StorageException $e) {
+      return FALSE;
+    }
   }
   
   public static function getMimeType($uri, $mapping = NULL) {

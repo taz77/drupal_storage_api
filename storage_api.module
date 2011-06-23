@@ -3,6 +3,8 @@
 // Copyright 2008-2011 Jonathan Brown
 
 
+class StorageException extends Exception {}
+
 /**
  * Implements hook_permission().
  */
@@ -195,7 +197,7 @@ function storage_load($storage_id) {
   try {
     return new Storage($storage_id);
   }
-  catch (Exception $e) {
+  catch (StorageException $e) {
     return FALSE;
   }
 }
@@ -275,7 +277,7 @@ function storage_class_load($class_id) {
   try {
     return new StorageClass($class_id);
   }
-  catch (Exception $e) {
+  catch (StorageException $e) {
     return FALSE;
   }
 }
@@ -431,7 +433,7 @@ function _storage_api_file_id($uri, $filename, &$new_file = NULL) {
   $fileinfo = @stat($uri);
   
   if (!$fileinfo) {
-    return FALSE;
+    throw new StorageException();
   }
 
   $md5 = hash_file('md5', $uri, TRUE);
@@ -503,8 +505,7 @@ function _storage_acquire_from_url($url) {
 function _storage_delete_file_if_unrequired($file_id) {
   $txn = db_transaction();
   
-  // do any storages use this file?
-  
+  // Do any storages use this file?
   if (db_select('storage')
     ->condition('file_id', $file_id)
     ->countQuery()

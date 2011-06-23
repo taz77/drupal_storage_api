@@ -188,7 +188,7 @@ function storage_create_container_form_validate($form, &$form_state) {
       try {
         $container->serviceCheck();
       }
-      catch (Exception $e) {
+      catch (StorageException $e) {
         $info = $container->service()->info;
         $message = $info['name'] . ' ' . t('service is not set up properly.') . '<br />';
         $message .= $e->getMessage();
@@ -214,7 +214,7 @@ function storage_create_container_form_validate($form, &$form_state) {
           $container->create();
           $form_state['storage'] = $container;
         }
-        catch (Exception $e) {
+        catch (StorageException $e) {
           form_set_error('settings', $e->getMessage());
         }
       }

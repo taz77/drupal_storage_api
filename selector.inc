@@ -248,8 +248,12 @@ class StorageSelector {
    *       Unix timestamp of when the file was obtained.
    *     - 'data'
    *       An array of data about the file.
+   *
    * @return
    *   Storage of the added file.
+   *
+   * @throws StorageException
+   *   When it isn't possible to add the storage to the selector.
    */
   public function storageAdd($options = array()) {
     $options['selector_id'] = $this->selectorId;
@@ -259,10 +263,6 @@ class StorageSelector {
     }
 
     $container = $this->initialContainer();
-    
-    if (!$container) {
-      throw new Exception();
-    }
     
     $options['initial_container_id'] = $container->container_id;
 
@@ -291,12 +291,11 @@ class StorageSelector {
         $exists = $container->instanceExists($storage);
       }
 
-      if (empty($exists)) {
-      
+      if (empty($exists)) {      
         try {
           $container->instanceCreate($storage, $options['source_uri']);
         }
-        catch (Exception $e) {
+        catch (StorageException $e) {
           $message = 'Failed to create initial instance of file ' . ($storage->filename ? ($storage->filename . ' ') : '');
           $message .= 'in storage container <i>' . $container->name() . '</i>.';
 
@@ -308,7 +307,7 @@ class StorageSelector {
           watchdog('storage_api', $message, NULL, WATCHDOG_WARNING, $link);
           
           $storage->remove();
-          throw new Exception();
+          throw new StorageException();
         }
       }
     }

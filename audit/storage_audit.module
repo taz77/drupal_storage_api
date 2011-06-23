@@ -297,8 +297,7 @@ function _storage_audit_repair(StorageServiceInterface $container, array $instan
     try {
       $info = $container->serviceInstanceCheck($instance['reference']);
     }
-    catch (Exception $e) {
-    }
+    catch (StorageException $e) {}
     
     if (is_array($info)
       && $info['size'] == $instance['size']

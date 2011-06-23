@@ -29,7 +29,7 @@ class StorageRackspace extends StorageContainer implements StorageServiceInterfa
           array('!path' => url('admin/reports/status'))), 'error');
       }
       
-      throw new Exception();
+      throw new StorageException();
     }
 
     $auth = new CF_Authentication($settings['username'], $settings['api_key']);
@@ -38,18 +38,18 @@ class StorageRackspace extends StorageContainer implements StorageServiceInterfa
     try {
       $auth->authenticate();
     }
-    catch(AuthenticationException $e) {
+    catch (AuthenticationException $e) {
       $this->log_exception($e, FALSE);
       
       if (user_access('administer storage')) {
         drupal_set_message(t('Invalid username or access key.'));
       }
         
-      throw new Exception();
+      throw new StorageException();
     }
-    catch(Exception $e) {
+    catch (Exception $e) {
       $this->log_exception($e);
-      return FALSE;
+      throw new StorageException();
     }
 
     $this->conn = new CF_Connection($auth);
@@ -68,9 +68,9 @@ class StorageRackspace extends StorageContainer implements StorageServiceInterfa
     try {
       $rscf_container = $this->conn->get_container($this->settings['rscf_container']);
     }
-    catch(Exception $e) {
+    catch (Exception $e) {
       $this->log_exception($e);
-      throw new Exception();
+      throw new StorageException();
     }
 
     $rscf_containers[$this->container_id] = $rscf_container;
@@ -84,7 +84,7 @@ class StorageRackspace extends StorageContainer implements StorageServiceInterfa
       $library = libraries_detect('php-cloudfiles');
 
       if ($library['installed'] == TRUE) {
-        return TRUE;
+        return;
       }
     }    
     
@@ -92,7 +92,7 @@ class StorageRackspace extends StorageContainer implements StorageServiceInterfa
     $message .= t('Alternatively you can use <a href="http://git-scm.com/" target="_blank">Git</a>:') . '<br />';
     $message .= '<code>git clone git://github.com/rackspace/php-cloudfiles.git</code>';
     
-    throw new Exception($message);
+    throw new StorageException($message);
   }
 
   public function serviceSettingsForm($edit = FALSE) {
@@ -153,7 +153,7 @@ class StorageRackspace extends StorageContainer implements StorageServiceInterfa
     try {
       $this->init($this->settings);
     }
-    catch (Exception $e) {
+    catch (StorageException $e) {
       form_set_error('settings');
     }
   }
@@ -188,7 +188,7 @@ class StorageRackspace extends StorageContainer implements StorageServiceInterfa
     }  
     catch (Exception $e) {
       $this->log_exception($e);
-      throw new Exception();
+      throw new StorageException();
     }
   }
   
@@ -210,7 +210,7 @@ class StorageRackspace extends StorageContainer implements StorageServiceInterfa
     }
     catch (Exception $e) {
       $this->log_exception($e);
-      throw new Exception();
+      throw new StorageException();
     }
   }
   
@@ -223,12 +223,7 @@ class StorageRackspace extends StorageContainer implements StorageServiceInterfa
       $reference = $this->uniqueFilename($storage->filename);
     }
 
-    try {
-      $rscf_container = $this->rscf_container();
-    }
-    catch (Exception $e) {
-      throw new Exception();
-    }
+    $rscf_container = $this->rscf_container();
 
     try {
       $object = $rscf_container->create_object($reference);
@@ -252,7 +247,7 @@ class StorageRackspace extends StorageContainer implements StorageServiceInterfa
       }
       catch(Exception $e) {}
 
-      throw new Exception();
+      throw new StorageException();
     }
 
     return $reference;
@@ -261,10 +256,6 @@ class StorageRackspace extends StorageContainer implements StorageServiceInterfa
   public function serviceInstanceExists($reference) {
   
     $rscf_container = $this->rscf_container();
-
-    if (!$rscf_container) {
-      return FALSE;
-    }
 
     try {
       $object = $rscf_container->get_object($reference);
@@ -285,18 +276,13 @@ class StorageRackspace extends StorageContainer implements StorageServiceInterfa
     }
     catch(Exception $e) {
       $this->log_exception($e);
-      throw new Exception();
+      throw new StorageException();
     }
   }
   
   public function serviceInstanceGet($reference) {
 
     $rscf_container = $this->rscf_container();
-
-    if (!$rscf_container) {
-      return FALSE;
-    }
-
     $temp_uri = storage_api_temp_uri();
     
     try {
@@ -306,7 +292,7 @@ class StorageRackspace extends StorageContainer implements StorageServiceInterfa
     catch(Exception $e) {
       $this->log_exception($e);
       unlink($temp_uri);
-      throw new Exception();
+      throw new StorageException();
     }
 
     return $temp_uri;

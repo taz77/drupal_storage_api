@@ -4,6 +4,15 @@
 
 class Storage {
 
+  /**
+   * Loads a storage, either from the database or from an array.
+   *
+   * @param $storage
+   *   Either a storage_id or an array.
+   *
+   * @throws StorageException
+   *   When the storage is not found.
+   */
   public function __construct($storage) {
   
     if (!is_array($storage)) {
@@ -27,7 +36,7 @@ class Storage {
         ->fetchAssoc();
 
       if (!$storage) {
-        throw new Exception();
+        throw new StorageException();
       }
     }
     
@@ -114,11 +123,16 @@ class Storage {
   }
 
 
+  /**
+   * Determines the initial container instance.
+   *
+   * @returns
+   *   The initial container instance.
+   *
+   * @throws StorageException
+   *   When there is no initial container instance.
+   */
   public function initialContainerInstance() {
-
-    if (!isset($this->initial_container_id)) {
-      return FALSE;
-    }
 
     $container = storage_container_load($this->initial_container_id);
 
@@ -131,13 +145,22 @@ class Storage {
       ->fetchField();
 
     if (!$container->reference) {
-      return FALSE;
+      throw new StorageException();
     }
 
     return $container;
   }
 
 
+  /**
+   * Determines the serving container instance.
+   *
+   * @returns
+   *   The serving container instance.
+   *
+   * @throws StorageException
+   *   When there is no serving container instance.
+   */
   public function servingContainer() {
 
     $query = db_select('storage_instance');
@@ -168,24 +191,19 @@ class Storage {
   }
 
 
+  /**
+   * Generates the storage.
+   *
+   * @returns
+   *   The initial container instance.
+   *
+   * @throws StorageException
+   *   When it isn't possible to generate the storage.
+   */
   private function generate() {
 
-    if (!isset($this->initial_container_id)) {
-      return FALSE;
-    }
-
     $container = storage_container_load($this->initial_container_id);
-    
-    if (!$container) {
-      return FALSE;
-    }
-
     $uri = $this->getUri();
-    
-    if (!$uri) {
-      return FALSE;
-    }
-      
     $link = $this->nid ? l(t('view'), 'node/' . $this->nid) : NULL;
 
     // If the storage's file is already in the system, then the instance might already exist.
@@ -198,7 +216,7 @@ class Storage {
       try {
         $reference = $container->instanceCreate($this, $uri);
       }
-      catch (Exception $e) {
+      catch (StorageException $e) {
         storage_api_temp_uri_dispose($uri);
         $message = 'Failed to create instance of file ' . ($this->filename ? ($this->filename . ' ') : '');
         $message .= 'in storage container <i>' . $container->name() . '</i>.';
@@ -210,7 +228,7 @@ class Storage {
         $message .= ' <br />' . $this->logInfo();
         watchdog('storage_api', $message, NULL, WATCHDOG_WARNING, $link);
         
-        throw new Exception();
+        throw new StorageException();
       }
     }
 
@@ -235,16 +253,22 @@ class Storage {
       $container = $this->serving_container;
     }
     else {
-      $container = $this->servingContainer();
-    
-      if (!$container) {
-        $container = $this->generate();
+      try {
+        $container = $this->servingContainer();
+      }
+      catch (StorageException $e) {}
+      
+      if (!isset($container)) {
+        try {
+          $container = $this->generate();
+        }
+        catch (StorageException $e) {}
       }
         
       $this->cacheServingContainer($container);
     }
     
-    if ($container) {
+    if (isset($container)) {
       $this->logServing($container->container_id);
       
       // This may not return.
@@ -304,11 +328,19 @@ class Storage {
       $container = $this->serving_container;
     }
     else {
-      $container = $this->servingContainer();
-      $this->cacheServingContainer($container);
+      try {
+        $container = $this->servingContainer();
+      }
+      catch (StorageException $e) {
+        $this->cacheServingContainer(NULL);
+      }
+
+      if (isset($container)) {
+        $this->cacheServingContainer($container);
+      }
     }
     
-    if ($container) {
+    if (isset($container)) {
 
       if (!$container->access_control || $container->service()->info['serve_secure']) {
         $url = $container->instanceServeURL($container->reference);
@@ -506,6 +538,9 @@ class Storage {
    *
    * @return
    *   A URI where the file can be accessed.
+   *
+   * @throws StorageException
+   *   When it is not possible to get a URI.
    */
   public function getUri() {
 
@@ -526,40 +561,42 @@ class Storage {
       ->execute()
       ->fetchAssoc();
       
-    if ($row) {
-      $container = storage_container_new($row);
+    try {
+      if ($row) {
+        $container = storage_container_new($row);
+      }
+      else {
+        $container = $this->initialContainerInstance();
+      }
     }
-    else {
-      $container = $this->initialContainerInstance();
-    }
-    
-    if ($container) {
+    catch (StorageException $e) {}
+
+    if (isset($container)) {
       return $container->serviceInstanceGet($container->reference);
     }
     
     if ($this->source_url) {
 
-      $uri = $this->acquireFromSourceURL();
+      try {
+        $uri = $this->acquireFromSourceURL();
+      }
+      catch (StorageException $e) {}
 
-      if ($uri) {
+      if (isset($uri)) {
         return $uri;
       }
     }
 
     if ($this->module) {
 
+      $uri = module_invoke($this->module, 'storage_generate', $this);
+      
       try {
-        $uri = module_invoke($this->module, 'storage_generate', $this);
+        $file_id = _storage_api_file_id($uri, $this->filename, $new_file);
       }
-      catch (Exception $e) {
-        return FALSE;
-      }
-      
-      $file_id = _storage_api_file_id($uri, $this->filename, $new_file);
-      
-      if (!$file_id) {
+      catch (StorageException $e) {
         unlink($uri);
-        return FALSE;
+        throw new StorageException();
       }
       
       if ($this->file_id && ($this->file_id != $file_id)) {
@@ -604,7 +641,7 @@ class Storage {
       return $uri;
     }
 
-    return FALSE;
+    throw new StorageException();
   }
 
 
@@ -629,6 +666,10 @@ class Storage {
     unset($this->serving_container);
   }
   
+  /**
+   * @throws StorageException
+   *   When the storage is unable to be correctly propagated.
+   */
   public function check() {
 
     // Get all containers this storage is supposed to have an instance in.
@@ -651,23 +692,23 @@ class Storage {
     
     foreach ($result as $fields) {
       $container = storage_container_new($fields);
-      $exists = $container->ensureInstanceExists($this);
       
-      if (!$exists) {
+      try {
+        $container->ensureInstanceExists($this);
+      }
+      catch (StorageException $e) {
         $failure = TRUE;
       }
-      
+
       $container_ids[] = $container->container_id;
     }
     
     if ($failure) {
-      return FALSE;
+      throw new StorageException();
     }
   
     // The storage is fully propagated, now we can destroy unrequired instances.
-    if (!$this->destroyUnrequiredInstances($container_ids)) {
-      return FALSE;
-    }
+    $this->destroyUnrequiredInstances($container_ids);
     
     if ($this->selector_id) {
       unset($this->initial_container_id);
@@ -682,11 +723,13 @@ class Storage {
 
       _storage_delete_file_if_unrequired($this->file_id);
     }
-    
-    return TRUE;
   }
 
   
+  /**
+   * @throws StorageException
+   *   When not all unrequired instances could be destroyed.
+   */
   public function destroyUnrequiredInstances($container_ids) {
 
     // Find any instances of the storage's file that are in containers the
@@ -708,15 +751,18 @@ class Storage {
     foreach ($query->execute() as $row) {
       $reference = $row['reference'];
       $container = storage_container_new($row);
-      
-      $success = $container->instanceDestroyIfUnrequired($this, $reference);
-      
-      if (!$success) {
+
+      try {
+        $container->instanceDestroyIfUnrequired($this, $reference);
+      }
+      catch (StorageException $e) {
         $failure = TRUE;
       }
     }
     
-    return !$failure;
+    if ($failure) {
+      throw new StorageException();
+    }
   }
 
 

@@ -7,6 +7,10 @@ class StorageClass {
   public $name;
   public $options;
 
+  /**
+   * @throws StorageException
+   *   When $class is not an array and the class cannot be found.
+   */
   public function __construct($class = NULL) {
   
     if (!isset($class)) {
@@ -21,8 +25,9 @@ class StorageClass {
         ->execute()
         ->fetchAssoc();
 
-      if (!$class)
-        throw new Exception();
+      if (!$class) {
+        throw new StorageException();
+      }
 
       $class['options'] = unserialize($class['options']);
     }
@@ -32,10 +37,11 @@ class StorageClass {
     }
       
     try {
-      if (isset($this->options['initial_container_id']))
+      if (isset($this->options['initial_container_id'])) {
         $this->initial_container = storage_container_load($this->options['initial_container_id']);
+      }
     }
-    catch (Exception $e) {}
+    catch (StorageException $e) {}
   }
 
   public function name() {
@@ -86,6 +92,9 @@ class StorageClass {
 
   /**
    * Ensure it is safe to remove the container from the class.
+   *
+   * @throws StorageException
+   *   When the container cannot be safely removed from the class.
    */
   private function removeContainerEnsureSafe(StorageContainer $container) {
 
@@ -115,10 +124,19 @@ class StorageClass {
 
     // If any data-loss would occur, abort.
     if ($count > 0) {
-      throw new Exception();
+      throw new StorageException();
     }
   }
 
+  /**
+   * Removes a container from the class.
+   *
+   * @param $container
+   *   The container to be removed.
+   *
+   * @throws StorageException
+   *   When the container cannot be safely removed from the class.
+   */
   public function removeContainer(StorageContainer $container) {
 
     // Ensure it is safe to remove the container from the class.
