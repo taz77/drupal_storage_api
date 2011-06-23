@@ -183,7 +183,7 @@ class StorageRackspace extends StorageContainer implements StorageServiceInterfa
       }
       else {
         $rscf_container->make_public(60 * 60 * 24 * 3);    // 3 days is the maximum ttl that can be set in the api
-        $this->settings['cdn_uri'] = $rscf_container->cdn_uri;
+        $this->settings['base_url'] = $rscf_container->cdn_uri;
       }
     }  
     catch (Exception $e) {
@@ -296,11 +296,6 @@ class StorageRackspace extends StorageContainer implements StorageServiceInterfa
     }
 
     return $temp_uri;
-  }
-  
-  public function serviceInstanceServe($reference) {
-
-    return $this->settings['cdn_uri'] . '/'. $reference;
   }
 }
 

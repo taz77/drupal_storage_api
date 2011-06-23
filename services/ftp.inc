@@ -363,10 +363,5 @@ class StorageFTP extends StorageContainer implements StorageServiceInterface {
 
     return $temp_uri;
   }
-  
-  public function serviceInstanceServe($reference) {
-
-    return $this->settings['base_url'] . '/' . $reference;
-  }
 }
 

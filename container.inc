@@ -544,6 +544,11 @@ abstract class StorageContainer {
     return $info;
   }
 
+  public function serviceInstanceServe($reference) {
+
+    return file_create_url($this->settings['base_url'] . '/' . $reference);
+  }
+
   // Optional API functions.
   public function serviceCheck() {}
   public function servicePostCreate() {}

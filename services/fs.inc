@@ -181,10 +181,5 @@ class StorageFS extends StorageContainer implements StorageServiceInterface {
       array_pop($dirs);
     }
   }
-  
-  public function serviceInstanceServe($reference) {
-
-    return file_create_url($this->settings['base_url'] . '/' . $reference);
-  }
 }
 
