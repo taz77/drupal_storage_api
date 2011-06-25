@@ -296,8 +296,8 @@ class StorageSelector {
           $container->instanceCreate($storage, $options['source_uri']);
         }
         catch (StorageException $e) {
-          $message = 'Failed to create initial instance of file ' . ($storage->filename ? ($storage->filename . ' ') : '');
-          $message .= 'in storage container <i>' . $container->name() . '</i>.';
+          $message = 'Failed to create initial instance of file ' . $storage->filename;
+          $message .= ' in storage container <i>' . $container->name() . '</i>.';
 
           if (user_access('administer storage')) {
             drupal_set_message($message);
@@ -312,7 +312,7 @@ class StorageSelector {
       }
     }
     
-    $message = 'File added' . ($storage->filename ? (': ' . $storage->filename . ' ') : '') . ' <br />';
+    $message = 'File added: ' . $storage->filename . '<br />';
     $message .= $storage->logInfo();
     
     watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, $link);

@@ -140,17 +140,14 @@ abstract class StorageContainer {
     $instance = array(
       'container_id' => $this->container_id,
       'file_id' => $storage->file_id,
+      'reference' => $reference,
     );
-
-    if ($reference) {
-      $instance['reference'] = $reference;
-    }
 
     drupal_write_record('storage_instance', $instance);
     
     $storage->flushServingContainer();
     
-    $message = 'File instance created' . ($storage->filename ? (': ' . $storage->filename . ' ') : '') . '. <br />';
+    $message = 'File instance created: ' . $storage->filename . '<br />';
     $message .= $this->logInfo();
     $message .= $storage->logInfo();
 
@@ -167,17 +164,14 @@ abstract class StorageContainer {
     $instance = array(
       'container_id' => $this->container_id,
       'file_id' => $storage->file_id,
+      'reference' => $reference,
     );
-
-    if ($result !== TRUE) {
-      $instance['reference'] = $reference;
-    }
 
     drupal_write_record('storage_instance', $instance);
     
     $storage->flushServingContainer();
     
-    $message = 'File instance copied' . ($storage->filename ? (': ' . $storage->filename . ' ') : '') . '. <br />';
+    $message = 'File instance copied: ' . $storage->filename . '<br />';
     $message .= $this->logInfo();
     $message .= $storage->logInfo();
 
@@ -186,16 +180,39 @@ abstract class StorageContainer {
 
 
   public function tryInstanceCopy(Storage $storage) {
-    
-    $candiate_container_ids = $storage->copyCandidateContainers($this);
-    
-    foreach ($candiate_container_ids as $candiate_container_id) {
 
-      if ($container->instanceExists($storage)) {
-        $source_container = storage_container_load($candiate_container_id);
-        return _storage_instance_copy($container, $storage, $source_container);
+    // Find instances of the storage's file in other containers of the same type
+    // that are in the storage's class.
+    $query = db_select('storage_instance', NULL, array('fetch' => PDO::FETCH_ASSOC));
+    $query->join('storage_container', NULL, 'storage_instance.container_id = storage_container.container_id');
+    $query->join('storage_class_container', NULL, 'storage_instance.container_id = storage_class_container.container_id');
+    $query->join('storage_selector', NULL, 'storage_class_container.class_id = storage_selector.class_id');
+
+    $result = $query->fields('storage_instance', array('container_id', 'reference'))
+      ->condition('storage_instance.file_id', $storage->file_id)
+      ->condition('storage_instance.container_id', $this->container_id, '!=')
+      ->condition('storage_container.service_id', $this->service_id)
+      ->condition('storage_selector.selector_id', $storage->selector_id)
+      ->orderBy('storage_selector.migrating')
+      ->orderBy('storage_class_container.weight', 'DESC')
+      ->orderBy('storage_class_container.container_id')
+      ->execute();
+
+    foreach ($result as $row) {
+      $source_container = storage_container_load($row['container_id']);
+      $source_container->reference = $row['reference'];
+
+      try {
+        $this->instanceCopy($storage, $source_container);
       }
+      catch (StorageException $e) {
+        continue;
+      }
+
+      return TRUE;
     }
+
+    return FALSE;
   }
 
   /**
@@ -347,7 +364,7 @@ abstract class StorageContainer {
       ->condition('container_id', $this->container_id)
       ->execute();
     
-    $message = 'File instance destroyed' . ($storage->filename ? (': ' . $storage->filename . ' ') : '') . '. <br />';
+    $message = 'File instance destroyed: ' . $storage->filename . '<br />';
     $message .= $this->logInfo();
     $message .= $storage->logInfo();
 
@@ -554,7 +571,7 @@ abstract class StorageContainer {
   public function servicePostCreate() {}
   public function serviceUpdate() {}
   public function serviceMaintenance() {}
-  public function serviceInstanceCopy(Storage $storage, $reference, $source_container) {}
+  public function serviceInstanceCopy(Storage $storage, StorageContainer $source_container) {}
 }
 
 
@@ -570,7 +587,7 @@ interface StorageServiceInterface {
   public function serviceDestroy();
   public function serviceMaintenance();
   public function serviceInstanceCreate(Storage $storage, $uri);
-  public function serviceInstanceCopy(Storage $storage, $reference, $source_container);
+  public function serviceInstanceCopy(Storage $storage, StorageContainer $source_container);
   public function serviceInstanceExists($reference);
   public function serviceInstanceCheck($reference);
   public function serviceInstanceGet($reference);

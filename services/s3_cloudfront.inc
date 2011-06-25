@@ -56,9 +56,9 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
             $components[] = 'x-amz-storage-class:REDUCED_REDUNDANCY';
           }
 
-          if (!empty($source['copy_source'])) {
-            $headers[] = 'x-amz-copy-source: ' . $source['copy_source'];
-            $components[] = 'x-amz-copy-source:' . $source['copy_source'];
+          if (isset($storage->copy_source)) {
+            $headers[] = 'x-amz-copy-source: ' . $storage->copy_source;
+            $components[] = 'x-amz-copy-source:' . $storage->copy_source;
           }
         }
 
@@ -837,19 +837,26 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
     }
   }
 
-  public function serviceInstanceCopy(Storage $storage, $reference, $source_container) {
+  public function serviceInstanceCopy(Storage $storage, StorageContainer $source_container) {
     
-    $source['copy_source'] = '/' . $source_container['settings']['bucket'] . '/file-' . $storage->file_id;
+    if ($this->enhanced_caching) {
+      $reference = $storage->file_id . '/' . $storage->filename;
+    }
+    else {
+      $reference = $this->uniqueFilename($storage->filename);
+    }
+
+    $storage->copy_source = '/' . $source_container->settings['bucket'] . '/' . $source_container->reference;
     
-    $result = $this->request('PUT', $this->settings['bucket'], $reference, $source);
+    $result = $this->request('PUT', $this->settings['bucket'], $reference, $storage);
     
     if ($result['http_code'] == 200 && $result['simplexml']) {
 
       if ($result['simplexml']->getName() == 'CopyObjectResult')
-        return TRUE;
+        return $reference;
     }
     
-    return FALSE;
+    throw new StorageException();
   }
   
   private function eTag2md5($etag) {

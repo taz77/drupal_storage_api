@@ -560,7 +560,7 @@ class Storage {
       ->range(0, 1)
       ->execute()
       ->fetchAssoc();
-      
+
     try {
       if ($row) {
         $container = storage_container_new($row);
@@ -568,13 +568,11 @@ class Storage {
       else {
         $container = $this->initialContainerInstance();
       }
+
+      return $container->serviceInstanceGet($container->reference);
     }
     catch (StorageException $e) {}
 
-    if (isset($container)) {
-      return $container->serviceInstanceGet($container->reference);
-    }
-    
     if ($this->source_url) {
 
       try {
@@ -763,32 +761,6 @@ class Storage {
     if ($failure) {
       throw new StorageException();
     }
-  }
-
-
-  public function copyCandidateContainers(StorageContainer $container) {
-
-    // Find all the containers in $storage's class that are using $container's service, 
-    // except $container.
-    $query = db_select('storage_selector', NULL, array('fetch' => PDO::FETCH_ASSOC));
-    $query->join('storage_class_container', NULL, 'storage_selector.class_id = storage_class_container.class_id');
-    $query->join('storage_container', NULL, 'storage_class_container.container_id = storage_container.container_id');
-    
-    $result = $query->fields('storage_container', array('container_id'))
-      ->condition('storage_selector.selector_id', $this->selector_id)
-      ->condition('storage_class_container.container_id', $container->container_id, '!=')
-      ->condition('storage_container}.service_id', $container->service_id)
-      ->orderBy('storage_class_container.weight')
-      ->orderBy('storage_container.container_id')
-      ->execute();
-    
-    $candiate_container_ids = array();
-    
-    foreach ($result as $candiate_container) {
-      $candiate_container_ids[] = $candiate_container['container_id'];
-    }
-    
-    return $candiate_container_ids;
   }
 }
 
