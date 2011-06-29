@@ -157,7 +157,7 @@ abstract class StorageContainer {
   }
 
 
-  public function instanceCopy(Storage $storage, $source_container) {
+  public function instanceCopy(Storage $storage, StorageContainer $source_container) {
 
     $reference = $this->serviceInstanceCopy($storage, $source_container);
 

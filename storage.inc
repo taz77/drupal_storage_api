@@ -279,10 +279,10 @@ class Storage {
         $url = $container->serviceInstanceServe($container->reference);
       }
     }
-    elseif ($this->options['serve_source_url'] && $this->source_url) {
+    elseif ($this->options['serve_source_uri'] && $this->source_uri) {
 
       $this->logServing();
-      $url = $this->source_url;
+      $url = file_create_url($this->source_uri);
     }
     
     if (!isset($url)) {
@@ -346,9 +346,9 @@ class Storage {
         $url = $container->instanceServeURL($container->reference);
       }
     }
-    elseif ($this->options['serve_source_url'] && $this->source_url) {
+    elseif ($this->options['serve_source_uri'] && $this->source_uri) {
 
-      $url = $this->source_url;
+      $url = file_create_url($this->source_uri);;
     }
     
     if (!isset($url)) {
@@ -427,7 +427,7 @@ class Storage {
     $headers[] = 'Content-Type: ' . $this->mimetype;
     $headers[] = 'Content-Length: ' . $this->size;
     $headers[] = 'Content-MD5: ' . base64_encode($this->md5);
-    $headers[] = 'Last-Modified: ' . date(DATE_RFC1123, $this->obtained);
+    $headers[] = 'Last-Modified: ' . date(DATE_RFC1123, $this->created);
     $headers[] = 'Content-Disposition: attachment; filename="' . basename($this->filename) . '"';
     
     if ($enhanced_caching) {
@@ -459,10 +459,10 @@ class Storage {
     if ($time < $this->data['next_acquire_time'])
       return;
       
-    $uri = _storage_acquire_from_url($this->source_url);
+    $uri = _storage_acquire_from_url($this->source_uri);
     
     if ($uri) {
-      $file_id = _storage_api_file_id($uri, basename(parse_url($this->source_url, PHP_URL_PATH)), $new_file);
+      $file_id = _storage_api_file_id($uri, basename(parse_url($this->source_uri, PHP_URL_PATH)), $new_file);
 
       if (!$this->file_id) {
         $this->file_id = $file_id;
@@ -477,15 +477,13 @@ class Storage {
       else {
         unset($this->data['next_acquire_time']);
         unset($this->data['next_acquire_delay']);
-
-        $this->obtained = $time;
         $this->update();
         
         // we need to reload $storage to get the filesize, etc
 //          $this = storage_load($this->storage_id);
         $this->new_file = $new_file;    // _storage_ensure_instance_exists() will make use of this
 
-        $message = 'Acquired file from url: ' . $this->source_url . ' . <br />';
+        $message = 'Acquired file from url: ' . $this->source_uri . ' . <br />';
         $message .= $this->logInfo();
         
         $link = $this->nid ? l(t('view'), 'node/' . $this->nid) : NULL;
@@ -500,11 +498,11 @@ class Storage {
 
       unset($this->data['next_acquire_time']);
       unset($this->data['next_acquire_delay']);
-      unset($this->source_url);
+      unset($this->source_uri);
       
       $this->update();
 
-      $message = 'Failed acquiring file from url: ' . $this->source_url . ' . <br />';
+      $message = 'Failed acquiring file from url: ' . $this->source_uri . ' . <br />';
       $message .= $this->logInfo();
       
       $link = $this->nid ? l(t('view'), 'node/' . $this->nid) : NULL;
@@ -573,7 +571,7 @@ class Storage {
     }
     catch (StorageException $e) {}
 
-    if ($this->source_url) {
+    if ($this->source_uri) {
 
       try {
         $uri = $this->acquireFromSourceURL();
@@ -613,7 +611,7 @@ class Storage {
           db_insert('storage')
             ->fields(array(
               'file_id' => $this->file_id,
-              'obtained' => $this->obtained,
+              'created' => $this->created,
               'data' => '',
             ))
             ->execute();
@@ -622,7 +620,6 @@ class Storage {
 
       if ($this->file_id != $file_id) {
         $this->file_id = $file_id;
-        $this->obtained = time();
         unset($this->data['filename']);
         $this->update();
 

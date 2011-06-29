@@ -464,9 +464,9 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
     $stat = array(
       'mode' => 0100666,
       'size' => $storage->size,
-      'atime' => $storage->obtained,
-      'mtime' => $storage->obtained,
-      'ctime' => $storage->obtained,
+      'atime' => $storage->created,
+      'mtime' => $storage->created,
+      'ctime' => $storage->created,
     );
 
     return $stat;

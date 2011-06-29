@@ -215,10 +215,10 @@ class StorageClass {
         '#type' => 'checkbox',
         '#default_value' => isset($this->options['redirect']) ? $this->options['redirect'] : FALSE,
       ),
-      'serve_source_url' => array(
+      'serve_source_uri' => array(
         '#title' => t('Serve source url'),
         '#type' => 'checkbox',
-        '#default_value' => isset($this->options['serve_source_url']) ? $this->options['serve_source_url'] : FALSE,
+        '#default_value' => isset($this->options['serve_source_uri']) ? $this->options['serve_source_uri'] : FALSE,
         '#description' => t('If no instances are available, serve the source url.'),
       )
     );

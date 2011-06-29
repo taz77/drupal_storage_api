@@ -155,7 +155,7 @@ function storage_class(StorageClass $class) {
     t('Files') => $class_info['files'],
     t('Size') => storage_format_size((int) $class_info['size']),
     t('Redirection') => (isset($class->options['redirect']) && $class->options['redirect']) ? t('Yes') : t('No'),
-    t('Serve source') => (isset($class->options['serve_source_url']) && $class->options['serve_source_url']) ? t('Yes') : t('No'),
+    t('Serve source') => (isset($class->options['serve_source_uri']) && $class->options['serve_source_uri']) ? t('Yes') : t('No'),
     t('Initial container') => (isset($class->initial_container) && $class->initial_container) ? $class->initial_container->link() : t('n/a'),
   );
   

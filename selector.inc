@@ -192,11 +192,6 @@ class StorageSelector {
       ->fetchField());
   }
   
-  public function initialContainer() {
-
-    return $this->storageClass()->initial_container;
-  }
-  
   public function checkMigration() {
   
     // Is the selector fully migrated?
@@ -223,19 +218,20 @@ class StorageSelector {
   }
 
   /**
-   * Adds a file for Storage API to manage.
+   * Adds a storage to the selector.
    *
-   * The file will initially be stored in file's class's initial container.
+   * If the selector's class has an initial container, then an instance of the
+   * storage will be created there.
    *
    * @param $options
    *   An associative array of additional options, with the following keys:
    *     - 'source_uri'
    *       URI to get the file from.
+   *     - 'keep_source_uri'
+   *       source_uri will be stored in the database.
    *     - 'file_id'
    *       If the same file is already in the system, its file_id can be
    *       specified.
-   *     - 'source_url'
-   *       URL to get the file from
    *     - 'filename'
    *       The file's filename.
    *     - 'module'
@@ -244,8 +240,8 @@ class StorageSelector {
    *       Module-specific file type identifier.
    *     - 'nid'
    *       The nid of the node this file should be associated with.
-   *     - 'obtained' (default current time)
-   *       Unix timestamp of when the file was obtained.
+   *     - 'created' (default current time)
+   *       Unix timestamp of when the storage was created.
    *     - 'data'
    *       An array of data about the file.
    *
@@ -256,23 +252,31 @@ class StorageSelector {
    *   When it isn't possible to add the storage to the selector.
    */
   public function storageAdd($options = array()) {
-    $options['selector_id'] = $this->selectorId;
-    
-    if (!isset($options['obtained'])) {
-      $options['obtained'] = time();
-    }
 
-    $container = $this->initialContainer();
-    
-    $options['initial_container_id'] = $container->container_id;
+    $options += array(
+      'selector_id' => $this->selectorId,
+      'keep_source_uri' => FALSE,
+      'created' => time(),
+      'data' => array(),
+    );
 
-    if (!isset($options['data']) || !is_array($options['data'])) {
-      $options['data'] = array();
+    $initial_container = $this->storageClass()->initial_container;
+
+    if ($initial_container) {
+      $options['initial_container_id'] = $initial_container->container_id;
     }
 
     if (isset($options['source_uri'])) {
-      $options['file_id'] = _storage_api_file_id($options['source_uri'], 
-        isset($options['filename']) ? $options['filename'] : basename($options['source_uri']), $new_file);
+
+      if ($initial_container) {
+        $source_uri = $options['source_uri'];   // TODO: Make this URI local.
+        $filename = isset($options['filename']) ? $options['filename'] : basename($options['source_uri']);
+        $options['file_id'] = _storage_api_file_id($source_uri, $filename, $new_file);
+      }
+
+      if (!$options['keep_source_uri']) {
+        unset($options['source_uri']);
+      }
     }
     elseif (isset($options['filename'])) {
       // Store the filename so it can be in the generator URL.
@@ -281,23 +285,25 @@ class StorageSelector {
 
     drupal_write_record('storage', $options);
     $storage = storage_load($options['storage_id']);
-    
+
     $link = $storage->nid ? l(t('view'), 'node/' . $storage->nid) : NULL;
-    
-    if (isset($options['source_uri'])) {
-    
-      // If the storage's file is already in the system, then the instance might already exist.
-      if (empty($new_file)) {
-        $exists = $container->instanceExists($storage);
+
+    if (isset($source_uri)) {
+      $exists = FALSE;
+
+      // If the storage's file is already in the system, then the instance
+      // might already exist.
+      if (!$new_file) {
+        $exists = $initial_container->instanceExists($storage);
       }
 
-      if (empty($exists)) {      
+      if (!$exists) {
         try {
-          $container->instanceCreate($storage, $options['source_uri']);
+          $initial_container->instanceCreate($storage, $source_uri);
         }
         catch (StorageException $e) {
           $message = 'Failed to create initial instance of file ' . $storage->filename;
-          $message .= ' in storage container <i>' . $container->name() . '</i>.';
+          $message .= ' in storage container <i>' . $initial_container->name() . '</i>.';
 
           if (user_access('administer storage')) {
             drupal_set_message($message);
@@ -305,16 +311,16 @@ class StorageSelector {
 
           $message .= ' <br />' . $storage->logInfo();
           watchdog('storage_api', $message, NULL, WATCHDOG_WARNING, $link);
-          
+
           $storage->remove();
           throw new StorageException();
         }
       }
     }
-    
+
     $message = 'File added: ' . $storage->filename . '<br />';
     $message .= $storage->logInfo();
-    
+
     watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, $link);
 
     return $storage;
