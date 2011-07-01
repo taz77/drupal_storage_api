@@ -70,7 +70,7 @@ class StorageFTP extends StorageContainer implements StorageServiceInterface {
   
   private function removeDirectory($directory) {
         
-    if (!ftp_rmdir($this->ftpStream, $directory)) {
+    if (!@ftp_rmdir($this->ftpStream, $directory)) {
       throw new StorageException();
     }
   }
