@@ -183,7 +183,7 @@ function storage_core_bridge_storage_id($uri) {
 
   return db_select('storage')
     ->fields('storage', array('storage_id'))
-    ->condition('storage.uri', $uri)
+    ->condition('storage.core_bridge_uri', $uri)
     ->execute()
     ->fetchField();
 }
@@ -391,7 +391,7 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
         'source_uri' => $this->temp_uri,
         'filename' => $storage_core_bridge_filename,
         'module' => 'storage_core_bridge',
-        'uri' => $this->uri,
+        'core_bridge_uri' => $this->uri,
       );
 
       $field_name = storage_core_bridge_uri_field_name($this->uri);

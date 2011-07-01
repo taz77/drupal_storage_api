@@ -45,9 +45,9 @@ function storage_core_bridge_schema() {
 function storage_core_bridge_install() {
 
   $spec = array('type' => 'varchar', 'length' => 255);
-  $keys = array('unique keys' => array('uri' => array('uri')));
+  $keys = array('unique keys' => array('core_bridge_uri' => array('core_bridge_uri')));
 
-  db_add_field('storage', 'uri', $spec, $keys); 
+  db_add_field('storage', 'core_bridge_uri', $spec, $keys);
   variable_set('storage_core_bridge_fields', array());
 }
 
@@ -57,7 +57,7 @@ function storage_core_bridge_install() {
  */
 function storage_core_bridge_uninstall() {
 
-  db_drop_field('storage', 'uri');
+  db_drop_field('storage', 'core_bridge_uri');
   variable_del('storage_core_bridge_fields');
 }
 
@@ -67,7 +67,7 @@ function storage_core_bridge_uninstall() {
  */
 function storage_core_bridge_schema_alter(&$schema) {
 
-  $schema['storage']['fields']['uri'] = array('type' => 'varchar', 'length' => 255);
-  $schema['storage']['unique keys'] = array('uri' => array('uri'));
+  $schema['storage']['fields']['core_bridge_uri'] = array('type' => 'varchar', 'length' => 255);
+  $schema['storage']['unique keys'] = array('core_bridge_uri' => array('core_bridge_uri'));
 }
 
