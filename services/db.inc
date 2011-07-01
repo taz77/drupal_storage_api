@@ -139,7 +139,6 @@ class StorageDB extends StorageContainer implements StorageServiceInterface {
     db_set_active();
 
     if (!$success) {
-      unlink($temp_uri);
       throw new StorageException();
     }
 

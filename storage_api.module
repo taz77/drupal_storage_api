@@ -491,11 +491,9 @@ function _storage_acquire_from_url($url) {
       return $temp_uri;
       
     case 4:
-      unlink($temp_uri);
       return FALSE;         // hard failure
       
     default:
-      unlink($temp_uri);
       return NULL;          // soft failure
   }
 }
@@ -599,6 +597,23 @@ function theme_storage_info_table($variables) {
 }
 
 
+class StorageTempURI {
+  private $uri;
+
+  public function __construct() {
+    $this->uri = drupal_tempnam('temporary://', 'storage_api-');
+  }
+
+  public function __destruct() {
+    unlink($this->uri);
+  }
+
+  public function __toString() {
+    return $this->uri;
+  }
+}
+
+
 /**
  * Creates a temporary URI.
  *
@@ -607,21 +622,7 @@ function theme_storage_info_table($variables) {
  */
 function storage_api_temp_uri() {
 
-  return drupal_tempnam('temporary://', 'storage_api-');
-}
-
-
-/**
- * Deletes a URI if it is temporary.
- *
- * @param $uri
- *   The URI to be deleted if it is temporary.
- */
-function storage_api_temp_uri_dispose($uri) {
-
-  if (file_uri_scheme($uri) == 'temporary') {
-    @unlink($uri);
-  }
+  return new StorageTempURI();
 }
 
 

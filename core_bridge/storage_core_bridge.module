@@ -305,8 +305,7 @@ function storage_core_bridge_storage_generate(Storage $storage) {
   $destination = storage_api_temp_uri();
 
   image_style_create_derivative($style, $source, $destination);
-  storage_api_temp_uri_dispose($source);
-  
+
   return $destination;
 }
 
@@ -402,9 +401,6 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
       }
       catch (StorageException $e) {}
     }
-
-    // Delete the intermediate file if it is temporary.
-    storage_api_temp_uri_dispose($this->temp_uri);
   }
   
   public function stream_read($count) {

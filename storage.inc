@@ -217,7 +217,6 @@ class Storage {
         $reference = $container->instanceCreate($this, $uri);
       }
       catch (StorageException $e) {
-        storage_api_temp_uri_dispose($uri);
         $message = 'Failed to create instance of file ' . ($this->filename ? ($this->filename . ' ') : '');
         $message .= 'in storage container <i>' . $container->name() . '</i>.';
 
@@ -232,7 +231,6 @@ class Storage {
       }
     }
 
-    storage_api_temp_uri_dispose($uri);
     $this->update();
 
     $message = 'Generated file' . ($this->filename ? (' ' . $this->filename) : '');
@@ -299,9 +297,6 @@ class Storage {
   
     $uri = $container->serviceInstanceGet($container->reference);
     @readfile($uri);
-
-    // Delete the intermediate file if it is temporary.
-    storage_api_temp_uri_dispose($uri);
 
     drupal_exit();
   }

@@ -64,7 +64,6 @@ abstract class StorageContainer {
     
     $storage = new Storage(array('filename' => '.htaccess'));
     $this->serviceInstanceCreate($storage, $temp_uri);
-    unlink($temp_uri);
   }
 
   /**
@@ -262,10 +261,7 @@ abstract class StorageContainer {
       }
       catch (StorageException $e) {}
     }
-    
-    // Delete the intermediate file if it is temporary.
-    storage_api_temp_uri_dispose($uri);
-    
+
     if (isset($e)) {
       throw $e;
     }
@@ -545,9 +541,6 @@ abstract class StorageContainer {
   public function serviceInstanceCheck($reference) {
     $uri = $this->serviceInstanceGet($reference);
     $stat = @stat($uri);
-    
-    // Delete the file if it is temporary.
-    storage_api_temp_uri_dispose($uri);
 
     if ($stat === FALSE) {
       throw new StorageException();

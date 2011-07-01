@@ -357,7 +357,6 @@ class StorageFTP extends StorageContainer implements StorageServiceInterface {
     $result = ftp_get($this->ftpStream, $temp_uri, $reference, FTP_BINARY);
     
     if (!$result) {
-      unlink($temp_uri);
       throw new StorageException();
     }
 

@@ -291,7 +291,6 @@ class StorageRackspace extends StorageContainer implements StorageServiceInterfa
     }
     catch(Exception $e) {
       $this->log_exception($e);
-      unlink($temp_uri);
       throw new StorageException();
     }
 

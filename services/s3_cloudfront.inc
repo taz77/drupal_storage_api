@@ -135,7 +135,6 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
     }
       
     if (isset($result['temp_uri']) && $result['http_code'] != 200) {
-      drupal_unlink($result['temp_uri']);
       unset($result['temp_uri']);
     }
     
