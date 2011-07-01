@@ -124,16 +124,45 @@ class Storage {
 
 
   /**
-   * Determines the initial container instance.
+   * Selects a container instance.
    *
-   * @returns
-   *   The initial container instance.
+   * @param $serving
+   *   Set to TRUE if the instance is to be served.
+   *
+   * @return
+   *   The container instance.
    *
    * @throws StorageException
-   *   When there is no initial container instance.
+   *   When there is no container instance.
    */
-  public function initialContainerInstance() {
+  public function selectContainerInstance($serving = FALSE) {
 
+    $query = db_select('storage_instance');
+    $query->join('storage_class_container', NULL, 'storage_instance.container_id = storage_class_container.container_id');
+    $query->join('storage_selector', NULL, 'storage_class_container.class_id = storage_selector.class_id');
+    $query->join('storage_container', NULL, 'storage_instance.container_id = storage_container.container_id');
+    
+    if ($serving) {
+      $query->condition('storage_class_container.serving', 1);
+    }
+
+    $row = $query->condition('storage_instance.file_id', $this->file_id)
+      ->condition('storage_selector.selector_id', $this->selector_id)
+      ->condition('storage_container.suspended', 0)
+      ->fields('storage_container')
+      ->fields('storage_instance', array('reference'))
+      ->orderBy('storage_selector.migrating')
+      ->orderBy('storage_class_container.weight', $serving ? 'ASC' : 'DESC')
+      ->orderBy('storage_class_container.container_id')
+      ->range(0, 1)
+      ->execute()
+      ->fetchAssoc();
+
+    if ($row) {
+      return storage_container_new($row);
+    }
+    
+    // Let's see if the file is in the storage's initial container.
     $container = storage_container_load($this->initial_container_id);
 
     $container->reference = db_select('storage_instance')
@@ -153,48 +182,9 @@ class Storage {
 
 
   /**
-   * Determines the serving container instance.
-   *
-   * @returns
-   *   The serving container instance.
-   *
-   * @throws StorageException
-   *   When there is no serving container instance.
-   */
-  public function servingContainer() {
-
-    $query = db_select('storage_instance');
-    $query->join('storage_class_container', NULL, 'storage_instance.container_id = storage_class_container.container_id');
-    $query->join('storage_selector', NULL, 'storage_class_container.class_id = storage_selector.class_id');
-    $query->join('storage_container', NULL, 'storage_instance.container_id = storage_container.container_id');
-    
-    $container = $query->condition('storage_instance.file_id', $this->file_id)
-      ->condition('storage_class_container.serving', 1)
-      ->condition('storage_selector.selector_id', $this->selector_id)
-      ->condition('storage_container.suspended', 0)
-      ->fields('storage_container')
-      ->fields('storage_instance', array('reference'))
-      ->orderBy('migrating')
-      ->orderBy('weight')
-      ->orderBy('container_id')
-      ->range(0, 1)
-      ->execute()
-      ->fetchAssoc();
-      
-    if ($container) {
-      return storage_container_new($container);
-    }
-    
-    // We couldn't serve the file from any of the containers it is supposed to be in
-    // lets see if the file is in the storage's initial container.
-    return $this->initialContainerInstance();
-  }
-
-
-  /**
    * Generates the storage.
    *
-   * @returns
+   * @return
    *   The initial container instance.
    *
    * @throws StorageException
@@ -252,7 +242,7 @@ class Storage {
     }
     else {
       try {
-        $container = $this->servingContainer();
+        $container = $this->selectContainerInstance(TRUE);
       }
       catch (StorageException $e) {}
       
@@ -324,7 +314,7 @@ class Storage {
     }
     else {
       try {
-        $container = $this->servingContainer();
+        $container = $this->selectContainerInstance(TRUE);
       }
       catch (StorageException $e) {
         $this->cacheServingContainer(NULL);
@@ -343,7 +333,7 @@ class Storage {
     }
     elseif ($this->options['serve_source_uri'] && $this->source_uri) {
 
-      $url = file_create_url($this->source_uri);;
+      $url = file_create_url($this->source_uri);
     }
     
     if (!isset($url)) {
@@ -537,31 +527,8 @@ class Storage {
    */
   public function getUri() {
 
-    $query = db_select('storage_instance');
-    $query->join('storage_class_container', NULL, 'storage_instance.container_id = storage_class_container.container_id');
-    $query->join('storage_selector', NULL, 'storage_class_container.class_id = storage_selector.class_id');
-    $query->join('storage_container', NULL, 'storage_instance.container_id = storage_container.container_id');
-    
-    $row = $query->condition('storage_instance.file_id', $this->file_id)
-      ->condition('storage_selector.selector_id', $this->selector_id)
-      ->condition('storage_container.suspended', 0)
-      ->fields('storage_instance')
-      ->fields('storage_container')
-      ->orderBy('storage_selector.migrating')
-      ->orderBy('storage_class_container.weight', 'DESC')
-      ->orderBy('storage_class_container.container_id')
-      ->range(0, 1)
-      ->execute()
-      ->fetchAssoc();
-
     try {
-      if ($row) {
-        $container = storage_container_new($row);
-      }
-      else {
-        $container = $this->initialContainerInstance();
-      }
-
+      $container = $this->selectContainerInstance();
       return $container->serviceInstanceGet($container->reference);
     }
     catch (StorageException $e) {}
@@ -586,7 +553,6 @@ class Storage {
         $file_id = _storage_api_file_id($uri, $this->filename, $new_file);
       }
       catch (StorageException $e) {
-        unlink($uri);
         throw new StorageException();
       }
       
