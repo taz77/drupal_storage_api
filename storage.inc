@@ -601,7 +601,7 @@ class Storage {
   }
 
 
-  public function cacheServingContainer($container) {
+  public function cacheServingContainer(StorageContainer $container) {
 
     $this->serving_container = serialize($container);
 
@@ -686,7 +686,7 @@ class Storage {
    * @throws StorageException
    *   When not all unrequired instances could be destroyed.
    */
-  public function destroyUnrequiredInstances($container_ids) {
+  public function destroyUnrequiredInstances(array $container_ids) {
 
     // Find any instances of the storage's file that are in containers the
     // storage is not supposed to be in.

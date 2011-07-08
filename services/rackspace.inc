@@ -15,7 +15,7 @@ class StorageRackspace extends StorageContainer implements StorageServiceInterfa
     }
   }
 
-  private function init($settings) {
+  private function init(array $settings) {
 
     if (module_exists('libraries')) {
       $library = libraries_load('php-cloudfiles');

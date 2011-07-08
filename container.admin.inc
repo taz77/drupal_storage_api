@@ -47,7 +47,7 @@ function storage_containers() {
  * @see storage_create_container_form_validate()
  * @see storage_create_container_form_submit()
  */
-function storage_create_container_form($form, &$form_state) {
+function storage_create_container_form(array $form, array &$form_state) {
 
   drupal_set_title(t('Create container'));
 
@@ -172,7 +172,7 @@ function storage_create_container_form($form, &$form_state) {
  * @see storage_create_container_form()
  * @see storage_create_container_form_submit()
  */
-function storage_create_container_form_validate($form, &$form_state) {
+function storage_create_container_form_validate(array $form, array &$form_state) {
 
   switch ($form_state['values']['step']) {
   
@@ -230,7 +230,7 @@ function storage_create_container_form_validate($form, &$form_state) {
  * @see storage_create_container_form()
  * @see storage_create_container_form_validate()
  */
-function storage_create_container_form_submit($form, &$form_state) {
+function storage_create_container_form_submit(array $form, array &$form_state) {
 
   if ($form_state['clicked_button']['#value'] != t('Create')) {
     $form_state['rebuild'] = TRUE;
@@ -263,7 +263,7 @@ function _storage_container_render_classes(array $classes) {
  * @see storage_container_form_suspend()
  * @see storage_container_form_unsuspend()
  */
-function storage_container_form($form, &$form_state, StorageContainer $container) {
+function storage_container_form(array $form, array &$form_state, StorageContainer $container) {
   $form['#container'] = $container;
 
   $info = array(
@@ -310,7 +310,7 @@ function storage_container_form($form, &$form_state, StorageContainer $container
  * @see storage_container_form()
  * @see storage_container_form_unsuspend()
  */
-function storage_container_form_suspend($form, &$form_state) {
+function storage_container_form_suspend(array $form, array &$form_state) {
   $container = $form['#container'];
 
   $form_state['redirect'] = $container->path() . '/suspend';
@@ -323,7 +323,7 @@ function storage_container_form_suspend($form, &$form_state) {
  * @see storage_container_form()
  * @see storage_container_form_suspend()
  */
-function storage_container_form_unsuspend($form, &$form_state) {
+function storage_container_form_unsuspend(array $form, array &$form_state) {
   $container = $form['#container'];
 
   $form_state['redirect'] = $container->path() . '/unsuspend';
@@ -336,7 +336,7 @@ function storage_container_form_unsuspend($form, &$form_state) {
  * @ingroup forms
  * @see storage_container_suspend_form_submit()
  */
-function storage_container_suspend_form($form, &$form_state, StorageContainer $container) {
+function storage_container_suspend_form(array $form, array &$form_state, StorageContainer $container) {
   $form['#container'] = $container;
 
   return confirm_form($form, 'Are you sure you want to suspend storage container <i>' . $container->name() . '</i> ?', 
@@ -349,7 +349,7 @@ function storage_container_suspend_form($form, &$form_state, StorageContainer $c
  *
  * @see storage_container_suspend_form()
  */
-function storage_container_suspend_form_submit($form, &$form_state) {
+function storage_container_suspend_form_submit(array $form, array &$form_state) {
   $container = $form['#container'];
   
   $container->suspended = TRUE;
@@ -371,7 +371,7 @@ function storage_container_suspend_form_submit($form, &$form_state) {
  * @ingroup forms
  * @see storage_container_unsuspend_form_submit()
  */
-function storage_container_unsuspend_form($form, &$form_state, StorageContainer $container) {
+function storage_container_unsuspend_form(array $form, array &$form_state, StorageContainer $container) {
   $form['#container'] = $container;
 
   return confirm_form($form, 'Are you sure you want to unsuspend storage container <i>' . 
@@ -384,7 +384,7 @@ function storage_container_unsuspend_form($form, &$form_state, StorageContainer 
  *
  * @see storage_container_unsuspend_form()
  */
-function storage_container_unsuspend_form_submit($form, &$form_state) {
+function storage_container_unsuspend_form_submit(array $form, array &$form_state) {
   $container = $form['#container'];
 
   $container->suspended = FALSE;
@@ -406,7 +406,7 @@ function storage_container_unsuspend_form_submit($form, &$form_state) {
  * @ingroup forms
  * @see storage_container_destroy_form_submit()
  */
-function storage_container_destroy_form($form, &$form_state, StorageContainer $container) {
+function storage_container_destroy_form(array $form, array &$form_state, StorageContainer $container) {
   $form['#container'] = $container;
 
   $classes = $container->classes();
@@ -447,7 +447,7 @@ function storage_container_destroy_form($form, &$form_state, StorageContainer $c
  *
  * @see storage_container_destroy_form()
  */
-function storage_container_destroy_form_submit($form, &$form_state) {
+function storage_container_destroy_form_submit(array $form, array &$form_state) {
   $container = $form['#container'];
   
   $container->destroy($form_state['values']['just_delete']);
@@ -462,7 +462,7 @@ function storage_container_destroy_form_submit($form, &$form_state) {
  * @see storage_container_edit_form_submit()
  * @see storage_container_edit_form_validate()
  */
-function storage_container_edit_form($form, &$form_state, StorageContainer $container) {
+function storage_container_edit_form(array $form, array &$form_state, StorageContainer $container) {
   $form['#container'] = $container;
 
   $form['name'] = array(
@@ -495,7 +495,7 @@ function storage_container_edit_form($form, &$form_state, StorageContainer $cont
  * @see storage_container_edit_form()
  * @see storage_container_edit_form_submit()
  */
-function storage_container_edit_form_validate($form, &$form_state) {
+function storage_container_edit_form_validate(array $form, array &$form_state) {
   $container = $form['#container'];
   
   $container->settings = $form_state['values']['settings'] + $container->settings;
@@ -509,7 +509,7 @@ function storage_container_edit_form_validate($form, &$form_state) {
  * @see storage_container_edit_form()
  * @see storage_container_edit_form_validate()
  */
-function storage_container_edit_form_submit($form, &$form_state) {
+function storage_container_edit_form_submit(array $form, array &$form_state) {
   $container = $form['#container'];
 
   $container->name = $form_state['values']['name'];

@@ -24,7 +24,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
     return $headers;
   }
   
-  private function request($op, $bucket = NULL, $object_name = NULL, Storage $storage = NULL, $uri = NULL, $query = array()) {
+  private function request($op, $bucket = NULL, $object_name = NULL, Storage $storage = NULL, $uri = NULL, array $query = array()) {
     $result = array();
     $date = date(DATE_RFC1123, time());
 
@@ -862,7 +862,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
     return pack('H*', substr($etag, 1, 32));
   }
 
-  public function serviceManifest(&$sandbox, &$finished) {
+  public function serviceManifest(array &$sandbox, &$finished) {
 
     $query = array(
       'max-keys' => 100,

@@ -4,7 +4,7 @@
 
 abstract class StorageContainer {
 
-  public function __construct($fields, $unserialize = TRUE) {
+  public function __construct(array $fields, $unserialize = TRUE) {
   
     if ($unserialize && isset($container['settings'])) {
       $container['settings'] = unserialize($container['settings']);
@@ -502,7 +502,7 @@ abstract class StorageContainer {
     return $info;
   }
 
-  public function serviceManifest(&$sandbox, &$finished) {
+  public function serviceManifest(array &$sandbox, &$finished) {
   
     if (!isset($sandbox['references'])) {
       $sandbox['references'] = $this->serviceListReferences();

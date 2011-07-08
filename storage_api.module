@@ -247,7 +247,7 @@ function storage_container_load($container_id) {
 }
 
 
-function storage_container_new($fields, $unserialize = TRUE) {
+function storage_container_new(array $fields, $unserialize = TRUE) {
 
   if ($unserialize) {
     $fields['settings'] = unserialize($fields['settings']);
@@ -577,7 +577,7 @@ function storage_api_theme($existing, $type, $theme, $path) {
 }
 
 
-function theme_storage_info_table($variables) {
+function theme_storage_info_table(array $variables) {
   $rows = array();
 
   foreach ($variables['info'] as $key => $value) {

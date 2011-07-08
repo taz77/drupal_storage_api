@@ -65,7 +65,7 @@ function storage_core_bridge_uninstall() {
 /**
  * Implements hook_schema_alter().
  */
-function storage_core_bridge_schema_alter(&$schema) {
+function storage_core_bridge_schema_alter(array &$schema) {
 
   $schema['storage']['fields']['core_bridge_uri'] = array('type' => 'varchar', 'length' => 255);
   $schema['storage']['unique keys'] = array('core_bridge_uri' => array('core_bridge_uri'));

@@ -225,6 +225,7 @@ function _storage_audit(StorageContainer $container, array $instance) {
 
 function storage_audit(StorageServiceInterface $container, array &$context) {
   if (!isset($context['sandbox']['progress'])) {
+    $context['sandbox']['service_sandbox'] = array();
     $context['sandbox']['files'] = 0;
     $context['sandbox']['max'] = db_select('storage_instance')
       ->condition('container_id', $container->container_id)
@@ -289,7 +290,7 @@ function storage_audit(StorageServiceInterface $container, array &$context) {
 }
 
 
-function _storage_audit_repair(StorageServiceInterface $container, array $instance, &$results) {
+function _storage_audit_repair(StorageServiceInterface $container, array $instance, array &$results) {
 
   // Make sure we don't delete anything we shouldn't.
   if ($instance['file_id']) {

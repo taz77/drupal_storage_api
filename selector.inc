@@ -251,7 +251,7 @@ class StorageSelector {
    * @throws StorageException
    *   When it isn't possible to add the storage to the selector.
    */
-  public function storageAdd($options = array()) {
+  public function storageAdd(array $options = array()) {
 
     $options += array(
       'selector_id' => $this->selectorId,

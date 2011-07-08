@@ -61,7 +61,7 @@ function storage_classes_list() {
  * @ingroup forms
  * @see storage_create_class_form_submit()
  */
-function storage_create_class_form($form, &$form_state) {
+function storage_create_class_form(array $form, array &$form_state) {
 
   drupal_set_title(t('Create class'));
   
@@ -90,7 +90,7 @@ function storage_create_class_form($form, &$form_state) {
 
   $form['submit'] = array(
     '#type' => 'submit',
-    '#value' => t('Create class')
+    '#value' => t('Create class'),
   );
   
   return $form;
@@ -102,7 +102,7 @@ function storage_create_class_form($form, &$form_state) {
  *
  * @see storage_create_class_form()
  */
-function storage_create_class_form_submit($form, &$form_state) {
+function storage_create_class_form_submit(array $form, array &$form_state) {
 
   $class = new StorageClass($form_state['values']);
   $class->options['initial_container_id'] = $form_state['values']['initial_container_id'];
@@ -228,7 +228,7 @@ function storage_class(StorageClass $class) {
  * @ingroup forms
  * @see storage_class_edit_form_submit()
  */
-function storage_class_edit_form($form, &$form_state, StorageClass $class) {
+function storage_class_edit_form(array $form, array &$form_state, StorageClass $class) {
 
   $form = $class->formElements();
   $form['#class'] = $class;
@@ -318,7 +318,7 @@ function storage_class_edit_form($form, &$form_state, StorageClass $class) {
  * @ingroup themeable
  * @see storage_class_edit_form()
  */
-function theme_storage_class_edit_form($elements) {
+function theme_storage_class_edit_form(array $elements) {
   
   $form = $elements['form'];
 
@@ -375,7 +375,7 @@ function theme_storage_class_edit_form($elements) {
  *
  * @see storage_class_edit_form()
  */
-function storage_class_edit_form_submit($form, &$form_state) {
+function storage_class_edit_form_submit(array $form, array &$form_state) {
   $class = $form['#class'];
 
   $class->name = $form_state['values']['name'];
@@ -422,7 +422,7 @@ function storage_class_edit_form_submit($form, &$form_state) {
  * @ingroup forms
  * @see storage_class_delete_form_submit()
  */
-function storage_class_delete_form($form, &$form_state, StorageClass $class) {
+function storage_class_delete_form(array $form, array &$form_state, StorageClass $class) {
   $form['#class'] = $class;
 
   if ($class->selectorCount() > 0) {
@@ -452,7 +452,7 @@ function storage_class_delete_form($form, &$form_state, StorageClass $class) {
  *
  * @see storage_class_delete_form()
  */
-function storage_class_delete_form_submit($form, &$form_state) {
+function storage_class_delete_form_submit(array $form, array &$form_state) {
   $class = $form['#class'];
 
   if ($class->selectorCount() > 0) {
@@ -471,7 +471,7 @@ function storage_class_delete_form_submit($form, &$form_state) {
  * @ingroup forms
  * @see storage_class_add_container_form_submit()
  */
-function storage_class_add_container_form($form, &$form_state, StorageClass $class) {
+function storage_class_add_container_form(array $form, array &$form_state, StorageClass $class) {
   $form['#class'] = $class;
   
 
@@ -523,7 +523,7 @@ function storage_class_add_container_form($form, &$form_state, StorageClass $cla
  *
  * @see storage_class_add_container_form()
  */
-function storage_class_add_container_form_submit($form, &$form_state) {
+function storage_class_add_container_form_submit(array $form, array &$form_state) {
   $class = $form['#class'];
   $container = storage_container_load($form_state['values']['container_id']);
   
