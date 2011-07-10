@@ -250,6 +250,9 @@ function storage_service_title(StorageService $service) {
  *
  * @return
  *   The storage container or FALSE if it could not be loaded.
+ *
+ * @throws StorageException
+ *   If the storage container cannot be loaded.
  */
 function storage_container_load($container_id) {
 
@@ -262,7 +265,7 @@ function storage_container_load($container_id) {
   if (!$fields) {
     throw new StorageException();
   }
-  
+
   return storage_container_new($fields);
 }
 
@@ -275,9 +278,6 @@ function storage_container_load($container_id) {
  *
  * @return
  *   The storage container.
- *
- * @throws StorageException
- *   If the storage container cannot be loaded.
  */
 function storage_container_menu_load($container_id) {
 
