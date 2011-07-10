@@ -14,7 +14,7 @@ class Storage {
    *   When the storage is not found.
    */
   public function __construct($storage) {
-  
+
     if (!is_array($storage)) {
     
       // Either the file is being deleted and no longer has a selector,
@@ -601,7 +601,7 @@ class Storage {
   }
 
 
-  public function cacheServingContainer(StorageContainer $container) {
+  public function cacheServingContainer($container) {   // Can be NULL.
 
     $this->serving_container = serialize($container);
 

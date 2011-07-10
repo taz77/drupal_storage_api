@@ -346,10 +346,15 @@ function _storage_audit_repair(StorageServiceInterface $container, array $instan
       ->fetchCol();
 
     foreach ($storage_ids as $storage_id) {
-      
-      if ($container->ensureInstanceExists(storage_load($storage_id))) {
-        $results['recovered']++;
+
+      try {
+        $container->ensureInstanceExists(storage_load($storage_id));
       }
+      catch (StorageException $e) {
+        continue;
+      }
+
+      $results['recovered']++;
     }
 
     $results['records']++;

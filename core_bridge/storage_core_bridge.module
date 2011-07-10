@@ -181,11 +181,17 @@ function storage_core_bridge_field_ui_field_edit_form_submit(array $form, array 
 
 function storage_core_bridge_storage_id($uri) {
 
-  return db_select('storage')
+  $storage_id = db_select('storage')
     ->fields('storage', array('storage_id'))
     ->condition('storage.core_bridge_uri', $uri)
     ->execute()
     ->fetchField();
+
+  if (!$storage_id) {
+    throw new StorageException();
+  }
+
+  return $storage_id;
 }
 
 
@@ -322,7 +328,10 @@ function storage_core_bridge_image_style_flush(array $style) {
     ->fetchCol();
     
   foreach ($storage_ids as $storage_id) {
-    storage_load($storage_id)->remove();
+    try {
+      storage_load($storage_id)->remove();
+    }
+    catch (StorageException $e) {}
   }
 
   db_delete('storage_styled_image')
@@ -340,7 +349,10 @@ function storage_core_bridge_image_delete_derivatives($source_id) {
     ->fetchCol();
 
   foreach ($storage_ids as $storage_id) {
-    storage_load($storage_id)->remove();
+    try {
+      storage_load($storage_id)->remove();
+    }
+    catch (StorageException $e) {}
   }
 
   db_delete('storage_styled_image')
@@ -451,9 +463,10 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
       $storage_core_bridge_filename = $filename;
     }
 
-    $storage = storage_core_bridge_load($uri);
-    
-    if (!$storage) {
+    try {
+      $storage = storage_core_bridge_load($uri);
+    }
+    catch (StorageException $e) {
       return FALSE;
     }
 

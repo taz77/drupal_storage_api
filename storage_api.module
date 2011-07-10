@@ -22,7 +22,7 @@ function storage_api_permission() {
  */
 function storage_api_menu() {
 
-  $items['system/storage/serve/%storage'] = array(
+  $items['system/storage/serve/%storage_menu'] = array(
     'type' => MENU_CALLBACK,
     'page callback' => 'storage_serve',
     'page arguments' => array(3),
@@ -60,7 +60,7 @@ function storage_api_menu() {
     'file' => 'container.admin.inc',
   );
   
-  $items['admin/structure/storage/containers/%storage_container'] = array(
+  $items['admin/structure/storage/containers/%storage_container_menu'] = array(
     'title callback' => 'storage_container_title',
     'title arguments' => array(4),
     'access arguments' => array('administer storage'),
@@ -69,7 +69,7 @@ function storage_api_menu() {
     'file' => 'container.admin.inc',
   );
 
-  $items['admin/structure/storage/containers/%storage_container/view'] = array(
+  $items['admin/structure/storage/containers/%storage_container_menu/view'] = array(
     'title' => 'View',
     'access arguments' => array('administer storage'),
     'type' => MENU_DEFAULT_LOCAL_TASK,
@@ -77,7 +77,7 @@ function storage_api_menu() {
     'file' => 'container.admin.inc',
   );
 
-  $items['admin/structure/storage/containers/%storage_container/edit'] = array(
+  $items['admin/structure/storage/containers/%storage_container_menu/edit'] = array(
     'title' => 'Edit',
     'access arguments' => array('administer storage'),
     'type' => MENU_LOCAL_TASK,
@@ -87,7 +87,7 @@ function storage_api_menu() {
     'file' => 'container.admin.inc',
   );
 
-  $items['admin/structure/storage/containers/%storage_container/destroy'] = array(
+  $items['admin/structure/storage/containers/%storage_container_menu/destroy'] = array(
     'title' => 'Destroy',
     'access arguments' => array('administer storage'),
     'type' => MENU_LOCAL_TASK,
@@ -97,7 +97,7 @@ function storage_api_menu() {
     'file' => 'container.admin.inc',
   );
 
-  $items['admin/structure/storage/containers/%storage_container/suspend'] = array(
+  $items['admin/structure/storage/containers/%storage_container_menu/suspend'] = array(
     'access arguments' => array('administer storage'),
     'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
@@ -105,7 +105,7 @@ function storage_api_menu() {
     'file' => 'container.admin.inc',
   );
   
-  $items['admin/structure/storage/containers/%storage_container/unsuspend'] = array(
+  $items['admin/structure/storage/containers/%storage_container_menu/unsuspend'] = array(
     'access arguments' => array('administer storage'),
     'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
@@ -133,7 +133,7 @@ function storage_api_menu() {
     'file' => 'class.admin.inc',
   );
 
-  $items['admin/structure/storage/classes/%storage_class'] = array(
+  $items['admin/structure/storage/classes/%storage_class_menu'] = array(
     'title callback' => 'storage_class_title',
     'title arguments' => array(4),
     'access arguments' => array('administer storage'),
@@ -142,7 +142,7 @@ function storage_api_menu() {
     'file' => 'class.admin.inc',
   );
   
-  $items['admin/structure/storage/classes/%storage_class/view'] = array(
+  $items['admin/structure/storage/classes/%storage_class_menu/view'] = array(
     'title' => 'View',
     'access arguments' => array('administer storage'),
     'type' => MENU_DEFAULT_LOCAL_TASK,
@@ -150,7 +150,7 @@ function storage_api_menu() {
     'file' => 'class.admin.inc',
   );
   
-  $items['admin/structure/storage/classes/%storage_class/edit'] = array(
+  $items['admin/structure/storage/classes/%storage_class_menu/edit'] = array(
     'title' => 'Edit',
     'access arguments' => array('administer storage'),
     'type' => MENU_LOCAL_TASK,
@@ -160,7 +160,7 @@ function storage_api_menu() {
     'file' => 'class.admin.inc',
   );
   
-  $items['admin/structure/storage/classes/%storage_class/delete'] = array(
+  $items['admin/structure/storage/classes/%storage_class_menu/delete'] = array(
     'title' => 'Delete',
     'access arguments' => array('administer storage'),
     'type' => MENU_LOCAL_TASK,
@@ -170,7 +170,7 @@ function storage_api_menu() {
     'file' => 'class.admin.inc',
   );
   
-  $items['admin/structure/storage/classes/%storage_class/add'] = array(
+  $items['admin/structure/storage/classes/%storage_class_menu/add'] = array(
     'title' => 'Add container',
     'access arguments' => array('administer storage'),
     'type' => MENU_LOCAL_ACTION,
@@ -189,27 +189,46 @@ function storage_api_menu() {
  *
  * @param $storage_id
  *   The storage_id of the storage to be loaded.
+ *
  * @return
  *   The storage.
+ *
+ * @throws StorageException
+ *   If the storage cannot be loaded.
  */
 function storage_load($storage_id) {
 
+  return new Storage($storage_id);
+}
+
+
+/**
+ * Loads a storage for the menu system.
+ *
+ * @param $storage_id
+ *   The storage_id of the storage to be loaded.
+ *
+ * @return
+ *   The storage or FALSE if it could not be loaded.
+ */
+function storage_menu_load($storage_id) {
+
   try {
-    return new Storage($storage_id);
+    return storage_load($storage_id);
   }
   catch (StorageException $e) {
     return FALSE;
   }
 }
 
-
 /**
  * Loads a storage service.
  *
  * @param $srvice_id
  *   The service_id of the service to be loaded.
+ *
  * @return
- *   The service.
+ *   The storage service.
  */
 function storage_service_load($service_id) {
 
@@ -228,8 +247,9 @@ function storage_service_title(StorageService $service) {
  *
  * @param $container_id
  *   The container_id of the container to be loaded.
+ *
  * @return
- *   The container.
+ *   The storage container or FALSE if it could not be loaded.
  */
 function storage_container_load($container_id) {
 
@@ -240,10 +260,33 @@ function storage_container_load($container_id) {
     ->fetchAssoc();
 
   if (!$fields) {
-    return FALSE;
+    throw new StorageException();
   }
   
   return storage_container_new($fields);
+}
+
+
+/**
+ * Loads a storage container for the menu system.
+ *
+ * @param $container_id
+ *   The container_id of the container to be loaded.
+ *
+ * @return
+ *   The storage container.
+ *
+ * @throws StorageException
+ *   If the storage container cannot be loaded.
+ */
+function storage_container_menu_load($container_id) {
+
+  try {
+    return storage_container_load($container_id);
+  }
+  catch (StorageException $e) {
+    return FALSE;
+  }
 }
 
 
@@ -269,13 +312,32 @@ function storage_container_title(StorageContainer $container) {
  *
  * @param $class_id
  *   The class_id of the class to be loaded.
+ *
  * @return
- *   The class.
+ *   The storage class.
+ *
+ * @throws StorageException
+ *   If the storage class cannot be loaded.
  */
 function storage_class_load($class_id) {
 
+  return new StorageClass($class_id);
+}
+
+
+/**
+ * Loads a storage class for the menu system.
+ *
+ * @param $class_id
+ *   The class_id of the class to be loaded.
+ *
+ * @return
+ *   The storage class or FALSE if it could not be loaded.
+ */
+function storage_class_menu_load($class_id) {
+
   try {
-    return new StorageClass($class_id);
+    return storage_class_load($class_id);
   }
   catch (StorageException $e) {
     return FALSE;
