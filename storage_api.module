@@ -3,6 +3,17 @@
 // Copyright 2008-2011 Jonathan Brown
 
 
+/**
+ * The storage is idle.
+ */
+define('STORAGE_API_STORAGE_STATUS_IDLE', 0);
+
+/**
+ * The storage is to be processed during cron.
+ */
+define('STORAGE_API_STORAGE_STATUS_PROCESS_CRON', 1);
+
+
 class StorageException extends Exception {}
 
 /**

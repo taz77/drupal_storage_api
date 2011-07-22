@@ -65,7 +65,17 @@ class Storage {
   public function update() {
     drupal_write_record('storage', $this, 'storage_id');
   }
-  
+
+  public function selector() {
+
+    return storage_selector($this->selector_id);
+  }
+
+  public function module() {
+
+    return $this->selector()->module();
+  }
+
   public function logServing($container_id = NULL) {
     global $user;
     
@@ -99,7 +109,7 @@ class Storage {
    */
   public function access() {
 
-    $results = module_invoke_all('storage_access_alter', $this->module, $this->type, $this->storage_id);
+    $results = module_invoke_all('storage_access_alter', $this);
     
     foreach ($results as $result) {
       if (isset($result)) {
@@ -107,14 +117,12 @@ class Storage {
       }
     }
     
-    if ($this->module) {
-      $result = module_invoke($this->module, 'storage_access', $this->type, $this->storage_id);
-      
-      if (isset($result)) {
-        return $result;
-      }
-    }
+    $result = module_invoke($this->module(), 'storage_access', $this);
     
+    if (isset($result)) {
+      return $result;
+    }
+
     if ($this->nid) {
       return node_access('view', node_load($this->nid));
     }
@@ -345,15 +353,13 @@ class Storage {
 
 
   public function path() {
-    return 'system/storage/serve/' . $this->storage_id . ($this->filename ? ('/' . $this->filename) : '');
+    return 'system/storage/serve/' . $this->storage_id . ($this->filename ? ('/' . basename($this->filename)) : '');
   }
 
 
   public function logInfo() {
 
-    $info = $this->module ? ('module: ' . $this->module . ', ') : '';
-    $info .= $this->type ? ('type: ' . $this->type . ', ') : '';
-    $info .= 'class: ' . $this->name . ', <br />';
+    $info = 'class: ' . $this->name . ', <br />';
     
     $info .= 'storage_id: ' . $this->storage_id;
     $info .= $this->file_id ? (', file_id: ' . $this->file_id) : '';
@@ -378,15 +384,15 @@ class Storage {
 
 
   /**
-   * Schedule a file for complete removal from the system.
+   * Schedule a storage for complete removal from the system.
    *
-   * All instances of the file will be removed during cron.
+   * All instances of the storage will be removed during cron.
    */
   public function remove() {
 
     db_update('storage')
       ->fields(array(
-        'check_me' => 1,
+        'status' => STORAGE_API_STORAGE_STATUS_PROCESS_CRON,
         'serving_container' => serialize(FALSE),
       ))
       ->expression('selector_id', 'NULL')
@@ -545,10 +551,8 @@ class Storage {
       }
     }
 
-    if ($this->module) {
+    if ($uri = module_invoke($this->module(), 'storage_generate', $this)) {
 
-      $uri = module_invoke($this->module, 'storage_generate', $this);
-      
       try {
         $file_id = _storage_api_file_id($uri, $this->filename, $new_file);
       }
@@ -629,14 +633,13 @@ class Storage {
   public function check() {
 
     // Get all containers this storage is supposed to have an instance in.
-    $query = db_select('storage', NULL, array('fetch' => PDO::FETCH_ASSOC));
-    $query->join('storage_selector', NULL, 'storage.selector_id = storage_selector.selector_id');
+    $query = db_select('storage_selector', NULL, array('fetch' => PDO::FETCH_ASSOC));
     $query->join('storage_class', NULL, 'storage_selector.class_id = storage_class.class_id');
     $query->join('storage_class_container', NULL, 'storage_class.class_id = storage_class_container.class_id');
     $query->join('storage_container', NULL, 'storage_class_container.container_id = storage_container.container_id');
     
     $result = $query->fields('storage_container')
-      ->condition('storage.storage_id', $this->storage_id)
+      ->condition('storage_selector.selector_id', $this->selector_id)
       ->condition('storage_selector.migrating', 0)
       ->orderBy('storage_class_container.weight')
       ->orderBy('storage_container.container_id')
@@ -668,7 +671,7 @@ class Storage {
     
     if ($this->selector_id) {
       unset($this->initial_container_id);
-      $this->check_me = FALSE;
+      $this->status = STORAGE_API_STORAGE_STATUS_IDLE;
       $this->update();
     }
     else {

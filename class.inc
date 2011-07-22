@@ -56,6 +56,30 @@ class StorageClass {
     return l($this->name, $this->path());
   }
   
+  public function selectorIds() {
+
+    return db_select('storage_selector')
+      ->fields('storage_selector', array('selector_id'))
+      ->condition('class_id', $this->class_id)
+      ->execute()
+      ->fetchCol();
+  }
+
+  public function processStorages() {
+
+    $selector_ids = $this->selectorIds();
+
+    if (empty($selector_ids)) {
+      return;
+    }
+
+    db_update('storage')
+      ->fields(array('status' => STORAGE_API_STORAGE_STATUS_PROCESS_CRON))
+      ->expression('serving_container', 'NULL')
+      ->condition('selector_id', $selector_ids)
+      ->execute();
+  }
+
   public function addContainer(StorageContainer $container) {
   
     db_insert('storage_class_container')
@@ -63,23 +87,15 @@ class StorageClass {
         'class_id' => $this->class_id,
         'container_id' => $container->container_id,
       ))
-      ->execute();  
+      ->execute();
     
     if (empty($this->initial_container)) {
       $this->options['initial_container_id'] = $container->container_id;
       $this->update();
     }
 
-    $selector_subquery = db_select('storage_selector')
-      ->fields('storage_selector', array('selector_id'))
-      ->condition('class_id', $this->class_id);
-      
-    db_update('storage')
-      ->fields(array('check_me' => 1))
-      ->expression('serving_container', 'NULL')
-      ->condition('selector_id', $selector_subquery, 'IN')
-      ->execute();
-    
+    $this->processStorages();
+
     $msg = 'Storage container !container has been added to class !class.';
     $args = array(
       '!container' => $container->link(), 
@@ -108,16 +124,14 @@ class StorageClass {
       ->fields('storage_instance', array('file_id'))
       ->distinct();
 
-    // How many instances are there of storages in this class that are in
-    // the container to be removed, but are not in another container in the
-    // class.
-    $query = db_select('storage_selector');
-    $query->join('storage', NULL, 'storage_selector.selector_id = storage.selector_id');
+    // Are there any instances of storages in the class that are in the container to be
+    // removed, but not in another container in the class?
+    $query = db_select('storage');
     $query->join('storage_instance', NULL, 'storage.file_id = storage_instance.file_id');
 
-    $count = $query->condition('storage_selector.class_id', $this->class_id)
+    $count = $query->condition('storage.file_id', $subquery, 'NOT IN')
+      ->condition('storage.selector_id', $this->selectorIds())
       ->condition('storage_instance.container_id', $container->container_id)
-      ->condition('storage_instance.file_id', $subquery, 'NOT IN')
       ->countQuery()
       ->execute()
       ->fetchField();
@@ -147,15 +161,7 @@ class StorageClass {
       ->condition('container_id', $container->container_id)
       ->execute();
 
-    $selector_subquery = db_select('storage_selector')
-      ->fields('storage_selector', array('selector_id'))
-      ->condition('class_id', $this->class_id);
-
-    db_update('storage')
-      ->fields(array('check_me' => 1))
-      ->expression('serving_container', 'NULL')
-      ->condition('selector_id', $selector_subquery, 'IN')
-      ->execute();
+    $this->processStorages();
 
     cache_clear_all();
 

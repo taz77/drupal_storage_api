@@ -10,7 +10,7 @@ class StorageSelector {
   public function __construct($arg0, $arg1 = NULL) {
     
     if (!is_null($arg1)) {
-      $this->selectorId = $arg0 . '/' . $arg1;
+      $this->selectorId = $arg0 . ':' . $arg1;
     }
     else {
       $this->selectorId = $arg0;
@@ -45,7 +45,7 @@ class StorageSelector {
 
     db_update('storage')
       ->fields(array(
-        'check_me' => 1,
+        'status' => STORAGE_API_STORAGE_STATUS_PROCESS_CRON,
         'serving_container' => serialize(FALSE),
       ))
       ->expression('selector_id', 'NULL')
@@ -55,6 +55,11 @@ class StorageSelector {
     db_delete('storage_selector')
       ->condition('selector_id', $this->selectorId)
       ->execute();
+  }
+
+  public function module() {
+
+    return strtok($this->selectorId, ':');
   }
 
   /**
@@ -160,7 +165,9 @@ class StorageSelector {
         ->execute();
 
       db_update('storage')
-        ->fields(array('check_me' => 1))
+        ->fields(array(
+          'status' => STORAGE_API_STORAGE_STATUS_PROCESS_CRON,
+        ))
         ->expression('serving_container', 'NULL')
         ->condition('selector_id', $this->selectorId)
         ->execute();
@@ -197,7 +204,7 @@ class StorageSelector {
     // Is the selector fully migrated?
     $migrated = !db_select('storage')
       ->condition('selector_id', $this->selectorId)
-      ->condition('check_me', 1)
+      ->condition('status', STORAGE_API_STORAGE_STATUS_PROCESS_CRON)
       ->countQuery()
       ->execute()
       ->fetchField();
@@ -234,10 +241,6 @@ class StorageSelector {
    *       specified.
    *     - 'filename'
    *       The file's filename.
-   *     - 'module'
-   *       The Drupal module that 'owns' this file.
-   *     - 'type'
-   *       Module-specific file type identifier.
    *     - 'nid'
    *       The nid of the node this file should be associated with.
    *     - 'created' (default current time)
@@ -258,6 +261,7 @@ class StorageSelector {
       'keep_source_uri' => FALSE,
       'created' => time(),
       'data' => array(),
+      'status' => STORAGE_API_STORAGE_STATUS_PROCESS_CRON,
     );
 
     $initial_container = $this->storageClass()->initial_container;

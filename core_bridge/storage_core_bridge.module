@@ -249,10 +249,6 @@ function storage_core_bridge_styled_image_load($uri, $style_name) {
   }
   else {
     $source_storage = storage_load($source_id);
-    $options = array(
-      'module' => 'storage_core_bridge',
-      'type' => 'styled_image',
-    );
 
     // Determine the filename of the styled image.
     $components = explode('/', $source_storage->filename);
@@ -402,7 +398,6 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
       $options = array(
         'source_uri' => $this->temp_uri,
         'filename' => $storage_core_bridge_filename,
-        'module' => 'storage_core_bridge',
         'core_bridge_uri' => $this->uri,
       );
 

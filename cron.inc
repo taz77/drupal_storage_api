@@ -26,7 +26,7 @@ function _storage_check_files() {
 
   $storage_ids = db_select('storage')
     ->fields('storage', array('storage_id'))
-    ->condition('check_me', 1)
+    ->condition('status', STORAGE_API_STORAGE_STATUS_PROCESS_CRON)
     ->orderBy('storage_id')
     ->execute()
     ->fetchCol();
