@@ -145,6 +145,13 @@ class Storage {
    */
   public function selectContainerInstance($serving = FALSE) {
 
+    // Avoid querying the database altogether if there is no file_id. This is
+    // also currently necessary due to a core bug:
+    // http://drupal.org/node/813540
+    if (!$this->file_id) {
+      throw new StorageException();
+    }
+
     $query = db_select('storage_instance');
     $query->join('storage_class_container', NULL, 'storage_instance.container_id = storage_class_container.container_id');
     $query->join('storage_selector', NULL, 'storage_class_container.class_id = storage_selector.class_id');
