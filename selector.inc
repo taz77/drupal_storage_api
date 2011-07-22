@@ -5,15 +5,15 @@
 
 class StorageSelector {
 
-  public $selectorId;
+  public $selector_id;
 
   public function __construct($arg0, $arg1 = NULL) {
     
     if (!is_null($arg1)) {
-      $this->selectorId = $arg0 . ':' . $arg1;
+      $this->selector_id = $arg0 . ':' . $arg1;
     }
     else {
-      $this->selectorId = $arg0;
+      $this->selector_id = $arg0;
     }
   }
   
@@ -32,7 +32,7 @@ class StorageSelector {
       
     db_insert('storage_selector')
       ->fields(array(
-        'selector_id' => $this->selectorId,
+        'selector_id' => $this->selector_id,
         'class_id' => $class_id,
       ))
       ->execute();
@@ -49,17 +49,17 @@ class StorageSelector {
         'serving_container' => serialize(FALSE),
       ))
       ->expression('selector_id', 'NULL')
-      ->condition('selector_id', $this->selectorId)
+      ->condition('selector_id', $this->selector_id)
       ->execute();
 
     db_delete('storage_selector')
-      ->condition('selector_id', $this->selectorId)
+      ->condition('selector_id', $this->selector_id)
       ->execute();
   }
 
   public function module() {
 
-    return strtok($this->selectorId, ':');
+    return strtok($this->selector_id, ':');
   }
 
   /**
@@ -107,7 +107,7 @@ class StorageSelector {
 
     $current_class_id = db_select('storage_selector')
       ->fields('storage_selector', array('class_id'))
-      ->condition('selector_id', $this->selectorId)
+      ->condition('selector_id', $this->selector_id)
       ->condition('migrating', 0)
       ->execute()
       ->fetchField();
@@ -140,7 +140,7 @@ class StorageSelector {
 
     db_merge('storage_selector')
       ->key(array(
-        'selector_id' => $this->selectorId,
+        'selector_id' => $this->selector_id,
         'class_id' => $form_item['class_id'],
       ))
       ->fields(array('migrating' => 0))
@@ -149,7 +149,7 @@ class StorageSelector {
     
     // Are there any files to migrate?
     $num_files = db_select('storage')
-      ->condition('selector_id', $this->selectorId)
+      ->condition('selector_id', $this->selector_id)
       ->countQuery()
       ->execute()
       ->fetchField();
@@ -158,7 +158,7 @@ class StorageSelector {
 
       db_merge('storage_selector')
         ->key(array(
-          'selector_id' => $this->selectorId,
+          'selector_id' => $this->selector_id,
           'class_id' => $form_item['current_class_id'],
         ))
         ->fields(array('migrating' => 1))
@@ -169,7 +169,7 @@ class StorageSelector {
           'status' => STORAGE_API_STORAGE_STATUS_PROCESS_CRON,
         ))
         ->expression('serving_container', 'NULL')
-        ->condition('selector_id', $this->selectorId)
+        ->condition('selector_id', $this->selector_id)
         ->execute();
       
       $new_class = storage_class_load($form_item['class_id']);
@@ -183,7 +183,7 @@ class StorageSelector {
     else {
     
       db_delete('storage_selector')
-        ->condition('selector_id', $this->selectorId)
+        ->condition('selector_id', $this->selector_id)
         ->condition('class_id', $form_item['current_class_id'])
         ->execute();
     }
@@ -193,7 +193,7 @@ class StorageSelector {
 
     return storage_class_load(db_select('storage_selector')
       ->fields('storage_selector', array('class_id'))
-      ->condition('selector_id', $this->selectorId)
+      ->condition('selector_id', $this->selector_id)
       ->condition('migrating', 0)
       ->execute()
       ->fetchField());
@@ -203,7 +203,7 @@ class StorageSelector {
   
     // Is the selector fully migrated?
     $migrated = !db_select('storage')
-      ->condition('selector_id', $this->selectorId)
+      ->condition('selector_id', $this->selector_id)
       ->condition('status', STORAGE_API_STORAGE_STATUS_PROCESS_CRON)
       ->countQuery()
       ->execute()
@@ -213,11 +213,11 @@ class StorageSelector {
     
       // Remove the classes it was migrating from.
       db_delete('storage_selector')
-        ->condition('selector_id', $this->selectorId)
+        ->condition('selector_id', $this->selector_id)
         ->condition('migrating', '1')
         ->execute();
         
-      $message = 'Storage selector ' . check_plain($this->selectorId);
+      $message = 'Storage selector ' . check_plain($this->selector_id);
       $message .= ' has been fully migrated to class <i>' . $this->storageClass()->name() . '</i>.';
       
       watchdog('storage_api', $message, NULL);
@@ -257,7 +257,7 @@ class StorageSelector {
   public function storageAdd(array $options = array()) {
 
     $options += array(
-      'selector_id' => $this->selectorId,
+      'selector_id' => $this->selector_id,
       'keep_source_uri' => FALSE,
       'created' => time(),
       'data' => array(),
