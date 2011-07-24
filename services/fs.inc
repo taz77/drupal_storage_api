@@ -160,7 +160,7 @@ class StorageFS extends StorageContainer implements StorageServiceInterface {
     return @stat($this->instancePath($reference)) !== FALSE;
   }
 
-  public function serviceInstanceGet($reference) {
+  public function serviceInstanceGetUri($reference) {
 
     return $this->instancePath($reference);
   }

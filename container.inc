@@ -241,7 +241,7 @@ abstract class StorageContainer {
     }
     
     // Is it possible to short circuit?
-    if ($this->service()->info['can_copy'] && !$check) {
+    if ($this->service()->info['copy'] && !$check) {
       if ($this->tryInstanceCopy($storage)) {
         return;
       }
@@ -366,22 +366,12 @@ abstract class StorageContainer {
 
     watchdog('storage_api', $message, NULL);
   }
-  
-  
-  public function instanceServeURL($reference) {
-  
-    if (!$this->service()->info['direct']) {    // direct services don't return a URL
-      return $this->serviceInstanceServe($reference);
-    }
-  }
 
 
   public function instanceLink($reference) {
-  
-    $url = $this->instanceServeURL($reference);
-    
-    if ($url !== '') {
-      return l($reference, $url);
+
+    if ($this->service()->info['serve']) {
+      return l($reference, $this->serviceInstanceServe($reference));
     }
     else {
       return $reference;
@@ -502,6 +492,11 @@ abstract class StorageContainer {
     return $info;
   }
 
+
+  /**
+   * Default implementations.
+   */
+
   public function serviceManifest(array &$sandbox, &$finished) {
   
     if (!isset($sandbox['references'])) {
@@ -529,6 +524,29 @@ abstract class StorageContainer {
     return $manifest;
   }
 
+  public function serviceInstanceGetContents($reference) {
+
+    $contents = file_get_contents($this->serviceInstanceGetUri($reference));
+
+    if ($contents === FALSE) {
+      throw new StorageException();
+    }
+
+    return $contents;
+  }
+
+  public function serviceInstanceGetUri($reference) {
+
+    $temp_uri = storage_api_temp_uri();
+    $success = file_put_contents($temp_uri, $this->serviceInstanceGetContents($reference));
+
+    if (!$success) {
+      throw new StorageException();
+    }
+
+    return $temp_uri;
+  }
+
   /**
    * Get information about an instance.
    *
@@ -539,7 +557,7 @@ abstract class StorageContainer {
    *   When it isn't possible to get information about the instance.
    */
   public function serviceInstanceCheck($reference) {
-    $uri = $this->serviceInstanceGet($reference);
+    $uri = $this->serviceInstanceGetUri($reference);
     $stat = @stat($uri);
 
     if ($stat === FALSE) {
@@ -559,11 +577,16 @@ abstract class StorageContainer {
     return file_create_url($this->settings['base_url'] . '/' . $reference);
   }
 
-  // Optional API functions.
+
+  /**
+   * Optional implementations.
+   */
+
   public function serviceCheck() {}
   public function servicePostCreate() {}
   public function serviceUpdate() {}
   public function serviceMaintenance() {}
+  public function serviceListReferences() {}
   public function serviceInstanceCopy(Storage $storage, StorageContainer $source_container) {}
 }
 
@@ -579,12 +602,15 @@ interface StorageServiceInterface {
   public function serviceUpdate();
   public function serviceDestroy();
   public function serviceMaintenance();
+  public function serviceListReferences();
+  public function serviceManifest(array &$sandbox, &$finished);
   public function serviceInstanceCreate(Storage $storage, $uri);
   public function serviceInstanceCopy(Storage $storage, StorageContainer $source_container);
   public function serviceInstanceExists($reference);
-  public function serviceInstanceCheck($reference);
-  public function serviceInstanceGet($reference);
   public function serviceInstanceDestroy($reference);
+  public function serviceInstanceGetContents($reference);
+  public function serviceInstanceGetUri($reference);
+  public function serviceInstanceCheck($reference);
   public function serviceInstanceServe($reference);
 }
 

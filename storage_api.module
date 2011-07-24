@@ -374,47 +374,27 @@ function storage_api_storage_services() {
     'db' => array(
       'name' => t('Database'),
       'class' => 'StorageDB',
-      'local' => FALSE,
-      'direct' => TRUE,
-      'can_copy' => FALSE,
-      'serve_secure' => FALSE,
-      'htaccess' => FALSE,
+      'serve' => FALSE,
     ),
     'fs' => array(
       'name' => t('Filesystem'),
       'class' => 'StorageFS',
-      'local' => TRUE,
-      'direct' => FALSE,
-      'can_copy' => FALSE,
-      'serve_secure' => FALSE,
       'htaccess' => TRUE,
     ),
     'ftp' => array(
       'name' => t('FTP'),
       'class' => 'StorageFTP',
-      'local' => FALSE,
-      'direct' => FALSE,
-      'can_copy' => FALSE,
-      'serve_secure' => FALSE,
       'htaccess' => TRUE,
     ),
     'rackspace' => array(
       'name' => t('Rackspace Cloud Files'),
       'class' => 'StorageRackspace',
-      'local' => FALSE,
-      'direct' => FALSE,
-      'can_copy' => FALSE,
-      'serve_secure' => FALSE,
-      'htaccess' => FALSE,
     ),
     's3_cloudfront' => array(
       'name' => t('Amazon S3 / CloudFront'),
       'class' => 'StorageS3CloudFront',
-      'local' => FALSE,
-      'direct' => FALSE,
-      'can_copy' => TRUE,
+      'copy' => TRUE,
       'serve_secure' => TRUE,
-      'htaccess' => FALSE,
     ),
   );
 
@@ -425,7 +405,18 @@ function storage_api_storage_services() {
 function storage_service_info($service_id = NULL) {
 
   $services = module_invoke_all('storage_services');
-  
+
+  // Add defaults.
+  foreach ($services as &$service) {
+
+    $service += array(
+      'htaccess' => FALSE,
+      'copy' => FALSE,
+      'serve' => TRUE,
+      'serve_secure' => FALSE,
+    );
+  }
+
   if (empty($service_id)) {
     return $services;
   }

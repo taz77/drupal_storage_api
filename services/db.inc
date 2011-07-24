@@ -5,181 +5,143 @@
 
 class StorageDB extends StorageContainer implements StorageServiceInterface {
 
+  private function setActiveDB() {
+
+    db_set_active($this->settings['db']);
+    return new StorageDBActive();
+  }
+
   public function serviceSettingsForm($edit = FALSE) {
-    global $db_url;
-    
-    if (is_array($db_url)) {
-    
-      foreach ($db_url as $key => $url)
-        $options[$key] = $key;
-    
-      $items['db'] = array(
-        '#type' => 'select',
-        '#title' => t('Database'),
-        '#options' => $options,
-        '#required' => TRUE,
-        '#validated' => TRUE,
-        '#default_value' => isset($this->settings['db']) ? $this->settings['db'] : NULL,
-      );
+    global $databases;
+
+    foreach ($databases as $key => $database) {
+      $options[$key] = $key;
     }
-    else {
-      $items['#db'] = 'default';
-    }
+
+    $items['db'] = array(
+      '#type' => 'select',
+      '#title' => t('Database'),
+      '#options' => $options,
+      '#required' => TRUE,
+      '#validated' => TRUE,
+      '#default_value' => isset($this->settings['db']) ? $this->settings['db'] : 'default',
+    );
 
     $items['table'] = array(
       '#type' => 'textfield',
       '#title' => t('Table'),
-      '#description' => t('Without prefix or {}, e.g. \'storage_contents\'.'),
+      '#description' => t('Without prefix or {}.'),
       '#required' => TRUE,
       '#validated' => TRUE,
-      '#default_value' => isset($this->settings['table']) ? $this->settings['table'] : NULL,
+      '#default_value' => isset($this->settings['table']) ? $this->settings['table'] : 'storage_contents',
     );
-    
+
     return $items;
   }
-  
+
   public function serviceSettingsValidate($edit = FALSE) {
+    $active = $this->setActiveDB();
 
     if (!$this->settings['table']) {
-      form_set_error('settings][path', t('Database table field is required.'));
+      form_set_error('settings][table', t('Database table field is required.'));
+    }
+    elseif (db_table_exists($this->settings['table'])) {
+      form_set_error('settings][table', t('Database table already exists.'));
     }
   }
-  
-  public function serviceCreate() {
 
-    db_set_active($this->settings['db']);
-    
-    $success = db_query("
-      CREATE TABLE {%s} (
-        object_id INT UNSIGNED NOT NULL,
-        contents LONGBLOB NOT NULL,
-        PRIMARY KEY (object_id)
-      )
-    ",
-      $this->settings['table']
+  public function serviceCreate() {
+    $active = $this->setActiveDB();
+
+    $spec = array(
+      'fields' => array(
+        'file_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
+        'contents' => array('type' => 'blob', 'size' => 'big', 'not null' => TRUE),
+      ),
+      'primary key' => array('file_id'),
     );
 
-    db_set_active();
-
-    if (!$success) {
-      throw new StorageException();
-    }
+    db_create_table($this->settings['table'], $spec);
   }
-  
+
   public function serviceInfo() {
 
-    if ($this['settings']['db'])
-      $info[t('Database')] = $this->settings['db'];
-      
-    $info[t('Table')] = $this->settings['table'];
+    $info = array(
+      t('Database') => $this->settings['db'],
+      t('Table') => $this->settings['table'],
+    );
 
     return $info;
   }
-  
-  public function serviceDestroy() {
-    
-    db_set_active($this->settings['db']);
 
-    $success = db_query("  
-      DROP TABLE {%s}
-    ",
-      $this->settings['table']
-    );
-    
-    db_set_active();
-    
-    if (!$success) {
-      throw new StorageException();
-    }
+  public function serviceDestroy() {
+    $active = $this->setActiveDB();
+
+    db_drop_table($this->settings['table']);
   }
   
   public function serviceInstanceCreate(Storage $storage, $uri) {
+    $active = $this->setActiveDB();
     
-    db_set_active($this->settings['db']);
-    
-    $success = db_query("
-      INSERT INTO {%s}
-      SET object_id = %d,
-        contents = 0x%s
-    ",
-      $this->settings['table'],
-      $storage->object_id,
-      bin2hex(file_get_contents($uri))
-    );
-    
-    db_set_active();
+    db_insert($this->settings['table'])
+      ->fields(array(
+        'file_id' => $storage->file_id,
+        'contents' => file_get_contents($uri),
+        ))
+      ->execute();
 
-    if (!$success) {
-      throw new StorageException();
-    }
+    return $storage->file_id;
   }
   
-  public function serviceInstanceCopy(Storage $storage, $reference, $source_container){}
+  public function serviceListReferences() {
+    $active = $this->setActiveDB();
   
-  public function serviceInstanceCheck($reference) {
+    return db_select($this->settings['table'])
+      ->fields($this->settings['table'], array('file_id'))
+      ->execute()
+      ->fetchCol();
   }
-  
-  public function serviceInstanceGet($reference) {
-    
-    $temp_uri = storage_api_temp_uri();
-    
-    db_set_active($this->settings['db']);
 
-    $success = file_put_contents($temp_uri,
-      db_result(db_query("
-        SELECT contents
-        FROM {%s}
-        WHERE object_id = %d
-      ",
-        $this->settings['table'],
-        $reference
-      ))
-    );
+  public function serviceInstanceExists($reference) {
+    $active = $this->setActiveDB();
 
-    db_set_active();
+    return db_select($this->settings['table'])
+      ->condition('file_id', $reference)
+      ->countQuery()
+      ->execute()
+      ->fetchField();
+  }
 
-    if (!$success) {
+  public function serviceInstanceGetContents($reference) {
+    $active = $this->setActiveDB();
+
+    $contents = db_select($this->settings['table'])
+      ->fields($this->settings['table'], array('contents'))
+      ->condition('file_id', $reference)
+      ->execute()
+      ->fetchField();
+
+    if ($contents === FALSE) {
       throw new StorageException();
     }
 
-    return $temp_uri;
+    return $contents;
   }
-  
+
   public function serviceInstanceDestroy($reference) {
-    
-    db_set_active($this->settings['db']);
-    
-    $success = db_query("
-      DELETE FROM {%s}
-      WHERE object_id = %d
-    ",
-      $this->settings['table'],
-      $reference
-    );
+    $active = $this->setActiveDB();
 
-    db_set_active();
-
-    if (!$success) {
-      throw new StorageException();
-    }
+    db_delete($this->settings['table'])
+      ->condition('file_id', $reference)
+      ->execute();
   }
-  
-  public function serviceInstanceServe($reference) {
-    $storage->SetHTTPHeaders();
-    
-    db_set_active($this->settings['db']);
+}
 
-    echo db_result(db_query("
-      SELECT contents
-      FROM {%s}
-      WHERE object_id = %d
-    ",
-      $this->settings['table'],
-      $reference
-    ));
-    
+
+class StorageDBActive {
+
+  public function __destruct() {
     db_set_active();
-    drupal_exit();
   }
 }
 

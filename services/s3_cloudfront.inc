@@ -910,7 +910,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
     );
   }
   
-  public function serviceInstanceGet($reference) {
+  public function serviceInstanceGetUri($reference) {
     
     $result = $this->request('GET', $this->settings['bucket'], $reference);
 

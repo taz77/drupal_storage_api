@@ -274,8 +274,10 @@ class Storage {
     if (isset($container)) {
       $this->logServing($container->container_id);
       
-      // This may not return.
-      if ($container->access_control && !$container->service()->info['serve_secure']) {
+      if (!$container->service()->info['serve'] ||
+        ($container->access_control && !$container->service()->info['serve']))
+      {
+        // This will not return.
         $this->serveSecure($container);
       }
       else {
@@ -293,14 +295,14 @@ class Storage {
       return;
     }
     
-    // This will definitely not return.
+    // This will not return.
     drupal_goto($url);    // 302 redirect (don't cache)
   }
 
   private function serveSecure(StorageContainer $container) {
     $this->setHTTPHeaders();
   
-    $uri = $container->serviceInstanceGet($container->reference);
+    $uri = $container->serviceInstanceGetUri($container->reference);
     @readfile($uri);
 
     drupal_exit();
@@ -342,8 +344,10 @@ class Storage {
     
     if (isset($container)) {
 
-      if (!$container->access_control || $container->service()->info['serve_secure']) {
-        $url = $container->instanceServeURL($container->reference);
+      if ($container->service()->info['serve'] &&
+        (!$container->access_control || $container->service()->info['serve_secure']))
+      {
+        $url = $container->serviceInstanceServe($container->reference);
       }
     }
     elseif ($this->options['serve_source_uri'] && $this->source_uri) {
@@ -542,7 +546,7 @@ class Storage {
 
     try {
       $container = $this->selectContainerInstance();
-      return $container->serviceInstanceGet($container->reference);
+      return $container->serviceInstanceGetUri($container->reference);
     }
     catch (StorageException $e) {}
 
