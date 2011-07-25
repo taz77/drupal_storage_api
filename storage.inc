@@ -257,20 +257,19 @@ class Storage {
     }
     else {
       try {
-        $container = $this->selectContainerInstance(TRUE);
-      }
-      catch (StorageException $e) {}
-      
-      if (!isset($container)) {
         try {
+          $container = $this->selectContainerInstance(TRUE);
+        }
+        catch (StorageException $e) {
           $container = $this->generate();
         }
-        catch (StorageException $e) {}
+        $this->cacheServingContainer($container);
       }
-        
-      $this->cacheServingContainer($container);
+      catch (StorageException $e) {
+        $this->cacheNoServingContainer();
+      }
     }
-    
+
     if (isset($container)) {
       $this->logServing($container->container_id);
       
@@ -329,16 +328,13 @@ class Storage {
     else {
       try {
         $container = $this->selectContainerInstance(TRUE);
-      }
-      catch (StorageException $e) {
-        $this->cacheServingContainer(NULL);
-      }
-
-      if (isset($container)) {
         $this->cacheServingContainer($container);
       }
+      catch (StorageException $e) {
+        $this->cacheNoServingContainer();
+      }
     }
-    
+
     if (isset($container)) {
 
       if ($container->service()->info['serve'] &&
@@ -613,8 +609,7 @@ class Storage {
   }
 
 
-  public function cacheServingContainer($container) {   // Can be NULL.
-
+  public function cacheServingContainer(StorageContainer $container) {
     $this->serving_container = serialize($container);
 
     db_update('storage')
@@ -624,14 +619,23 @@ class Storage {
   }
 
 
+  public function cacheNoServingContainer() {
+    $this->serving_container = FALSE;
+
+    db_update('storage')
+      ->fields(array('serving_container' => $this->serving_container))
+      ->condition('storage_id', $this->storage_id)
+      ->execute();
+  }
+
+
   public function flushServingContainer() {
+    unset($this->serving_container);
 
     db_update('storage')
       ->expression('serving_container', 'NULL')
       ->condition('storage_id', $this->storage_id)
       ->execute();
-      
-    unset($this->serving_container);
   }
   
   /**
