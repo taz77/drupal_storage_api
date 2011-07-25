@@ -577,6 +577,11 @@ abstract class StorageContainer {
     return file_create_url($this->settings['base_url'] . '/' . $reference);
   }
 
+  public function serviceInstanceOutput($reference) {
+
+    readfile($this->serviceInstanceGetUri($reference));
+  }
+
 
   /**
    * Optional implementations.
@@ -612,5 +617,6 @@ interface StorageServiceInterface {
   public function serviceInstanceGetUri($reference);
   public function serviceInstanceCheck($reference);
   public function serviceInstanceServe($reference);
+  public function serviceInstanceOutput($reference);
 }
 

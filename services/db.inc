@@ -135,6 +135,11 @@ class StorageDB extends StorageContainer implements StorageServiceInterface {
       ->condition('file_id', $reference)
       ->execute();
   }
+
+  public function serviceInstanceOutput($reference) {
+
+    echo $this->serviceInstanceGetContents($reference);
+  }
 }
 
 

@@ -275,7 +275,7 @@ class Storage {
       $this->logServing($container->container_id);
       
       if (!$container->service()->info['serve'] ||
-        ($container->access_control && !$container->service()->info['serve']))
+        ($container->access_control && !$container->service()->info['serve_secure']))
       {
         // This will not return.
         $this->serveSecure($container);
@@ -301,10 +301,7 @@ class Storage {
 
   private function serveSecure(StorageContainer $container) {
     $this->setHTTPHeaders();
-  
-    $uri = $container->serviceInstanceGetUri($container->reference);
-    @readfile($uri);
-
+    $container->serviceInstanceOutput($container->reference);
     drupal_exit();
   }
 
