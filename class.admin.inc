@@ -280,7 +280,6 @@ function storage_class_edit_form(array $form, array &$form_state, StorageClass $
   $form['containers'] = array(
     '#type' => 'fieldset',
     '#title' => t('Class containers'),
-    '#description' => t('<p>Broadly speaking, containers at the top should be nearest the client; those at the bottom should be nearest the server.</p><p>During cron, files are propagated to all the containers in their class (starting at the top). Once this is complete, any instances of files that are not in these containers will be destroyed.</p><p>Files are served from the container nearest the top that has an instance of the file and is capable of serving - it must not be suspended and it must also be configured to be serving within the class.</p>'),
   );
 
   $result = db_select('storage_container', NULL, array('fetch' => PDO::FETCH_ASSOC))
@@ -359,6 +358,10 @@ function theme_storage_class_edit_form(array $elements) {
         'rows' => $rows, 
         'attributes' => array('id' => 'class-containers-table', 'style' => 'width: auto;')
     )));
+
+    $form['containers']['description'] = array(
+      '#markup' => "<div class=\"description\"><p>All files in the class are stored in all of the class's containers.</p><p>Containers at the top have the highest priority. They can be reordered using the drag-and-drop handles.</p><p>During cron, each file is propagated to the containers in priority order. When a file is fully propagated, instances of that file in containers that are not in the class are destroyed.</p><p>Files are retrieved from the highest priority container that has an instance of the file.</p><p>The same logic applies when serving a file, except that only serving containers are considered.</p><p>Suspended containers are not utilised for any purpose.</p><p>If a container is marked to be removed from the class, this will only occur once doing so will not cause any files to become unrecoverable, i.e. all files have an instance in another container.</p></div>",
+    );
   }
 
   $output .= drupal_render($form['containers']);

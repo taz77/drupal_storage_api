@@ -156,7 +156,7 @@ class Storage {
     $query->join('storage_class_container', NULL, 'storage_instance.container_id = storage_class_container.container_id');
     $query->join('storage_selector', NULL, 'storage_class_container.class_id = storage_selector.class_id');
     $query->join('storage_container', NULL, 'storage_instance.container_id = storage_container.container_id');
-    
+
     if ($serving) {
       $query->condition('storage_class_container.serving', 1);
     }
@@ -167,7 +167,7 @@ class Storage {
       ->fields('storage_container')
       ->fields('storage_instance', array('reference'))
       ->orderBy('storage_selector.migrating')
-      ->orderBy('storage_class_container.weight', $serving ? 'ASC' : 'DESC')
+      ->orderBy('storage_class_container.weight')
       ->orderBy('storage_class_container.container_id')
       ->range(0, 1)
       ->execute()
