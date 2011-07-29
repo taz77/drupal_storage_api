@@ -120,7 +120,7 @@ class StorageClass {
     $subquery->join('storage_instance', NULL, 'storage_class_container.container_id = storage_instance.container_id');
 
     $subquery->condition('storage_class_container.class_id', $this->class_id)
-      ->condition('storage_class_container.container_id', $container->container_id, '!=')
+      ->condition('storage_class_container.container_id', $container->container_id, '<>')
       ->fields('storage_instance', array('file_id'))
       ->distinct();
 

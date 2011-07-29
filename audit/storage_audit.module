@@ -45,7 +45,7 @@ function _storage_audit_read(StorageContainer $container) {
     ->condition('storage_instance.container_id', $container->container_id)
     ->condition(db_or()
       ->isNull('storage_instance.file_id')
-      ->condition('storage_instance.audit', STORAGE_AUDIT_STATUS_AUDITED, '!=')
+      ->condition('storage_instance.audit', STORAGE_AUDIT_STATUS_AUDITED, '<>')
     )
     ->execute();
   
@@ -396,7 +396,7 @@ function storage_audit_repair(StorageServiceInterface $container, array &$contex
       ->condition('container_id', $container->container_id)
       ->condition(db_or()
         ->isNull('storage_instance.file_id')
-        ->condition('storage_instance.audit', STORAGE_AUDIT_STATUS_AUDITED, '!=')
+        ->condition('storage_instance.audit', STORAGE_AUDIT_STATUS_AUDITED, '<>')
       )
       ->countQuery()
       ->execute()
@@ -412,7 +412,7 @@ function storage_audit_repair(StorageServiceInterface $container, array &$contex
     ->condition('storage_instance.container_id', $container->container_id)
     ->condition(db_or()
       ->isNull('storage_instance.file_id')
-      ->condition('storage_instance.audit', STORAGE_AUDIT_STATUS_AUDITED, '!=')
+      ->condition('storage_instance.audit', STORAGE_AUDIT_STATUS_AUDITED, '<>')
     )
     ->execute();
 

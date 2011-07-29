@@ -189,7 +189,7 @@ abstract class StorageContainer {
 
     $result = $query->fields('storage_instance', array('container_id', 'reference'))
       ->condition('storage_instance.file_id', $storage->file_id)
-      ->condition('storage_instance.container_id', $this->container_id, '!=')
+      ->condition('storage_instance.container_id', $this->container_id, '<>')
       ->condition('storage_container.service_id', $this->service_id)
       ->condition('storage_selector.selector_id', $storage->selector_id)
       ->orderBy('storage_selector.migrating')
@@ -296,7 +296,7 @@ abstract class StorageContainer {
     $storage_ids = db_select('storage')
       ->fields('storage', array('storage_id'))
       ->condition('storage.file_id', $storage->file_id)
-      ->condition('storage.storage_id', $storage->storage_id, '!=')
+      ->condition('storage.storage_id', $storage->storage_id, '<>')
       ->execute()
       ->fetchCol();
 
