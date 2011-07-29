@@ -515,8 +515,7 @@ abstract class StorageContainer {
         continue;
       }
 
-      $info['reference'] = $reference;
-      $manifest[] = $info;
+      $manifest[$reference] = $info;
     }
     
     $finished = (count($sandbox['references']) == 0);
@@ -566,7 +565,7 @@ abstract class StorageContainer {
 
     $info = array(
       'size' => $stat['size'],
-      'md5' => hash_file('md5', $uri, TRUE),
+      'whirlpool' => hash_file('whirlpool', $uri, TRUE),
     );
 
     return $info;

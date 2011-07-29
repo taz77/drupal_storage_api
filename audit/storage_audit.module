@@ -4,6 +4,22 @@
 
 
 /**
+ * The instance is missing.
+ */
+define('STORAGE_AUDIT_STATUS_MISSING', 0);
+
+/**
+ * The instance is audited.
+ */
+define('STORAGE_AUDIT_STATUS_AUDITED', 1);
+
+/**
+ * The instance is invalid.
+ */
+define('STORAGE_AUDIT_STATUS_INVALID', 2);
+
+
+/**
  * Implements hook_menu().
  */
 function storage_audit_menu() {
@@ -29,7 +45,7 @@ function _storage_audit_read(StorageContainer $container) {
     ->condition('storage_instance.container_id', $container->container_id)
     ->condition(db_or()
       ->isNull('storage_instance.file_id')
-      ->condition('storage_instance.audit', 1, '!=')
+      ->condition('storage_instance.audit', STORAGE_AUDIT_STATUS_AUDITED, '!=')
     )
     ->execute();
   
@@ -38,15 +54,15 @@ function _storage_audit_read(StorageContainer $container) {
     
     switch ($instance['audit']) {
     
-      case 0:
+      case STORAGE_AUDIT_STATUS_MISSING:
         $missing[] = $link;
         break;
         
-      case 1:
+      case STORAGE_AUDIT_STATUS_AUDITED:
         $extra[] = $link;
         break;
         
-      case 2:
+      case STORAGE_AUDIT_STATUS_INVALID:
         $invalid[] = $link;
         break;
     }
@@ -184,42 +200,53 @@ function _storage_audit_get_audited($container_id) {
 }
 
 
-function _storage_audit(StorageContainer $container, array $instance) {
+function _storage_audit_instance(array $instance, array $info) {
+
+  if (isset($info['whirlpool'])) {
+    if ($instance['whirlpool'] == $info['whirlpool']) {
+      return STORAGE_AUDIT_STATUS_AUDITED;
+    }
+  }
+  elseif (isset($info['md5'])) {
+    if ($instance['md5'] == $info['md5']) {
+      return STORAGE_AUDIT_STATUS_AUDITED;
+    }
+  }
+
+  return STORAGE_AUDIT_STATUS_INVALID;
+}
+
+
+function _storage_audit(StorageContainer $container, $reference, array $info) {
 
   $query = db_select('storage_instance');
-  $query->leftJoin('storage_file', NULL, 'storage_instance.file_id = storage_file.file_id');
+  $query->join('storage_file', NULL, 'storage_instance.file_id = storage_file.file_id');
 
-  $file = $query->fields('storage_file')
+  $instance = $query->fields('storage_file')
     ->condition('storage_instance.container_id', $container->container_id)
-    ->condition('storage_instance.reference', $instance['reference'])
+    ->condition('storage_instance.reference', $reference)
     ->execute()
     ->fetchAssoc();
 
-  if ($file === FALSE) {
-  
+  if ($instance === FALSE) {
+
     db_insert('storage_instance')
       ->fields(array(
         'container_id' => $container->container_id,
-        'reference' => $instance['reference'],
+        'reference' => $reference,
         ))
       ->execute();
-      
-    return;
   }
-  
-  
-  if ($file['file_id'] && ($file['size'] != $instance['size'] || $file['md5'] != $instance['md5'])) {
-  
-    $invalid = TRUE;
-  }
+  else {
 
-  db_update('storage_instance')
-    ->fields(array(
-        'audit' => isset($invalid) ? 2 : 1
-      ))
-    ->condition('container_id', $container->container_id)
-    ->condition('reference', $instance['reference'])
-    ->execute();
+    db_update('storage_instance')
+      ->fields(array(
+          'audit' => _storage_audit_instance($instance, $info),
+        ))
+      ->condition('container_id', $container->container_id)
+      ->condition('reference', $reference)
+      ->execute();
+  }
 }
 
 
@@ -246,7 +273,7 @@ function storage_audit(StorageServiceInterface $container, array &$context) {
     // Set every instance record in container to unaudited.
     db_update('storage_instance')
       ->fields(array(
-          'audit' => 0,
+          'audit' => STORAGE_AUDIT_STATUS_MISSING,
         ))
       ->condition('container_id', $container->container_id)
       ->execute();
@@ -255,16 +282,15 @@ function storage_audit(StorageServiceInterface $container, array &$context) {
   
   $manifest = $container->serviceManifest($context['sandbox']['service_sandbox'], $finished);
   
-  foreach ($manifest as $instance) {
+  foreach ($manifest as $reference => $info) {
 
     // If the file is called .htaccess and this container is supposed to have a
     // .htaccess file, then just ignore it.
-    if ($instance['reference'] == '.htaccess' && $container->service()->info['htaccess']) {
+    if ($reference == '.htaccess' && $container->service()->info['htaccess']) {
       continue;
     }
 
-    _storage_audit($container, $instance);
-
+    _storage_audit($container, $reference, $info);
     $context['sandbox']['files']++;
   }
 
@@ -300,13 +326,11 @@ function _storage_audit_repair(StorageServiceInterface $container, array $instan
     }
     catch (StorageException $e) {}
     
-    if (is_array($info)
-      && $info['size'] == $instance['size']
-      && $info['md5'] == $instance['md5']
-    ) {
+    if (isset($info) && _storage_audit_instance($instance, $info) == STORAGE_AUDIT_STATUS_AUDITED) {
+
       db_update('storage_instance')
         ->fields(array(
-            'audit' => 1,
+            'audit' => STORAGE_AUDIT_STATUS_AUDITED,
           ))
         ->condition('container_id', $container->container_id)
         ->condition('reference', $instance['reference'])
@@ -317,7 +341,7 @@ function _storage_audit_repair(StorageServiceInterface $container, array $instan
   }
 
   // Delete instances that shouldn't exist or are corrupt.
-  if ($instance['audit'] != 0) {
+  if ($instance['audit'] != STORAGE_AUDIT_STATUS_MISSING) {
     $container->serviceInstanceDestroy($instance['reference']);
     $results['instances']++;
   }
@@ -372,7 +396,7 @@ function storage_audit_repair(StorageServiceInterface $container, array &$contex
       ->condition('container_id', $container->container_id)
       ->condition(db_or()
         ->isNull('storage_instance.file_id')
-        ->condition('storage_instance.audit', 1, '!=')
+        ->condition('storage_instance.audit', STORAGE_AUDIT_STATUS_AUDITED, '!=')
       )
       ->countQuery()
       ->execute()
@@ -388,7 +412,7 @@ function storage_audit_repair(StorageServiceInterface $container, array &$contex
     ->condition('storage_instance.container_id', $container->container_id)
     ->condition(db_or()
       ->isNull('storage_instance.file_id')
-      ->condition('storage_instance.audit', 1, '!=')
+      ->condition('storage_instance.audit', STORAGE_AUDIT_STATUS_AUDITED, '!=')
     )
     ->execute();
 

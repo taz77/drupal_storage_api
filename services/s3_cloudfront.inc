@@ -876,8 +876,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
     
     foreach ($result['simplexml']->Contents as $object) {
     
-      $manifest[] = array(
-        'reference' => (string) $object->Key,
+      $manifest[(string) $object->Key] = array(
         'size' => (string) $object->Size,
         'md5' => $this->eTag2md5($object->ETag),
       );

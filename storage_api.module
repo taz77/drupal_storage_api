@@ -499,12 +499,12 @@ function _storage_api_file_id($uri, $filename, &$new_file = NULL) {
     throw new StorageException();
   }
 
-  $md5 = hash_file('md5', $uri, TRUE);
+  $whirlpool = hash_file('whirlpool', $uri, TRUE);
   
   $txn = db_transaction();
   $file_id = db_select('storage_file')
     ->fields('storage_file', array('file_id'))
-    ->condition('md5', $md5)
+    ->condition('whirlpool', $whirlpool)
     ->condition('filename', $filename)
     ->execute()
     ->fetchField();
@@ -512,10 +512,11 @@ function _storage_api_file_id($uri, $filename, &$new_file = NULL) {
   if ($file_id === FALSE) {
   
     $file = array(
-      'md5' => $md5,
+      'whirlpool' => $whirlpool,
       'filename' => $filename,
       'size' => $fileinfo['size'],
       'mimetype' => storage_api_mime_detect($uri, $filename),
+      'md5' => hash_file('md5', $uri, TRUE),
     );
 
     drupal_write_record('storage_file', $file);

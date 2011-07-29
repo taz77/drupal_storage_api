@@ -125,7 +125,7 @@ function storage_api_schema() {
     'fields' => array(
       'selector_id' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
       'class_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
-      'migrating' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0)
+      'migrating' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0),
     ),
     'primary key' => array('selector_id', 'class_id'),
   );
@@ -133,14 +133,15 @@ function storage_api_schema() {
   $schema['storage_file'] = array(
     'fields' => array(
       'file_id' => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
-      'md5' => array('type' => 'blob', 'mysql_type' => 'BINARY(16)', 'length' => 16, 'not null' => TRUE),
+      'whirlpool' => array('type' => 'blob', 'mysql_type' => 'BINARY(64)', 'length' => 64, 'not null' => TRUE),
       'filename' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
       'size' => array('type' => 'int', 'unsigned' => TRUE, 'size' => 'big', 'not null' => TRUE),
-      'mimetype' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE)
+      'mimetype' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
+      'md5' => array('type' => 'blob', 'mysql_type' => 'BINARY(16)', 'length' => 16, 'not null' => TRUE),
     ),
     'primary key' => array('file_id'),
     'unique keys' => array(
-      'file' => array('md5', 'filename'),
+      'fingerprint' => array('whirlpool', 'filename'),
     ),
   );
   
@@ -185,7 +186,7 @@ function storage_api_schema() {
       'uid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
       'sid' => array('type' => 'varchar', 'length' => 128, 'not null' => TRUE),
       'ip_address' => array('type' => 'varchar', 'length' => 39, 'not null' => TRUE),
-      'referrer' => array('type' => 'varchar', 'length' => 4095, 'not null' => TRUE)
+      'referrer' => array('type' => 'varchar', 'length' => 4095, 'not null' => TRUE),
     ),
   );
   
