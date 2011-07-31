@@ -230,7 +230,7 @@ class Storage {
         }
 
         $message .= ' <br />' . $this->logInfo();
-        watchdog('storage_api', $message, NULL, WATCHDOG_WARNING, $link);
+        watchdog('storage', $message, NULL, WATCHDOG_WARNING, $link);
         
         throw new StorageException();
       }
@@ -240,7 +240,7 @@ class Storage {
 
     $message = 'Generated file' . ($this->filename ? (' ' . $this->filename) : '');
     $message .= '<br />' . $this->logInfo();
-    watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, $link);
+    watchdog('storage', $message, NULL, WATCHDOG_NOTICE, $link);
     
     $container->reference = $reference;
     
@@ -396,7 +396,7 @@ class Storage {
 
     db_update('storage')
       ->fields(array(
-        'status' => STORAGE_API_STORAGE_STATUS_PROCESS_CRON,
+        'status' => STORAGE_STATUS_PROCESS_CRON,
         'serving_container' => serialize(FALSE),
       ))
       ->expression('selector_id', 'NULL')
@@ -406,7 +406,7 @@ class Storage {
     $message = 'File removed' . ($this->filename ? (': ' . $this->filename . ' ') : '') . ' <br />';
     $message .= $this->logInfo();
     
-    watchdog('storage_api', $message, NULL);
+    watchdog('storage', $message, NULL);
   }
 
 
@@ -457,7 +457,7 @@ class Storage {
     $uri = _storage_acquire_from_url($this->source_uri);
     
     if ($uri) {
-      $file_id = _storage_api_file_id($uri, basename(parse_url($this->source_uri, PHP_URL_PATH)), $new_file);
+      $file_id = _storage_file_id($uri, basename(parse_url($this->source_uri, PHP_URL_PATH)), $new_file);
 
       if (!$this->file_id) {
         $this->file_id = $file_id;
@@ -483,7 +483,7 @@ class Storage {
         
         $link = $this->nid ? l(t('view'), 'node/' . $this->nid) : NULL;
       
-        watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, $link);
+        watchdog('storage', $message, NULL, WATCHDOG_NOTICE, $link);
 
         return $uri;
       }
@@ -502,7 +502,7 @@ class Storage {
       
       $link = $this->nid ? l(t('view'), 'node/' . $this->nid) : NULL;
       
-      watchdog('storage_api', $message, NULL, WATCHDOG_WARNING, $link);
+      watchdog('storage', $message, NULL, WATCHDOG_WARNING, $link);
 
       return FALSE;
     }
@@ -558,7 +558,7 @@ class Storage {
     if ($uri = module_invoke($this->module(), 'storage_generate', $this)) {
 
       try {
-        $file_id = _storage_api_file_id($uri, $this->filename, $new_file);
+        $file_id = _storage_file_id($uri, $this->filename, $new_file);
       }
       catch (StorageException $e) {
         throw new StorageException();
@@ -683,7 +683,7 @@ class Storage {
     
     if ($this->selector_id) {
       unset($this->initial_container_id);
-      $this->status = STORAGE_API_STORAGE_STATUS_IDLE;
+      $this->status = STORAGE_STATUS_IDLE;
       $this->update();
     }
     else {

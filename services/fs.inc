@@ -12,7 +12,7 @@ class StorageFS extends StorageContainer implements StorageServiceInterface {
       '#title' => t('Directory path'),
       '#description' => t("Can be absolute or relative."),
       '#default_value' => isset($this->settings['path']) ? $this->settings['path'] : 
-        storage_api_new_local_storage_path(),
+        storage_new_local_storage_path(),
       '#required' => TRUE,
       '#validated' => TRUE,
     );
@@ -52,7 +52,7 @@ class StorageFS extends StorageContainer implements StorageServiceInterface {
   
   public function serviceCreate() {
 
-    $storage_api_path = drupal_get_path('module', 'storage_api');
+    $storage_path = drupal_get_path('module', 'storage');
 
     if (!file_prepare_directory($this->settings['path'], FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS)) {
       form_set_error('settings][path', t('The directory %directory could not be created. Please check permissions.',

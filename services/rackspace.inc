@@ -283,7 +283,7 @@ class StorageRackspace extends StorageContainer implements StorageServiceInterfa
   public function serviceInstanceGetUri($reference) {
 
     $rscf_container = $this->rscf_container();
-    $temp_uri = storage_api_temp_uri();
+    $temp_uri = storage_temp_uri();
     
     try {
       $object = $rscf_container->get_object($reference);

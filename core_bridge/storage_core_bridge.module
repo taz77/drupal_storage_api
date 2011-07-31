@@ -304,7 +304,7 @@ function storage_core_bridge_storage_generate(Storage $storage) {
 
   $style = image_style_load($styled_image['style']);
   $source = $source_storage->getUri();
-  $destination = storage_api_temp_uri();
+  $destination = storage_temp_uri();
 
   image_style_create_derivative($style, $source, $destination);
 
@@ -375,7 +375,7 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
     switch ($this->mode) {
 
       case 'w':
-        $this->temp_uri = storage_api_temp_uri();
+        $this->temp_uri = storage_temp_uri();
         $this->fp = fopen($this->temp_uri, 'wb');
         break;
 

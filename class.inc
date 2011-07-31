@@ -74,7 +74,7 @@ class StorageClass {
     }
 
     db_update('storage')
-      ->fields(array('status' => STORAGE_API_STORAGE_STATUS_PROCESS_CRON))
+      ->fields(array('status' => STORAGE_STATUS_PROCESS_CRON))
       ->expression('serving_container', 'NULL')
       ->condition('selector_id', $selector_ids)
       ->execute();
@@ -103,7 +103,7 @@ class StorageClass {
     );
     
     drupal_set_message(t($msg, $args));
-    watchdog('storage_api', $msg, $args, WATCHDOG_NOTICE, l(t('view'), $this->path()));
+    watchdog('storage', $msg, $args, WATCHDOG_NOTICE, l(t('view'), $this->path()));
   }
 
   /**
@@ -169,7 +169,7 @@ class StorageClass {
       '</i> has been removed from class <i>' . $this->name() .'</i>.';
       
     drupal_set_message($message);
-    watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $this->path()));
+    watchdog('storage', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $this->path()));
   }
   
   public function insert() {
@@ -185,7 +185,7 @@ class StorageClass {
     
     $msg = 'Storage class !class has been created.';
     drupal_set_message(t($msg, array('!class' => $this->link())));
-    watchdog('storage_api', $msg, array('!class' => $this->name()), WATCHDOG_NOTICE, 
+    watchdog('storage', $msg, array('!class' => $this->name()), WATCHDOG_NOTICE, 
       l(t('view'), $this->path()));
   }
 
@@ -202,7 +202,7 @@ class StorageClass {
     $message = 'Storage class <i>' . $this->name . '</i> has been deleted.';
 
     drupal_set_message($message);
-    watchdog('storage_api', $message, NULL);
+    watchdog('storage', $message, NULL);
   }
 
   public function formElements() {

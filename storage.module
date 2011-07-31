@@ -6,12 +6,12 @@
 /**
  * The storage is idle.
  */
-define('STORAGE_API_STORAGE_STATUS_IDLE', 0);
+define('STORAGE_STATUS_IDLE', 0);
 
 /**
  * The storage is to be processed during cron.
  */
-define('STORAGE_API_STORAGE_STATUS_PROCESS_CRON', 1);
+define('STORAGE_STATUS_PROCESS_CRON', 1);
 
 
 class StorageException extends Exception {}
@@ -19,7 +19,7 @@ class StorageException extends Exception {}
 /**
  * Implements hook_permission().
  */
-function storage_api_permission() {
+function storage_permission() {
 
   return array('administer storage' => array(
     'title' => t('Administer storage'),
@@ -31,7 +31,7 @@ function storage_api_permission() {
 /**
  * Implements hook_menu().
  */
-function storage_api_menu() {
+function storage_menu() {
 
   $items['system/storage/serve/%storage_menu'] = array(
     'type' => MENU_CALLBACK,
@@ -368,7 +368,7 @@ function storage_selector($arg0, $arg1 = NULL) {
 }
 
 
-function storage_api_storage_services() {
+function storage_storage_services() {
 
   $services = array(
     'db' => array(
@@ -456,7 +456,7 @@ function _storage_service_unavailable() {
 }
 
 
-function storage_api_mime_detect($uri, $filename) {
+function storage_mime_detect($uri, $filename) {
   $filepath = drupal_realpath($uri);
   $mime = FALSE;
 
@@ -491,7 +491,7 @@ function storage_api_mime_detect($uri, $filename) {
 }
 
 
-function _storage_api_file_id($uri, $filename, &$new_file = NULL) {
+function _storage_file_id($uri, $filename, &$new_file = NULL) {
 
   $fileinfo = @stat($uri);
   
@@ -515,7 +515,7 @@ function _storage_api_file_id($uri, $filename, &$new_file = NULL) {
       'whirlpool' => $whirlpool,
       'filename' => $filename,
       'size' => $fileinfo['size'],
-      'mimetype' => storage_api_mime_detect($uri, $filename),
+      'mimetype' => storage_mime_detect($uri, $filename),
       'md5' => hash_file('md5', $uri, TRUE),
     );
 
@@ -531,7 +531,7 @@ function _storage_api_file_id($uri, $filename, &$new_file = NULL) {
 
 function _storage_acquire_from_url($url) {
 
-  $temp_uri = storage_api_temp_uri();
+  $temp_uri = storage_temp_uri();
   $fp = fopen($temp_uri, "w");
 
   $options = array(
@@ -629,7 +629,7 @@ function storage_format_size($size) {
 /**
  * Implements hook_theme().
  */
-function storage_api_theme($existing, $type, $theme, $path) {
+function storage_theme($existing, $type, $theme, $path) {
 
   return array(
     'storage_class_edit_form' => array(
@@ -666,7 +666,7 @@ class StorageTempURI {
   private $uri;
 
   public function __construct() {
-    $this->uri = drupal_tempnam('temporary://', 'storage_api-');
+    $this->uri = drupal_tempnam('temporary://', 'storage-');
   }
 
   public function __destruct() {
@@ -685,13 +685,13 @@ class StorageTempURI {
  * @return
  *   A temporary URI.
  */
-function storage_api_temp_uri() {
+function storage_temp_uri() {
 
   return new StorageTempURI();
 }
 
 
-function storage_api_new_local_storage_path() {
+function storage_new_local_storage_path() {
 
   return file_create_filename('storage', conf_path());
 }
@@ -700,19 +700,19 @@ function storage_api_new_local_storage_path() {
 /**
  * Implements hook_cron().
  */
-function storage_api_cron() {
+function storage_cron() {
 
-  $path = drupal_get_path('module', 'storage_api');
+  $path = drupal_get_path('module', 'storage');
   require_once DRUPAL_ROOT . '/' . $path . '/cron.inc';
 
-  _storage_api_cron();
+  _storage_cron();
 }
 
 
 /**
  * Implements hook_libraries_info().
  */
-function storage_api_libraries_info() {
+function storage_libraries_info() {
 
   $libraries['php-cloudfiles'] = array(
     'name' => 'php-cloudfiles',

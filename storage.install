@@ -6,7 +6,7 @@
 /**
  * Implements hook_requirements() .
  */
-function storage_api_requirements($phase) {
+function storage_requirements($phase) {
   $curl = FALSE;
 
   if (function_exists('curl_version')) {
@@ -14,11 +14,11 @@ function storage_api_requirements($phase) {
   }
   
   $t = get_t();
-  $description = $t('Storage API requires that <a href="http://php.net/manual/en/book.curl.php">cURL</a> be available to PHP.');
+  $description = $t('Storage requires that <a href="http://php.net/manual/en/book.curl.php">cURL</a> be available to PHP.');
 
   $requirements = array(
-    'storage_api_curl' => array(
-      'title' => 'Storage API - cURL',
+    'storage_curl' => array(
+      'title' => 'Storage - cURL',
       'value' => ($curl ? $curl['version'] : 'Not found'),
       'description' => $curl ? NULL : $description,
       'severity' => $curl ? REQUIREMENT_OK : REQUIREMENT_ERROR,
@@ -46,8 +46,8 @@ function storage_api_requirements($phase) {
       }
     }
 
-    $requirements['storage_api_mime'] = array(
-      'title' => t('Storage API - MIME detection'),
+    $requirements['storage_mime'] = array(
+      'title' => t('Storage - MIME detection'),
       'value' => $value,
       'severity' => REQUIREMENT_OK,
     );
@@ -69,8 +69,8 @@ function storage_api_requirements($phase) {
       }
       catch (Exception $e) {
       
-        $requirements['storage_api_' . $service_id] = array(
-          'title' => t('Storage API - ') . $services[$service_id]['name'] . t(' service'),
+        $requirements['storage_' . $service_id] = array(
+          'title' => t('Storage - ') . $services[$service_id]['name'] . t(' service'),
           'value' => t('Not configured'),
           'description' => $e->getMessage(),
           'severity' => REQUIREMENT_ERROR,
@@ -86,7 +86,7 @@ function storage_api_requirements($phase) {
 /**
  * Implements hook_schema() .
  */
-function storage_api_schema() {
+function storage_schema() {
 
   $schema['storage_container'] = array(
     'fields' => array(
@@ -197,7 +197,7 @@ function storage_api_schema() {
 /**
  * Implements hook_install() .
  */
-function storage_api_install() {
+function storage_install() {
 
   // Create a class.
   $class = new StorageClass(array(
@@ -210,9 +210,9 @@ function storage_api_install() {
   
   $class->create();
   
-  variable_set('storage_api_initial_class', $class->class_id);
+  variable_set('storage_initial_class', $class->class_id);
 
-  $path = storage_api_new_local_storage_path();
+  $path = storage_new_local_storage_path();
 
   $container = array(
     'name' => t('Local'),

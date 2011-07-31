@@ -356,7 +356,7 @@ function _storage_audit_repair(StorageServiceInterface $container, array $instan
   if ($instance['file_id']) {
     db_update('storage')
       ->fields(array(
-          'status' => STORAGE_API_STORAGE_STATUS_PROCESS_CRON,
+          'status' => STORAGE_STATUS_PROCESS_CRON,
         ))
       ->expression('serving_container', 'NULL')
       ->condition('file_id', $instance['file_id'])

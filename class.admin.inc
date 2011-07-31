@@ -413,7 +413,7 @@ function storage_class_edit_form_submit(array $form, array &$form_state) {
   $message = 'Storage class <i>' . $class->name() . '</i> has been updated.';
 
   drupal_set_message($message);
-  watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $class->path()));
+  watchdog('storage', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $class->path()));
 
   $form_state['redirect'] = $class->path();
 }

@@ -59,7 +59,7 @@ abstract class StorageContainer {
       $lines[] = '</IfModule>';
     }
 
-    $temp_uri = storage_api_temp_uri();
+    $temp_uri = storage_temp_uri();
     file_put_contents($temp_uri, implode("\n", $lines) . "\n");
     
     $storage = new Storage(array('filename' => '.htaccess'));
@@ -79,7 +79,7 @@ abstract class StorageContainer {
     }
     catch (StorageException $e) {
       $msg = 'Failed to create storage container !container.';
-      watchdog('storage_api', $msg, array('!container' => $this->name()), WATCHDOG_ERROR);
+      watchdog('storage', $msg, array('!container' => $this->name()), WATCHDOG_ERROR);
       throw new StorageException(t($msg, array('!container' => $this->name())));
     }
     
@@ -95,7 +95,7 @@ abstract class StorageContainer {
 
     $msg = 'Storage container !container has been created.';
     drupal_set_message(t($msg, array('!container' => $this->link())));
-    watchdog('storage_api', $msg, array('!container' => $this->name()), WATCHDOG_NOTICE, 
+    watchdog('storage', $msg, array('!container' => $this->name()), WATCHDOG_NOTICE, 
       l(t('view'), $this->path()));
   }
 
@@ -150,7 +150,7 @@ abstract class StorageContainer {
     $message .= $this->logInfo();
     $message .= $storage->logInfo();
 
-    watchdog('storage_api', $message, NULL);
+    watchdog('storage', $message, NULL);
 
     return $reference;
   }
@@ -174,7 +174,7 @@ abstract class StorageContainer {
     $message .= $this->logInfo();
     $message .= $storage->logInfo();
 
-    watchdog('storage_api', $message, NULL);
+    watchdog('storage', $message, NULL);
   }
 
 
@@ -364,7 +364,7 @@ abstract class StorageContainer {
     $message .= $this->logInfo();
     $message .= $storage->logInfo();
 
-    watchdog('storage_api', $message, NULL);
+    watchdog('storage', $message, NULL);
   }
 
 
@@ -421,7 +421,7 @@ abstract class StorageContainer {
 
     $message = 'Storage container <i>' . $this->name() . '</i> has been destroyed.';
     drupal_set_message($message);
-    watchdog('storage_api', $message, NULL);
+    watchdog('storage', $message, NULL);
   }
 
   /**
@@ -536,7 +536,7 @@ abstract class StorageContainer {
 
   public function serviceInstanceGetUri($reference) {
 
-    $temp_uri = storage_api_temp_uri();
+    $temp_uri = storage_temp_uri();
     $success = file_put_contents($temp_uri, $this->serviceInstanceGetContents($reference));
 
     if (!$success) {

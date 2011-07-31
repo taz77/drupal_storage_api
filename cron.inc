@@ -26,7 +26,7 @@ function _storage_check_files() {
 
   $storage_ids = db_select('storage')
     ->fields('storage', array('storage_id'))
-    ->condition('status', STORAGE_API_STORAGE_STATUS_PROCESS_CRON)
+    ->condition('status', STORAGE_STATUS_PROCESS_CRON)
     ->orderBy('storage_id')
     ->execute()
     ->fetchCol();
@@ -66,7 +66,7 @@ function _storage_flush_storage_servings() {
 }
 
 
-function _storage_api_container_maintenance() {
+function _storage_container_maintenance() {
 
   $result = db_select('storage_container', NULL, array('fetch' => PDO::FETCH_ASSOC))
     ->condition('storage_container.suspended', 0)
@@ -79,12 +79,12 @@ function _storage_api_container_maintenance() {
 }
 
 
-function _storage_api_cron() {
+function _storage_cron() {
 
   _storage_remove_containers();
   _storage_check_files();
   _storage_check_migrations();
   _storage_flush_storage_servings();
-  _storage_api_container_maintenance();
+  _storage_container_maintenance();
 }
 

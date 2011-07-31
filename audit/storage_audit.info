@@ -1,6 +1,6 @@
 name = Audit
 description = "Performs audits of storage instances."
-package = Storage
-dependencies[] = storage_api
+package = Storage API
+dependencies[] = storage
 core = 7.x
 files[] = storage_audit.module

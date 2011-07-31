@@ -98,7 +98,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
         
       case 'GET':
         if ($object_name) {
-          $result['temp_uri'] = storage_api_temp_uri();
+          $result['temp_uri'] = storage_temp_uri();
           $fp = fopen($result['temp_uri'], 'w');
           $curl_options[CURLOPT_FILE] = $fp;
         }

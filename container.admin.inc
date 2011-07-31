@@ -359,7 +359,7 @@ function storage_container_suspend_form_submit(array $form, array &$form_state) 
   $message = 'Storage container <i>' . $container->name() . '</i> has been suspended.';
 
   drupal_set_message($message);
-  watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $container->path()));
+  watchdog('storage', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $container->path()));
 
   $form_state['redirect'] = $container->path();
 }
@@ -394,7 +394,7 @@ function storage_container_unsuspend_form_submit(array $form, array &$form_state
   $message = 'Storage container <i>' . $container->name() . '</i> has been unsuspended.';
 
   drupal_set_message($message);
-  watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $container->path()));
+  watchdog('storage', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $container->path()));
   
   $form_state['redirect'] = $container->path();
 }
@@ -522,7 +522,7 @@ function storage_container_edit_form_submit(array $form, array &$form_state) {
   $message = 'Storage container <i>' . $container->name() . '</i> has been updated.';
 
   drupal_set_message($message);
-  watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $container->path()));
+  watchdog('storage', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $container->path()));
 
   $form_state['redirect'] = $container->path();
 }

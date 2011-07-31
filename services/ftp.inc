@@ -353,7 +353,7 @@ class StorageFTP extends StorageContainer implements StorageServiceInterface {
   public function serviceInstanceGetUri($reference) {
     $this->login();
 
-    $temp_uri = storage_api_temp_uri();
+    $temp_uri = storage_temp_uri();
     $result = ftp_get($this->ftpStream, $temp_uri, $reference, FTP_BINARY);
     
     if (!$result) {

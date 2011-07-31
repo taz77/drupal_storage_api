@@ -45,7 +45,7 @@ class StorageSelector {
 
     db_update('storage')
       ->fields(array(
-        'status' => STORAGE_API_STORAGE_STATUS_PROCESS_CRON,
+        'status' => STORAGE_STATUS_PROCESS_CRON,
         'serving_container' => serialize(FALSE),
       ))
       ->expression('selector_id', 'NULL')
@@ -166,7 +166,7 @@ class StorageSelector {
 
       db_update('storage')
         ->fields(array(
-          'status' => STORAGE_API_STORAGE_STATUS_PROCESS_CRON,
+          'status' => STORAGE_STATUS_PROCESS_CRON,
         ))
         ->expression('serving_container', 'NULL')
         ->condition('selector_id', $this->selector_id)
@@ -178,7 +178,7 @@ class StorageSelector {
       $message .= ' to storage class <i>' . $new_class->name() . '</i>.';
       
       drupal_set_message($message);
-      watchdog('storage_api', $message, NULL);
+      watchdog('storage', $message, NULL);
     }
     else {
     
@@ -204,7 +204,7 @@ class StorageSelector {
     // Is the selector fully migrated?
     $migrated = !db_select('storage')
       ->condition('selector_id', $this->selector_id)
-      ->condition('status', STORAGE_API_STORAGE_STATUS_PROCESS_CRON)
+      ->condition('status', STORAGE_STATUS_PROCESS_CRON)
       ->countQuery()
       ->execute()
       ->fetchField();
@@ -220,7 +220,7 @@ class StorageSelector {
       $message = 'Storage selector ' . check_plain($this->selector_id);
       $message .= ' has been fully migrated to class <i>' . $this->storageClass()->name() . '</i>.';
       
-      watchdog('storage_api', $message, NULL);
+      watchdog('storage', $message, NULL);
     }
   }
 
@@ -261,7 +261,7 @@ class StorageSelector {
       'keep_source_uri' => FALSE,
       'created' => time(),
       'data' => array(),
-      'status' => STORAGE_API_STORAGE_STATUS_PROCESS_CRON,
+      'status' => STORAGE_STATUS_PROCESS_CRON,
     );
 
     $initial_container = $this->storageClass()->initial_container;
@@ -275,7 +275,7 @@ class StorageSelector {
       if ($initial_container) {
         $source_uri = $options['source_uri'];   // TODO: Make this URI local.
         $filename = isset($options['filename']) ? $options['filename'] : basename($options['source_uri']);
-        $options['file_id'] = _storage_api_file_id($source_uri, $filename, $new_file);
+        $options['file_id'] = _storage_file_id($source_uri, $filename, $new_file);
       }
 
       if (!$options['keep_source_uri']) {
@@ -314,7 +314,7 @@ class StorageSelector {
           }
 
           $message .= ' <br />' . $storage->logInfo();
-          watchdog('storage_api', $message, NULL, WATCHDOG_WARNING, $link);
+          watchdog('storage', $message, NULL, WATCHDOG_WARNING, $link);
 
           $storage->remove();
           throw new StorageException();
@@ -325,7 +325,7 @@ class StorageSelector {
     $message = 'File added: ' . $storage->filename . '<br />';
     $message .= $storage->logInfo();
 
-    watchdog('storage_api', $message, NULL, WATCHDOG_NOTICE, $link);
+    watchdog('storage', $message, NULL, WATCHDOG_NOTICE, $link);
 
     return $storage;
   }

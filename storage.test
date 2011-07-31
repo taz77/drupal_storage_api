@@ -3,14 +3,14 @@
 class StorageAPITestCase extends DrupalWebTestCase {
   public static function getInfo() {
     return array(
-      'name' => 'Storage API',
-      'description' => 'Test Storage API.',
+      'name' => 'Storage',
+      'description' => 'Test Storage.',
       'group' => 'Storage',
     );
   }
 
   function setUp() {
-    parent::setUp('storage_api');
+    parent::setUp('storage');
 
     $web_user = $this->drupalCreateUser(array('administer storage'));
     $this->drupalLogin($web_user);
@@ -22,7 +22,7 @@ class StorageAPITestCase extends DrupalWebTestCase {
     $this->assertNotNull($class, t('Everything class created.'));
     $this->assertEqual($class->options['initial_container_id'], 1, t('Initial container set.'));
     
-    $path = storage_api_new_local_storage_path();
+    $path = storage_new_local_storage_path();
 
     $container = array(
       'name' => t('Local2'),
@@ -40,7 +40,7 @@ class StorageAPITestCase extends DrupalWebTestCase {
     $class = storage_class_load(1);
     $this->assertEqual($class->options['initial_container_id'], $container->container_id, t('Initial container changed.'));
     
-    $selector = storage_selector('storage_api', 'test');
+    $selector = storage_selector('storage', 'test');
     $selector->create();
     
     $options = array(
