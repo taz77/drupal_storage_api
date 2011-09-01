@@ -586,7 +586,6 @@ abstract class StorageContainer {
    * Optional implementations.
    */
 
-  public function serviceCheck() {}
   public function servicePostCreate() {}
   public function serviceUpdate() {}
   public function serviceMaintenance() {}
@@ -597,7 +596,6 @@ abstract class StorageContainer {
 
 interface StorageServiceInterface {
 
-  public function serviceCheck();
   public function serviceSettingsForm($edit = FALSE);
   public function serviceSettingsValidate($edit = FALSE);
   public function serviceCreate();

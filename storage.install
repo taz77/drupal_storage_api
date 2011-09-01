@@ -62,10 +62,10 @@ function storage_requirements($phase) {
       ->fetchCol();
       
     foreach ($service_ids as $service_id) {
-      $container = storage_container_new(array('service_id' => $service_id), FALSE);
+      $service = storage_service_load($service_id);
 
       try {
-        $container->serviceCheck();
+        $service->check();
       }
       catch (Exception $e) {
       

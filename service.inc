@@ -1,19 +1,26 @@
 <?php
 
-// Copyright 2010 Jonathan Brown
+// Copyright 2010-2011 Jonathan Brown
 
 class StorageService {
+  public $service_id;
+  public $info;
 
   public function __construct($service_id) {
-    
     $this->service_id = $service_id;
-    $this->info = storage_service_info($this->service_id);
+
+    $services = storage_service_info();
+    $this->info = $services[$this->service_id];
   }
   
   public function name() {
     return check_plain($this->info['name']);
   }
-  
+
+  public function check() {
+    module_invoke_all('storage_service_check_' . $this->service_id);
+  }
+
   public function flushServingContainer() {
 
     $selector_subquery = db_select('storage_container');
@@ -31,5 +38,3 @@ class StorageService {
     cache_clear_all();
   }
 }
-
-

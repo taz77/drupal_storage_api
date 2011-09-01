@@ -77,23 +77,6 @@ class StorageRackspace extends StorageContainer implements StorageServiceInterfa
 
     return $rscf_container;
   }
-  
-  public function serviceCheck() {
-
-    if (module_exists('libraries')) {
-      $library = libraries_detect('php-cloudfiles');
-
-      if ($library['installed'] == TRUE) {
-        return;
-      }
-    }    
-    
-    $message = t('Download <a href="http://github.com/rackspace/php-cloudfiles/downloads" target="_blank">php-cloudfiles</a>, decompress it, rename the directory to <em>php-cloudfiles</em> and put it in %directory.', array('%directory' => $path . 'sites/all/libraries')) . '<br />';
-    $message .= t('Alternatively you can use <a href="http://git-scm.com/" target="_blank">Git</a>:') . '<br />';
-    $message .= '<code>git clone git://github.com/rackspace/php-cloudfiles.git</code>';
-    
-    throw new StorageException($message);
-  }
 
   public function serviceSettingsForm($edit = FALSE) {
 

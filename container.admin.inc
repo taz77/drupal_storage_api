@@ -183,14 +183,13 @@ function storage_create_container_form_validate(array $form, array &$form_state)
       $form_state['storage']['access_control'] = $form_state['values']['access_control'];
       $form_state['storage']['enhanced_caching'] = $form_state['values']['enhanced_caching'];
       
-      $container = storage_container_new($form_state['storage'], FALSE);
-      
+      $service = storage_service_load($form_state['storage']['service_id']);
+
       try {
-        $container->serviceCheck();
+        $service->check();
       }
       catch (StorageException $e) {
-        $info = $container->service()->info;
-        $message = $info['name'] . ' ' . t('service is not set up properly.') . '<br />';
+        $message = $service->name() . ' ' . t('service is not set up properly.') . '<br />';
         $message .= $e->getMessage();
         form_set_error('service_id', $message);
       }

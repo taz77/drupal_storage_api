@@ -368,6 +368,9 @@ function storage_selector($arg0, $arg1 = NULL) {
 }
 
 
+/**
+ * Implements hook_storage_services().
+ */
 function storage_storage_services() {
 
   $services = array(
@@ -402,7 +405,26 @@ function storage_storage_services() {
 }
 
 
-function storage_service_info($service_id = NULL) {
+/**
+ * Implements hook_storage_service_check_SERVICE_ID().
+ */
+function storage_storage_service_check_rackspace() {
+
+  if (module_exists('libraries')) {
+    $library = libraries_detect('php-cloudfiles');
+
+    if ($library['installed'] == TRUE) {
+      return;
+    }
+  }
+
+  $message = t('Download <a href="http://github.com/rackspace/php-cloudfiles/downloads" target="_blank">php-cloudfiles</a>, decompress it, rename the directory to <em>php-cloudfiles</em> and put it in <em>sites/all/libraries</em>.<br />Alternatively you can use <a href="http://git-scm.com/" target="_blank">Git</a>:') . '<br /><code>git clone git://github.com/rackspace/php-cloudfiles.git</code>';
+
+  throw new StorageException($message);
+}
+
+
+function storage_service_info() {
 
   $services = module_invoke_all('storage_services');
 
@@ -417,19 +439,13 @@ function storage_service_info($service_id = NULL) {
     );
   }
 
-  if (empty($service_id)) {
-    return $services;
-  }
-  else {
-    return $services[$service_id];
-  }
+  return $services;
 }
 
 
 function storage_container_class($service_id) {
-
-  $info = storage_service_info($service_id);
-  return $info['class'];
+  $service = storage_service_load($service_id);
+  return $service->info['class'];
 }
 
 
