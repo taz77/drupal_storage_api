@@ -5,7 +5,7 @@
 
 function storage_containers() {
 
-  $header = array(t('Container'), t('Service'), t('Access control'), t('Suspended'), t('Instances'), t('Size'));
+  $header = array(t('Container'), t('Service'), t('Access control'), t('Status'), t('Instances'), t('Size'));
 
   $result = $query = db_select('storage_container', NULL, array('fetch' => PDO::FETCH_ASSOC))
     ->fields('storage_container')
@@ -14,20 +14,18 @@ function storage_containers() {
     ->execute();
 
   foreach ($result as $container) {
-    unset($row);
-    
     $container = storage_container_new($container);
-  
-    $row[] = $container->link();
-    $row[] = $container->service()->name();
-    $row[] = $container->access_control ? t('Yes') : t('No');
-    $row[] = $container->suspended ? t('Yes') : t('No');
-    $row[] = $container->count();
-    $row[] = $container->size(TRUE);
-    
-    $rows[] = $row;
+
+    $rows[] = array(
+      $container->link(),
+      $container->service()->name(),
+      $container->access_control ? t('Yes') : t('No'),
+      $container->status(),
+      $container->count(),
+      $container->size(TRUE),
+    );
   }
-  
+
   if (empty($rows)) {
     $rows[] = array(array('data' => t('No containers exist.'), 'colspan' => 6, 'class' => 'message'));
   }
@@ -269,7 +267,7 @@ function storage_container_form(array $form, array &$form_state, StorageContaine
     t('Service') => $container->service()->name(),
     t('Access control') => $container->access_control ? t('Yes') : t('No'),
     t('Enhanced caching') => $container->enhanced_caching ? t('Yes') : t('No'),
-    t('Suspended') => $container->suspended ? t('Yes') : t('No'),
+    t('Status') => $container->status(),
     t('Classes') => _storage_container_render_classes($container->classes()),
     t('Instances') => $container->count(),
     t('Size') => $container->size(TRUE),
@@ -281,22 +279,25 @@ function storage_container_form(array $form, array &$form_state, StorageContaine
     '#markup' => theme('storage_info_table', array('info' => $info))
   );
   
-  if (!$container->suspended) {
+  switch ($container->status) {
 
-    $form['suspend'] = array(
-      '#type' => 'submit',
-      '#value' => t('Suspend'),
-      '#submit' => array('storage_container_form_suspend'),
-      '#weight' => 2,
-    );
-  }
-  else {
-    $form['unsuspend'] = array(
-      '#type' => 'submit',
-      '#value' => t('Unsuspend'),
-      '#submit' => array('storage_container_form_unsuspend'),
-      '#weight' => 2,
-    );
+    case STORAGE_CONTAINER_STATUS_ACTIVE:
+      $form['suspend'] = array(
+        '#type' => 'submit',
+        '#value' => t('Suspend'),
+        '#submit' => array('storage_container_form_suspend'),
+        '#weight' => 2,
+      );
+      break;
+
+    case STORAGE_CONTAINER_STATUS_SUSPENDED:
+      $form['unsuspend'] = array(
+        '#type' => 'submit',
+        '#value' => t('Unsuspend'),
+        '#submit' => array('storage_container_form_unsuspend'),
+        '#weight' => 2,
+      );
+      break;
   }
 
   return $form;
@@ -351,7 +352,7 @@ function storage_container_suspend_form(array $form, array &$form_state, Storage
 function storage_container_suspend_form_submit(array $form, array &$form_state) {
   $container = $form['#container'];
   
-  $container->suspended = TRUE;
+  $container->status = STORAGE_CONTAINER_STATUS_SUSPENDED;
   $container->update();
   $container->flushServingContainer();
 
@@ -386,7 +387,7 @@ function storage_container_unsuspend_form(array $form, array &$form_state, Stora
 function storage_container_unsuspend_form_submit(array $form, array &$form_state) {
   $container = $form['#container'];
 
-  $container->suspended = FALSE;
+  $container->status = STORAGE_CONTAINER_STATUS_ACTIVE;
   $container->update();
   $container->flushServingContainer();
 
@@ -448,8 +449,14 @@ function storage_container_destroy_form(array $form, array &$form_state, Storage
  */
 function storage_container_destroy_form_submit(array $form, array &$form_state) {
   $container = $form['#container'];
-  
-  $container->destroy($form_state['values']['just_delete']);
+
+  if ($form_state['values']['just_delete']) {
+    $container->delete();
+  }
+  else {
+    $container->destroy();
+  }
+
   $form_state['redirect'] = 'admin/structure/storage/containers';
 }
 

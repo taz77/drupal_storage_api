@@ -13,6 +13,20 @@ define('STORAGE_STATUS_IDLE', 0);
  */
 define('STORAGE_STATUS_PROCESS_CRON', 1);
 
+/**
+ * The storage container is active.
+ */
+define('STORAGE_CONTAINER_STATUS_ACTIVE', 0);
+
+/**
+ * The storage container is suspended.
+ */
+define('STORAGE_CONTAINER_STATUS_SUSPENDED', 1);
+
+/**
+ * The storage container is being destroyed.
+ */
+define('STORAGE_CONTAINER_STATUS_DESTROY', 2);
 
 class StorageException extends Exception {}
 

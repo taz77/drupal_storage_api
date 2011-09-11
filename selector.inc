@@ -137,7 +137,6 @@ class StorageSelector {
       return;
     }
 
-
     db_merge('storage_selector')
       ->key(array(
         'selector_id' => $this->selector_id,
@@ -145,7 +144,6 @@ class StorageSelector {
       ))
       ->fields(array('migrating' => 0))
       ->execute();
-
     
     // Are there any files to migrate?
     $num_files = db_select('storage')
@@ -153,9 +151,8 @@ class StorageSelector {
       ->countQuery()
       ->execute()
       ->fetchField();
-    
-    if ($num_files) {
 
+    if ($num_files) {
       db_merge('storage_selector')
         ->key(array(
           'selector_id' => $this->selector_id,
@@ -256,12 +253,12 @@ class StorageSelector {
    */
   public function storageAdd(array $options = array()) {
 
+    // Add defaults.
     $options += array(
       'selector_id' => $this->selector_id,
       'keep_source_uri' => FALSE,
       'created' => time(),
       'data' => array(),
-      'status' => STORAGE_STATUS_PROCESS_CRON,
     );
 
     $initial_container = $this->storageClass()->initial_container;

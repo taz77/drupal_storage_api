@@ -41,7 +41,24 @@ abstract class StorageContainer {
       
     return $format ? storage_format_size($size) : $size;
   }
-  
+
+  public function status() {
+
+    switch ($this->status) {
+      case STORAGE_CONTAINER_STATUS_ACTIVE:
+        return t('Active');
+        break;
+
+      case STORAGE_CONTAINER_STATUS_SUSPENDED:
+        return t('Suspended');
+        break;
+
+      case STORAGE_CONTAINER_STATUS_DESTROY:
+        return t('Being destroyed');
+        break;
+    }
+  }
+
   private function htaccessCreate() {
 
     $lines = array(
@@ -226,7 +243,7 @@ abstract class StorageContainer {
   public function ensureInstanceExists(Storage $storage) {
     $check = FALSE;
 
-    if ($this->suspended != 0) {
+    if ($this->status != STORAGE_CONTAINER_STATUS_ACTIVE) {
       throw new StorageException();
     }
     
@@ -349,7 +366,7 @@ abstract class StorageContainer {
    */
   public function instanceDestroy(Storage $storage, $reference) {
 
-    if ($this->suspended != 0) {
+    if ($this->status != STORAGE_CONTAINER_STATUS_ACTIVE) {
       throw new StorageException();
     }
 
@@ -395,13 +412,10 @@ abstract class StorageContainer {
     return $classes;
   }
   
-
   /**
-   * Destroy container.
+   * Delete container.
    */
-  public function destroy($just_delete = FALSE) {
-
-    $this->flushServingContainer();
+  public function delete() {
 
     db_delete('storage_container')
       ->condition('container_id', $this->container_id)
@@ -415,8 +429,23 @@ abstract class StorageContainer {
       ->condition('container_id', $this->container_id)
       ->execute();
 
-    if (!$just_delete) {
+    $this->flushServingContainer();
+  }
+
+  /**
+   * Destroy container.
+   */
+  public function destroy() {
+
+    try {
       $this->serviceDestroy();
+      $this->delete();
+    }
+    catch (StorageException $e) {
+      db_update('storage_container')
+        ->fields(array('status' => STORAGE_CONTAINER_STATUS_DESTROY))
+        ->condition('container_id', $this->container_id)
+        ->execute();
     }
 
     $message = 'Storage container <i>' . $this->name() . '</i> has been destroyed.';

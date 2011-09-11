@@ -140,8 +140,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
     
     if (is_string($transfer) && $transfer != '') {
       $result['transfer'] = $transfer;
-      
-      
+
       if ($op == 'HEAD') {
         $result['headers'] = $this->parseHeaders($transfer);
       }
@@ -183,7 +182,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
           '',
           '',
           $query['Expires'],
-          '/' . $this->settings['bucket'] . '/' . $s3_object
+          '/' . $this->settings['bucket'] . '/' . $s3_object,
         );
         
         $query['Signature'] = $this->signature(implode("\n", $components));
@@ -360,7 +359,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
     $xml .= '</StreamingDistributionConfig>';
 
     $result = $this->requestCloudFront('POST', TRUE, $xml);
-    
+
     if ($result['http_code'] != 201) {
       $this->settings['cloudfront_streaming'] = FALSE;
       return;
@@ -377,7 +376,6 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
   }
 
   private function distributionDeploy() {
-
     $result = $this->requestCloudFront('GET');
     
     // If we can't get through to AWS then abort.
@@ -406,7 +404,6 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
   }
 
   private function distributionDeployStreaming() {
-
     $result = $this->requestCloudFront('GET', TRUE);
     
     // If we can't get through to AWS then abort.
@@ -434,113 +431,93 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
     watchdog('storage_s3', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $this->path()));
   }
 
-/*
   private function distributionDelete() {
+    $result = $this->requestCloudFront('GET');
+    
+    // If we can't get through to AWS then abort.
+    if (!$result['http_code']) {
+      throw new StorageException();
+    }
 
-    $delete = variable_get('storage_s3_cloudfront_delete', array());
-    
-    foreach ($delete as $container) {
-    
-      $result = $this->requestCloudFront('GET');
-      
-      if (!$result['http_code'])
-        continue;
+    // If the distribution doesn't exist, then there is nothing to do.
+    if ($result['http_code'] != 200) {
+      return;
+    }
+
+    $this->settings['etag'] = $result['headers']['ETag'];
+
+    if ($result['simplexml']->DistributionConfig->Enabled == 'true') {
+
+      $xml = '<?xml version="1.0" encoding="UTF-8"?>';
+      $xml .= '<DistributionConfig xmlns="http://cloudfront.amazonaws.com/doc/2009-12-01/">';
+      $xml .= '<Origin>' . $this->settings['bucket'] . '.s3.amazonaws.com</Origin>';
+      $xml .= '<CallerReference>' . $result['simplexml']->DistributionConfig->CallerReference . '</CallerReference>';
+      $xml .= '<Enabled>false</Enabled>';
+      $xml .= '</DistributionConfig>';
+
+      $result = $this->requestCloudFront('PUT', FALSE, $xml);
 
       if ($result['http_code'] == 200) {
-        
-        $container->settings['etag'] = $result['headers']['ETag'];
-          
-        if ($result['simplexml']->DistributionConfig->Enabled == 'true') {
-        
-          $xml = '<?xml version="1.0" encoding="UTF-8"?>';
-          $xml .= '<DistributionConfig xmlns="http://cloudfront.amazonaws.com/doc/2009-12-01/">';
-          $xml .= '<Origin>' . $container->settings['bucket'] . '.s3.amazonaws.com</Origin>';
-          $xml .= '<CallerReference>' . $result['simplexml']->DistributionConfig->CallerReference . '</CallerReference>';
-          $xml .= '<Enabled>false</Enabled>';
-          $xml .= '</DistributionConfig>';
-        
-          $result = $this->requestCloudFront('PUT', FALSE, $xml);
-
-          if ($result['http_code'] == 200) {
-
-            $message = 'Disabled CloudFront distribution for destroyed container <i>' . $container->name() . '</i>.';
-            watchdog('storage_s3', $message, NULL, WATCHDOG_NOTICE);
-            continue;
-          }
-        }
-        else {
-          
-          if ($result['simplexml']->Status == 'InProgress')
-            continue;
-        
-          $result = $this->requestCloudFront('DELETE');
-
-          if ($result['http_code'] == 204) {
-
-            $message = 'Deleted CloudFront distribution for destroyed container <i>' . $container->name() . '</i>.';
-            watchdog('storage_s3', $message, NULL, WATCHDOG_NOTICE);
-          }
-        }
+        $message = 'Disabled CloudFront distribution for container <i>' . $this->name() . '</i>.';
+        watchdog('storage_s3', $message, NULL, WATCHDOG_NOTICE);
       }
-
-      unset($delete[$container->container_id]);
-      variable_set('storage_s3_cloudfront_delete', $delete);
     }
+    elseif ($result['simplexml']->Status != 'InProgress') {
+      $result = $this->requestCloudFront('DELETE');
+
+      if ($result['http_code'] == 204) {
+        $message = 'Deleted CloudFront distribution for container <i>' . $this->name() . '</i>.';
+        watchdog('storage_s3', $message, NULL, WATCHDOG_NOTICE);
+        return;
+      }
+    }
+
+    throw new StorageException();
   }
 
   private function distributionDeleteStreaming() {
+    $result = $this->requestCloudFront('GET', TRUE);
+    
+    // If we can't get through to AWS then abort.
+    if (!$result['http_code']) {
+      throw new StorageException();
+    }
 
-    $delete = variable_get('storage_s3_cloudfront_streaming_delete', array());
-    
-    foreach ($delete as $container) {
-    
-      $result = $this->requestCloudFront('GET', TRUE);
-      
-      if (!$result['http_code'])
-        continue;
+    // If the distribution doesn't exist, then there is nothing to do.
+    if ($result['http_code'] != 200) {
+      return;
+    }
+
+    $this->settings['etag'] = $result['headers']['ETag'];
+
+    if ($result['simplexml']->StreamingDistributionConfig->Enabled == 'true') {
+
+      $xml = '<?xml version="1.0" encoding="UTF-8"?>';
+      $xml .= '<StreamingDistributionConfig xmlns="http://cloudfront.amazonaws.com/doc/2009-12-01/">';
+      $xml .= '<Origin>' . $this->settings['bucket'] . '.s3.amazonaws.com</Origin>';
+      $xml .= '<CallerReference>' . $result['simplexml']->StreamingDistributionConfig->CallerReference . '</CallerReference>';
+      $xml .= '<Enabled>false</Enabled>';
+      $xml .= '</StreamingDistributionConfig>';
+
+      $result = $this->requestCloudFront('PUT', TRUE, $xml);
 
       if ($result['http_code'] == 200) {
-        
-        $container->settings['etag'] = $result['headers']['ETag'];
-          
-        if ($result['simplexml']->StreamingDistributionConfig->Enabled == 'true') {
-        
-          $xml = '<?xml version="1.0" encoding="UTF-8"?>';
-          $xml .= '<StreamingDistributionConfig xmlns="http://cloudfront.amazonaws.com/doc/2009-12-01/">';
-          $xml .= '<Origin>' . $container->settings['bucket'] . '.s3.amazonaws.com</Origin>';
-          $xml .= '<CallerReference>' . $result['simplexml']->StreamingDistributionConfig->CallerReference . '</CallerReference>';
-          $xml .= '<Enabled>false</Enabled>';
-          $xml .= '</StreamingDistributionConfig>';
-        
-          $result = $this->requestCloudFront('PUT', TRUE, $xml);
-
-          if ($result['http_code'] == 200) {
-
-            $message = 'Disabled CloudFront streaming distribution for destroyed container <i>' . $container->name() . '</i>.';
-            watchdog('storage_s3', $message, NULL, WATCHDOG_NOTICE);
-            continue;
-          }
-        }
-        else {
-          
-          if ($result['simplexml']->Status == 'InProgress')
-            continue;
-        
-          $result = $this->requestCloudFront('DELETE', TRUE);
-
-          if ($result['http_code'] == 204) {
-
-            $message = 'Deleted CloudFront streaming distribution for destroyed container <i>' . $container->name() . '</i>.';
-            watchdog('storage_s3', $message, NULL, WATCHDOG_NOTICE);
-          }
-        }
+        $message = 'Disabled CloudFront streaming distribution for container <i>' . $this->name() . '</i>.';
+        watchdog('storage_s3', $message, NULL, WATCHDOG_NOTICE);
       }
-          
-      unset($delete[$container->container_id]);
-      variable_set('storage_s3_cloudfront_streaming_delete', $delete);
     }
+    elseif ($result['simplexml']->Status != 'InProgress') {
+      $result = $this->requestCloudFront('DELETE', TRUE);
+
+      if ($result['http_code'] == 204) {
+        $message = 'Deleted CloudFront streaming distribution for container <i>' . $this->name() . '</i>.';
+        watchdog('storage_s3', $message, NULL, WATCHDOG_NOTICE);
+        return;
+      }
+    }
+
+    throw new StorageException();
   }
-*/
 
   public function serviceSettingsForm($edit = FALSE) {
 
@@ -642,8 +619,9 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
       form_set_error('settings][bucket', t('Bucket name field is required.'));
     }
     
-    if (form_get_errors())
+    if (form_get_errors()) {
       return;
+    }
       
     
     // Test account credentials.
@@ -704,26 +682,10 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
 
     if ($this->settings['cloudfront'] && !isset($this->settings['cloudfront_id'])) {
       $this->distributionCreate();
-      
-      if ($this->settings['cloudfront']) {
-
-        $deploy = variable_get('storage_s3_cloudfront_deploy', array());
-        $deploy[$this->container_id] = TRUE;
-        variable_set('storage_s3_cloudfront_deploy', $deploy);
-      }
     }
     
-    if ($this->settings['cloudfront_streaming'] && 
-      !isset($this->settings['cloudfront_streaming_id']))
-    {
+    if ($this->settings['cloudfront_streaming'] && !isset($this->settings['cloudfront_streaming_id'])) {
       $this->distributionCreateStreaming();
-      
-      if ($this->settings['cloudfront_streaming']) {
-
-        $deploy = variable_get('storage_s3_cloudfront_streaming_deploy', array());
-        $deploy[$this->container_id] = TRUE;
-        variable_set('storage_s3_cloudfront_streaming_deploy', $deploy);
-      }
     }
   }
 
@@ -783,21 +745,31 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
 
     return $info;
   }
-  
+
   public function serviceDestroy() {
+    $failed = FALSE;
 
     if (isset($this->settings['cloudfront_id'])) {
-
-      $delete = variable_get('storage_s3_cloudfront_delete', array());
-      $delete[$this->container_id] = $this;
-      variable_set('storage_s3_cloudfront_delete', $delete);
+      try {
+        $this->distributionDelete();
+      }
+      catch (StorageException $e) {
+        $failed = TRUE;
+      }
     }
 
     if (isset($this->settings['cloudfront_streaming_id'])) {
+      try {
+        $this->distributionDeleteStreaming();
+      }
+      catch (StorageException $e) {
+        $failed = TRUE;
+      }
+    }
 
-      $delete = variable_get('storage_s3_cloudfront_streaming_delete', array());
-      $delete[$this->container_id] = $this;
-      variable_set('storage_s3_cloudfront_streaming_delete', $delete);
+    if ($failed) {
+      $this->update();
+      throw new StorageException();
     }
   }
   
@@ -810,11 +782,6 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
     if ($this->settings['cloudfront_streaming'] && $this->settings['cloudfront_streaming_status'] != 'Deployed') {
       $this->distributionDeployStreaming();
     }
-
-/*
-    $this->distributionDelete();
-    $this->distributionDeleteStreaming();
-*/
   }
 
   public function serviceInstanceCreate(Storage $storage, $uri) {

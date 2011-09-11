@@ -32,7 +32,6 @@ function _storage_check_files() {
     ->fetchCol();
 
   foreach ($storage_ids as $storage_id) {
-
     try {
       storage_load($storage_id)->check();
     }
@@ -69,12 +68,30 @@ function _storage_flush_storage_servings() {
 function _storage_container_maintenance() {
 
   $result = db_select('storage_container', NULL, array('fetch' => PDO::FETCH_ASSOC))
-    ->condition('storage_container.suspended', 0)
+    ->condition('storage_container.status', STORAGE_CONTAINER_STATUS_ACTIVE)
     ->fields('storage_container')
     ->execute();
 
   foreach ($result as $container) {
     storage_container_new($container)->serviceMaintenance();
+  }
+}
+
+
+function _storage_destroy_containers() {
+
+  $result = db_select('storage_container', NULL, array('fetch' => PDO::FETCH_ASSOC))
+    ->condition('storage_container.status', STORAGE_CONTAINER_STATUS_DESTROY)
+    ->fields('storage_container')
+    ->execute();
+
+  foreach ($result as $container) {
+    try {
+      $container = storage_container_new($container);
+      $container->serviceDestroy();
+      $container->delete();
+    }
+    catch (StorageException $e) {}
   }
 }
 
@@ -86,5 +103,6 @@ function _storage_cron() {
   _storage_check_migrations();
   _storage_flush_storage_servings();
   _storage_container_maintenance();
+  _storage_destroy_containers();
 }
 

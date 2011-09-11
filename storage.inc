@@ -163,7 +163,7 @@ class Storage {
 
     $row = $query->condition('storage_instance.file_id', $this->file_id)
       ->condition('storage_selector.selector_id', $this->selector_id)
-      ->condition('storage_container.suspended', 0)
+      ->condition('storage_container.status', STORAGE_CONTAINER_STATUS_ACTIVE)
       ->fields('storage_container')
       ->fields('storage_instance', array('reference'))
       ->orderBy('storage_selector.migrating')
