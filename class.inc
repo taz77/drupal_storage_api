@@ -113,6 +113,13 @@ class StorageClass {
    *   When the container cannot be safely removed from the class.
    */
   private function removeContainerEnsureSafe(StorageContainer $container) {
+    $selector_ids = $this->selectorIds();
+
+    // If the class has no storages, then it is definately safe to remove a
+    // container.
+    if (empty($selector_ids)) {
+      return;
+    }
 
     // Get a distinct list of all file_ids of instances in other containers
     // in the class.
@@ -130,7 +137,7 @@ class StorageClass {
     $query->join('storage_instance', NULL, 'storage.file_id = storage_instance.file_id');
 
     $count = $query->condition('storage.file_id', $subquery, 'NOT IN')
-      ->condition('storage.selector_id', $this->selectorIds())
+      ->condition('storage.selector_id', $selector_ids)
       ->condition('storage_instance.container_id', $container->container_id)
       ->countQuery()
       ->execute()
