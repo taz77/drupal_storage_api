@@ -218,8 +218,6 @@ function storage_install() {
   ));
   
   $class->create();
-  
-  variable_set('storage_initial_class', $class->class_id);
 
   $path = storage_new_local_storage_path();
 
