@@ -40,29 +40,6 @@ function storage_core_bridge_schema() {
 
 
 /**
- * Implements hook_install().
- */
-function storage_core_bridge_install() {
-
-  $spec = array('type' => 'varchar', 'length' => 255);
-  $keys = array('unique keys' => array('core_bridge_uri' => array('core_bridge_uri')));
-
-  db_add_field('storage', 'core_bridge_uri', $spec, $keys);
-  variable_set('storage_core_bridge_fields', array());
-}
-
-
-/**
- * Implements hook_uninstall().
- */
-function storage_core_bridge_uninstall() {
-
-  db_drop_field('storage', 'core_bridge_uri');
-  variable_del('storage_core_bridge_fields');
-}
-
-
-/**
  * Implements hook_schema_alter().
  */
 function storage_core_bridge_schema_alter(array &$schema) {
@@ -71,3 +48,58 @@ function storage_core_bridge_schema_alter(array &$schema) {
   $schema['storage']['unique keys'] = array('core_bridge_uri' => array('core_bridge_uri'));
 }
 
+
+/**
+ * Implements hook_install().
+ */
+function storage_core_bridge_install() {
+
+  // Update database schema.
+  $spec = array('type' => 'varchar', 'length' => 255);
+  $keys = array('unique keys' => array('core_bridge_uri' => array('core_bridge_uri')));
+  db_add_field('storage', 'core_bridge_uri', $spec, $keys);
+
+  // Create selectors for fields.
+  variable_set('storage_core_bridge_fields', array());
+
+  foreach (field_read_fields() as $field) {
+    if (in_array($field['type'], array('file', 'image'))) {
+      storage_core_bridge_field_selector_create($field['field_name']);
+    }
+  }
+
+  // Create selectors for image styles.
+  foreach (image_styles() as $style) {
+    if ($style['storage'] & IMAGE_STORAGE_EDITABLE) {
+      storage_core_bridge_image_style_selector($style['isid'])->create();
+    }
+  }
+}
+
+
+/**
+ * Implements hook_uninstall().
+ */
+function storage_core_bridge_uninstall() {
+  $path = drupal_get_path('module', 'storage_core_bridge');
+  require_once DRUPAL_ROOT . '/' . $path . '/storage_core_bridge.module';
+
+  // Update database schema.
+  db_drop_field('storage', 'core_bridge_uri');
+
+  // Destroy selectors for fields.
+  foreach (field_read_fields() as $field) {
+    if (in_array($field['type'], array('file', 'image'))) {
+      storage_core_bridge_field_selector_destroy($field['field_name']);
+    }
+  }
+
+  variable_del('storage_core_bridge_fields');
+
+  // Destroy selectors for image styles.
+  foreach (image_styles() as $style) {
+    if ($style['storage'] & IMAGE_STORAGE_EDITABLE) {
+      storage_core_bridge_image_style_selector($style['isid'])->destroy();
+    }
+  }
+}

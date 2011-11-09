@@ -2,6 +2,7 @@ name = Core bridge
 description = "Allows files managed by Drupal core to be stored and served by Storage API."
 package = Storage API
 dependencies[] = storage
+dependencies[] = field
 core = 7.x
 files[] = storage_core_bridge.install
 files[] = storage_core_bridge.module

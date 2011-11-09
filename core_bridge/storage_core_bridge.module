@@ -15,20 +15,40 @@ function storage_core_bridge_image_style_selector($isid = 'null') {
 }
 
 
+function storage_core_bridge_field_selector_create($field_name) {
+
+  storage_core_bridge_field_selector($field_name)->create();
+
+  $fields = variable_get('storage_core_bridge_fields');
+  $fields[] = $field_name;
+  variable_set('storage_core_bridge_fields', $fields);
+}
+
+
+function storage_core_bridge_field_selector_destroy($field_name) {
+
+  storage_core_bridge_field_selector($field_name)->destroy();
+
+  $fields = variable_get('storage_core_bridge_fields');
+
+  foreach ($fields as $key => $name) {
+    if ($name == $field_name) {
+      unset($fields[$key]);
+    }
+  }
+
+  variable_set('storage_core_bridge_fields', $fields);
+}
+
+
 /**
  * Implements hook_field_create_field().
  */
 function storage_core_bridge_field_create_field(array $field) {
 
-  if (!in_array($field['type'], array('file', 'image'))) {
-    return;
+  if (in_array($field['type'], array('file', 'image'))) {
+    storage_core_bridge_field_selector_create($field['field_name']);
   }
-
-  storage_core_bridge_field_selector($field['field_name'])->create();
-
-  $fields = variable_get('storage_core_bridge_fields');
-  $fields[] = $field['field_name'];
-  variable_set('storage_core_bridge_fields', $fields);
 }
 
 
@@ -37,21 +57,9 @@ function storage_core_bridge_field_create_field(array $field) {
  */
 function storage_core_bridge_field_delete_field(array $field) {
 
-  if (!in_array($field['type'], array('file', 'image'))) {
-    return;
+  if (in_array($field['type'], array('file', 'image'))) {
+    storage_core_bridge_field_selector_destroy($field['field_name']);
   }
-
-  storage_core_bridge_field_selector($field['field_name'])->destroy();
-
-  $fields = variable_get('storage_core_bridge_fields');
-
-  foreach ($fields as $key => $name) {
-    if ($name == $field['field_name']) {
-      unset($fields[$key]);
-    }
-  }
-
-  variable_set('storage_core_bridge_fields', $fields);
 }
 
 
@@ -176,15 +184,15 @@ function storage_core_bridge_form_image_style_form_alter(array &$form, array &$f
     '#description' => t("These settings only apply to styled images which are derived from images managed by Storage API."),
   );
 
-  if ($form_state['image_style']['storage'] == IMAGE_STORAGE_DEFAULT) {
+  if ($form_state['image_style']['storage'] & IMAGE_STORAGE_EDITABLE) {
+    $form['storage_api']['storage_class'] =
+      storage_core_bridge_image_style_selector($form_state['image_style']['isid'])->formItem();
+    $form['#submit'][] = 'storage_core_bridge_image_style_form_submit';
+  }
+  else {
     $form['storage_api']['#disabled'] = TRUE;
     $description = t("As this image style is being provided by a module, the storage class of the source image will also be used for its derived images.");
     $form['storage_api']['storage_class'] = storage_core_bridge_image_style_selector()->formItem(NULL, $description);
-  }
-  else {
-    $form['#submit'][] = 'storage_core_bridge_image_style_form_submit';
-    $form['storage_api']['storage_class'] =
-      storage_core_bridge_image_style_selector($form_state['image_style']['isid'])->formItem();
   }
 }
 
@@ -293,12 +301,12 @@ function storage_core_bridge_styled_image_load($uri, $style_name) {
     // Create the storage.
     $style = image_style_load($style_name);
 
-    if ($style['storage'] == IMAGE_STORAGE_DEFAULT) {
-      $field_name = storage_core_bridge_uri_field_name($uri);
-      $selector = storage_core_bridge_field_selector($field_name);
+    if ($style['storage'] & IMAGE_STORAGE_EDITABLE) {
+      $selector = storage_core_bridge_image_style_selector($style['isid']);
     }
     else {
-      $selector = storage_core_bridge_image_style_selector($style['isid']);
+      $field_name = storage_core_bridge_uri_field_name($uri);
+      $selector = storage_core_bridge_field_selector($field_name);
     }
 
     $storage = $selector->storageAdd($options);
