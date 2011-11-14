@@ -310,6 +310,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageServiceInte
     return array(
       '' => t('US Standard'),
       'us-west-1' => t('US-West (Northern California)'),
+      'us-west-2' => t('US-West (Oregon)'),
       'EU' => t('EU (Ireland)'),
       'ap-southeast-1' => t('Asia Pacific (Singapore)'),
       'ap-northeast-1' => t('Asia Pacific (Tokyo)'),
