@@ -81,25 +81,7 @@ function storage_core_bridge_install() {
  * Implements hook_uninstall().
  */
 function storage_core_bridge_uninstall() {
-  $path = drupal_get_path('module', 'storage_core_bridge');
-  require_once DRUPAL_ROOT . '/' . $path . '/storage_core_bridge.module';
 
-  // Update database schema.
   db_drop_field('storage', 'core_bridge_uri');
-
-  // Destroy selectors for fields.
-  foreach (field_read_fields() as $field) {
-    if (in_array($field['type'], array('file', 'image'))) {
-      storage_core_bridge_field_selector_destroy($field['field_name']);
-    }
-  }
-
   variable_del('storage_core_bridge_fields');
-
-  // Destroy selectors for image styles.
-  foreach (image_styles() as $style) {
-    if ($style['storage'] & IMAGE_STORAGE_EDITABLE) {
-      storage_core_bridge_image_style_selector($style['isid'])->destroy();
-    }
-  }
 }

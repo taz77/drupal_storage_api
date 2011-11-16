@@ -740,6 +740,29 @@ function storage_cron() {
 
 
 /**
+ * Implements hook_modules_uninstalled().
+ */
+function storage_modules_uninstalled($modules) {
+
+  foreach ($modules as $module) {
+
+    // Find this module's selectors.
+    $selector_ids = db_select('storage_selector')
+      ->fields('storage_selector', array('selector_id'))
+      ->condition('selector_id', $module . ':%', 'LIKE')
+      ->distinct()
+      ->execute()
+      ->fetchCol();
+
+    // Destroy them.
+    foreach ($selector_ids as $selector) {
+      storage_selector($selector_ids)->destroy();
+    }
+  }
+}
+
+
+/**
  * Implements hook_libraries_info().
  */
 function storage_libraries_info() {
