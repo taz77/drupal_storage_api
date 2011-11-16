@@ -68,11 +68,16 @@ function storage_core_bridge_field_delete_field(array $field) {
  */
 function storage_core_bridge_stream_wrappers() {
 
+  // Work out which selector streamwrapper should be visible.
   if (strpos($_GET['q'], 'admin/structure/types/manage/') === 0 && arg(5) == 'fields') {
     $active_field = arg(6);
   }
-  else {
+  // If a default image is being uploaded via AJAX then make all selector
+  // streamwrappers visible so the form doesn't break.
+  elseif (strpos($_GET['q'], 'file/ajax/field/settings/default_image') === 0) {
     $active_field = NULL;
+  } else {
+    $active_field = FALSE;
   }
   
   $fields = variable_get('storage_core_bridge_fields');
@@ -84,7 +89,7 @@ function storage_core_bridge_stream_wrappers() {
       'name' => t("Storage class (select below)"),
       'class' => 'DrupalStorageStreamWrapper',
       'description' => t("Files managed by Storage API."),
-      'type' => ($field == $active_field) ? STREAM_WRAPPERS_NORMAL : STREAM_WRAPPERS_HIDDEN,
+      'type' => (is_null($active_field) || ($field == $active_field)) ? STREAM_WRAPPERS_NORMAL : STREAM_WRAPPERS_HIDDEN,
     );
   }
   
@@ -484,9 +489,16 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
 
   public function url_stat($uri, $flags) {
     global $storage_core_bridge_filename;
+    global $storage_core_bridge_dirname;
 
-    $filename = file_uri_target($uri);
+    // Did we just say in DrupalStorageStreamWrapper::dirname() that this is a
+    // directory?
+    if ($storage_core_bridge_dirname == $uri) {
+      return array('mode' => 0040777);
+    }
     
+    $filename = file_uri_target($uri);
+
     if ($storage_core_bridge_filename == '' ||
       (count(explode('/', $filename)) > count(explode('/', $storage_core_bridge_filename))))
     {
@@ -559,7 +571,21 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
   }
 
   public function dirname($uri = NULL) {
-    return file_uri_scheme($uri) . '://';
+    global $storage_core_bridge_dirname;
+
+    $scheme = file_uri_scheme($uri);
+    $target = file_uri_target($uri);
+
+    $dirname = dirname($target);
+
+    if ($dirname == '.') {
+      $dirname = '';
+    }
+
+    // Store the dirname in a global variable so that
+    // DrupalStorageStreamWrapper::url_stat() knows it is a directory.
+    $storage_core_bridge_dirname = $scheme . '://' . $dirname;
+    return $storage_core_bridge_dirname;
   }
 
 
