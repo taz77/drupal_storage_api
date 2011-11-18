@@ -755,8 +755,8 @@ function storage_modules_uninstalled($modules) {
       ->fetchCol();
 
     // Destroy them.
-    foreach ($selector_ids as $selector) {
-      storage_selector($selector_ids)->destroy();
+    foreach ($selector_ids as $selector_id) {
+      storage_selector($selector_id)->destroy();
     }
   }
 }

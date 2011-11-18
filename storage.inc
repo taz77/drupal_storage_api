@@ -663,15 +663,19 @@ class Storage {
     
     foreach ($result as $fields) {
       $container = storage_container_new($fields);
+      $container_ids[] = $container->container_id;
       
+      // Don't attempt to propagate to an external container.
+      if ($container->external) {
+        continue;
+      }
+
       try {
         $container->ensureInstanceExists($this);
       }
       catch (StorageException $e) {
         $failure = TRUE;
       }
-
-      $container_ids[] = $container->container_id;
     }
     
     if ($failure) {

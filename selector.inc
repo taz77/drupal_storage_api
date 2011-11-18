@@ -207,7 +207,6 @@ class StorageSelector {
       ->fetchField();
 
     if ($migrated) {
-    
       // Remove the classes it was migrating from.
       db_delete('storage_selector')
         ->condition('selector_id', $this->selector_id)
@@ -292,8 +291,8 @@ class StorageSelector {
     if (isset($source_uri)) {
       $exists = FALSE;
 
-      // If the storage's file is already in the system, then the instance
-      // might already exist.
+      // If the storage's file is already known to the system, then the
+      // instance might already exist.
       if (!$new_file) {
         $exists = $initial_container->instanceExists($storage);
       }

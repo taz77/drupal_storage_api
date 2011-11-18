@@ -100,6 +100,7 @@ function storage_schema() {
       'settings' => array('type' => 'blob', 'not null' => TRUE, 'serialize' => TRUE),
       'access_control' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0),
       'enhanced_caching' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0),
+      'external' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0),
       'status' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0)
     ),
     'primary key' => array('container_id'),

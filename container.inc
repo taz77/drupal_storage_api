@@ -150,7 +150,11 @@ abstract class StorageContainer {
 
 
   public function instanceCreate(Storage $storage, $uri) {
-  
+
+    if ($this->status != STORAGE_CONTAINER_STATUS_ACTIVE || $this->external) {
+      throw new StorageException();
+    }
+
     $reference = $this->serviceInstanceCreate($storage, $uri);
 
     $instance = array(
@@ -174,6 +178,10 @@ abstract class StorageContainer {
 
 
   public function instanceCopy(Storage $storage, StorageContainer $source_container) {
+
+    if ($this->status != STORAGE_CONTAINER_STATUS_ACTIVE || $this->external) {
+      throw new StorageException();
+    }
 
     $reference = $this->serviceInstanceCopy($storage, $source_container);
 
@@ -370,7 +378,10 @@ abstract class StorageContainer {
       throw new StorageException();
     }
 
-    $this->serviceInstanceDestroy($reference);
+    // Silently fail to destroy an instance in an external container.
+    if (!$this->external) {
+      $this->serviceInstanceDestroy($reference);
+    }
 
     db_delete('storage_instance')
       ->condition('file_id', $storage->file_id)

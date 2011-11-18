@@ -93,7 +93,7 @@ function storage_create_container_form(array $form, array &$form_state) {
         '#required' => TRUE,
         '#default_value' => isset($form_state['storage']['name']) ? $form_state['storage']['name'] : NULL,
       );
-      
+
       $form['service_id'] = array(
         '#type' => 'select',
         '#title' => t('Service'),
@@ -267,6 +267,7 @@ function storage_container_form(array $form, array &$form_state, StorageContaine
     t('Service') => $container->service()->name(),
     t('Access control') => $container->access_control ? t('Yes') : t('No'),
     t('Enhanced caching') => $container->enhanced_caching ? t('Yes') : t('No'),
+    t('External') => $container->external ? t('Yes') : t('No'),
     t('Status') => $container->status(),
     t('Classes') => _storage_container_render_classes($container->classes()),
     t('Instances') => $container->count(),
@@ -431,6 +432,8 @@ function storage_container_destroy_form(array $form, array &$form_state, Storage
     '#type' => 'checkbox',
     '#title' => t('Just delete database records.'),
     '#description' => t('Checking this option means that there will be no communication with the service and the container itself will remain untouched.'),
+    '#default_value' => $container->external,
+    '#disabled' => $container->external,
   );
 
   $form['confirm'] = array(
@@ -450,7 +453,7 @@ function storage_container_destroy_form(array $form, array &$form_state, Storage
 function storage_container_destroy_form_submit(array $form, array &$form_state) {
   $container = $form['#container'];
 
-  if ($form_state['values']['just_delete']) {
+  if ($container->external || $form_state['values']['just_delete']) {
     $container->delete();
   }
   else {
@@ -486,6 +489,21 @@ function storage_container_edit_form(array $form, array &$form_state, StorageCon
   
   $form['settings'] += $container->serviceSettingsForm(TRUE);
 
+  $form['external'] = array(
+    '#title' => t('External'),
+    '#type' => 'fieldset',
+    '#collapsible' => !$container->external,
+    '#collapsed' => TRUE,
+    '#description' => t("It is important that two sites don't try to control the same container, otherwise data loss can occur. Any duplicate site must have it's remote containers marked as external."),
+  );
+
+  $form['external']['external'] = array(
+    '#title' => t('This container is controlled by another site'),
+    '#type' => 'checkbox',
+    '#default_value' => $container->external,
+    '#description' => t("<ul><li>files will not be propagated to this container</li><li>files will not be deleted from this container, but their database records will</li><li>files can still be served and retrieved from this container</li></ul>"),
+  );
+
   $form['submit'] = array(
     '#type' => 'submit',
     '#value' => 'Save',
@@ -520,6 +538,7 @@ function storage_container_edit_form_submit(array $form, array &$form_state) {
 
   $container->name = $form_state['values']['name'];
   $container->settings = $form_state['values']['settings'] + $container->settings;
+  $container->external = $form_state['values']['external'];
 
   $container->serviceUpdate();
   $container->update();

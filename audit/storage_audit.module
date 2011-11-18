@@ -341,7 +341,7 @@ function _storage_audit_repair(StorageServiceInterface $container, array $instan
   }
 
   // Delete instances that shouldn't exist or are corrupt.
-  if ($instance['audit'] != STORAGE_AUDIT_STATUS_MISSING) {
+  if (!$container->external && $instance['audit'] != STORAGE_AUDIT_STATUS_MISSING) {
     $container->serviceInstanceDestroy($instance['reference']);
     $results['instances']++;
   }
