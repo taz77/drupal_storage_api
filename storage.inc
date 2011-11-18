@@ -644,6 +644,25 @@ class Storage {
    */
   public function check() {
 
+    // If the storage has a single instance in a container that is not
+    // propagating, then we are done.
+    if ($this->file_id) {
+      $query = db_select('storage_instance');
+      $query->join('storage_class_container', NULL, 'storage_instance.container_id = storage_class_container.container_id');
+      $query->join('storage_selector', NULL, 'storage_class_container.class_id = storage_selector.class_id');
+
+      $count = $query->condition('storage_instance.file_id', $this->file_id)
+        ->condition('storage_class_container.propagate', 0)
+        ->condition('storage_selector.selector_id', $this->selector_id)
+        ->countQuery()
+        ->execute()
+        ->fetchField();
+
+      if ($count) {
+        return;
+      }
+    }
+
     // Get all containers this storage is supposed to have an instance in.
     $query = db_select('storage_selector', NULL, array('fetch' => PDO::FETCH_ASSOC));
     $query->join('storage_class', NULL, 'storage_selector.class_id = storage_class.class_id');
@@ -651,6 +670,7 @@ class Storage {
     $query->join('storage_container', NULL, 'storage_class_container.container_id = storage_container.container_id');
     
     $result = $query->fields('storage_container')
+      ->fields('storage_class_container')
       ->condition('storage_selector.selector_id', $this->selector_id)
       ->condition('storage_selector.migrating', 0)
       ->orderBy('storage_class_container.weight')
@@ -665,8 +685,10 @@ class Storage {
       $container = storage_container_new($fields);
       $container_ids[] = $container->container_id;
       
-      // Don't attempt to propagate to an external container.
-      if ($container->external) {
+      // Don't attempt to propagate to an external container, a container that
+      // isn't propagating or a container that is being removed. But don't
+      // destroy the instance in the container either.
+      if ($container->external || !$container->propagate || $container->remove) {
         continue;
       }
 

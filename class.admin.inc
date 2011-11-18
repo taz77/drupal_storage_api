@@ -196,6 +196,7 @@ function storage_class(StorageClass $class) {
     
     $row[] = $container->link();
     $row[] = $container->service()->name();
+    $row[] = $container_info['propagate'] ? t('Yes') : t('No');
     $row[] = $container_info['serving'] ? t('Yes') : t('No');
     $row[] = $container_info['remove'] ? t('Yes') : t('No');
     $row[] = (int)$container_info['count'];
@@ -208,7 +209,7 @@ function storage_class(StorageClass $class) {
     $rows[] = array(array('data' => t('There are no containers in this class.'), 'colspan' => 6, 'class' => 'message'));
   }
 
-  $header = array(t('Container'), t('Service'), t('Serving'), t('Remove'), t('Files'), t('Size'));
+  $header = array(t('Container'), t('Service'), t('Propagate'), t('Serving'), t('Remove'), t('Files'), t('Size'));
   
   $output .= theme('table', array(
     'header' => $header, 
@@ -264,6 +265,11 @@ function storage_class_edit_form(array $form, array &$form_state, StorageClass $
       '#type' => 'weight', 
       '#default_value' => $container_info['weight'],
       '#attributes' => array('class' => array('container-weight')),
+    );
+
+    $form['propagates'][$container->container_id] = array(
+      '#type' => 'checkbox',
+      '#default_value' => $container_info['propagate'],
     );
 
     $form['servings'][$container->container_id] = array(
@@ -326,7 +332,7 @@ function theme_storage_class_edit_form(array $elements) {
 
   if (count($form['#container_ids'])) {
   
-    $header = array(t('Container'), t('Service'), t('Weight'), t('Serving'), t('Remove'));
+    $header = array(t('Container'), t('Service'), t('Weight'), t('Propagate'), t('Serving'), t('Remove'));
     $rows = array();
 
     foreach ($form['#container_ids'] as $container_id) {
@@ -335,6 +341,11 @@ function theme_storage_class_edit_form(array $elements) {
       $row[] = drupal_render($form['names'][$container_id]);
       $row[] = drupal_render($form['services'][$container_id]);
       $row[] = drupal_render($form['weights'][$container_id]);
+
+      $row[] = array(
+        'data' => drupal_render($form['propagates'][$container_id]),
+        'align' => 'center',
+      );
 
       $row[] = array(
         'data' => drupal_render($form['servings'][$container_id]),
@@ -392,6 +403,7 @@ function storage_class_edit_form_submit(array $form, array &$form_state) {
       'class_id' => $class->class_id,
       'container_id' => $container_id,
       'weight' => $form_state['values']['weights'][$container_id],
+      'propagate' => $form_state['values']['propagates'][$container_id],
       'serving' => $form_state['values']['servings'][$container_id],
       'remove' => $form_state['values']['removes'][$container_id],
     );
@@ -404,6 +416,7 @@ function storage_class_edit_form_submit(array $form, array &$form_state) {
     ->condition('class_id', $class->class_id);
 
   db_update('storage')
+    ->fields(array('status' => STORAGE_STATUS_PROCESS_CRON))
     ->expression('serving_container', 'NULL')
     ->condition('selector_id', $selector_subquery, 'IN')
     ->execute();
