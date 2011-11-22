@@ -326,7 +326,7 @@ function storage_container_new(array $fields, $unserialize = TRUE) {
 }
 
 
-function storage_container_title(StorageContainer $container) {
+function storage_container_title(StorageContainerInterface $container) {
 
   return $container->name();
 }

@@ -298,7 +298,7 @@ class Storage {
     drupal_goto($url);    // 302 redirect (don't cache)
   }
 
-  private function serveSecure(StorageContainer $container) {
+  private function serveSecure(StorageContainerInterface $container) {
     $this->setHTTPHeaders();
     $container->serviceInstanceOutput($container->reference);
     drupal_exit();
@@ -609,7 +609,7 @@ class Storage {
   }
 
 
-  public function cacheServingContainer(StorageContainer $container) {
+  public function cacheServingContainer(StorageContainerInterface $container) {
     $this->serving_container = serialize($container);
 
     db_update('storage')

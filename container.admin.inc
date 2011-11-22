@@ -260,7 +260,7 @@ function _storage_container_render_classes(array $classes) {
  * @see storage_container_form_suspend()
  * @see storage_container_form_unsuspend()
  */
-function storage_container_form(array $form, array &$form_state, StorageContainer $container) {
+function storage_container_form(array $form, array &$form_state, StorageContainerInterface $container) {
   $form['#container'] = $container;
 
   $info = array(
@@ -337,7 +337,7 @@ function storage_container_form_unsuspend(array $form, array &$form_state) {
  * @ingroup forms
  * @see storage_container_suspend_form_submit()
  */
-function storage_container_suspend_form(array $form, array &$form_state, StorageContainer $container) {
+function storage_container_suspend_form(array $form, array &$form_state, StorageContainerInterface $container) {
   $form['#container'] = $container;
 
   return confirm_form($form, 'Are you sure you want to suspend storage container <i>' . $container->name() . '</i> ?', 
@@ -372,7 +372,7 @@ function storage_container_suspend_form_submit(array $form, array &$form_state) 
  * @ingroup forms
  * @see storage_container_unsuspend_form_submit()
  */
-function storage_container_unsuspend_form(array $form, array &$form_state, StorageContainer $container) {
+function storage_container_unsuspend_form(array $form, array &$form_state, StorageContainerInterface $container) {
   $form['#container'] = $container;
 
   return confirm_form($form, 'Are you sure you want to unsuspend storage container <i>' . 
@@ -407,7 +407,7 @@ function storage_container_unsuspend_form_submit(array $form, array &$form_state
  * @ingroup forms
  * @see storage_container_destroy_form_submit()
  */
-function storage_container_destroy_form(array $form, array &$form_state, StorageContainer $container) {
+function storage_container_destroy_form(array $form, array &$form_state, StorageContainerInterface $container) {
   $form['#container'] = $container;
 
   $classes = $container->classes();
@@ -471,7 +471,7 @@ function storage_container_destroy_form_submit(array $form, array &$form_state) 
  * @see storage_container_edit_form_submit()
  * @see storage_container_edit_form_validate()
  */
-function storage_container_edit_form(array $form, array &$form_state, StorageContainer $container) {
+function storage_container_edit_form(array $form, array &$form_state, StorageContainerInterface $container) {
   $form['#container'] = $container;
 
   $form['name'] = array(

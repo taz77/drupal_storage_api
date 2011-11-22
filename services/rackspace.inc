@@ -3,7 +3,7 @@
 // Copyright 2009-2011 Jonathan Brown
 
 
-class StorageRackspace extends StorageContainer implements StorageServiceInterface {
+class StorageRackspace extends StorageContainer implements StorageContainerInterface {
   private $conn;
 
   private function log_exception($e, $dsm = TRUE) {

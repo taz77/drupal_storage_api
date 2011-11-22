@@ -177,7 +177,7 @@ abstract class StorageContainer {
   }
 
 
-  public function instanceCopy(Storage $storage, StorageContainer $source_container) {
+  public function instanceCopy(Storage $storage, StorageContainerInterface $source_container) {
 
     if ($this->status != STORAGE_CONTAINER_STATUS_ACTIVE || $this->external) {
       throw new StorageException();
@@ -630,12 +630,37 @@ abstract class StorageContainer {
   public function serviceUpdate() {}
   public function serviceMaintenance() {}
   public function serviceListReferences() {}
-  public function serviceInstanceCopy(Storage $storage, StorageContainer $source_container) {}
+  public function serviceInstanceCopy(Storage $storage, StorageContainerInterface $source_container) {}
 }
 
 
-interface StorageServiceInterface {
+interface StorageContainerInterface {
 
+  public function __construct(array $fields, $unserialize = TRUE);
+  public function service();
+  public function count();
+  public function size($format = FALSE);
+  public function status();
+  public function create();
+  public function name();
+  public function path();
+  public function link();
+  public function update();
+  public function flushServingContainer();
+  public function instanceCreate(Storage $storage, $uri);
+  public function instanceCopy(Storage $storage, StorageContainerInterface $source_container);
+  public function tryInstanceCopy(Storage $storage);
+  public function ensureInstanceExists(Storage $storage);
+  public function instanceExists(Storage $storage);
+  public function instanceDestroyIfUnrequired(Storage $storage, $reference);
+  public function instanceDestroy(Storage $storage, $reference);
+  public function instanceLink($reference);
+  public function classes();
+  public function delete();
+  public function destroy();
+  public function referenceExists($reference);
+  public function uniqueFilename($filename);
+  public function logInfo();
   public function serviceSettingsForm($edit = FALSE);
   public function serviceSettingsValidate($edit = FALSE);
   public function serviceCreate();
@@ -647,7 +672,7 @@ interface StorageServiceInterface {
   public function serviceListReferences();
   public function serviceManifest(array &$sandbox, &$finished);
   public function serviceInstanceCreate(Storage $storage, $uri);
-  public function serviceInstanceCopy(Storage $storage, StorageContainer $source_container);
+  public function serviceInstanceCopy(Storage $storage, StorageContainerInterface $source_container);
   public function serviceInstanceExists($reference);
   public function serviceInstanceDestroy($reference);
   public function serviceInstanceGetContents($reference);

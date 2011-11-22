@@ -80,7 +80,7 @@ class StorageClass {
       ->execute();
   }
 
-  public function addContainer(StorageContainer $container) {
+  public function addContainer(StorageContainerInterface $container) {
   
     db_insert('storage_class_container')
       ->fields(array(
@@ -112,7 +112,7 @@ class StorageClass {
    * @throws StorageException
    *   When the container cannot be safely removed from the class.
    */
-  private function removeContainerEnsureSafe(StorageContainer $container) {
+  private function removeContainerEnsureSafe(StorageContainerInterface $container) {
     $selector_ids = $this->selectorIds();
 
     // If the class has no storages, then it is definately safe to remove a
@@ -158,7 +158,7 @@ class StorageClass {
    * @throws StorageException
    *   When the container cannot be safely removed from the class.
    */
-  public function removeContainer(StorageContainer $container) {
+  public function removeContainer(StorageContainerInterface $container) {
 
     // Ensure it is safe to remove the container from the class.
     $this->removeContainerEnsureSafe($container);

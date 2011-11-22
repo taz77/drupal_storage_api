@@ -37,7 +37,7 @@ function storage_audit_menu() {
 }
 
 
-function _storage_audit_read(StorageContainer $container) {
+function _storage_audit_read(StorageContainerInterface $container) {
   $missing = $invalid = $extra = array();
 
   $result = db_select('storage_instance', NULL, array('fetch' => PDO::FETCH_ASSOC))
@@ -76,7 +76,7 @@ function _storage_audit_read(StorageContainer $container) {
 }
 
 
-function storage_audit_form(array $form, array &$form_state, StorageContainer $container) {
+function storage_audit_form(array $form, array &$form_state, StorageContainerInterface $container) {
   $form['#container'] = $container;
   $audited = _storage_audit_get_audited($container->container_id);
   
@@ -217,7 +217,7 @@ function _storage_audit_instance(array $instance, array $info) {
 }
 
 
-function _storage_audit(StorageContainer $container, $reference, array $info) {
+function _storage_audit(StorageContainerInterface $container, $reference, array $info) {
 
   $query = db_select('storage_instance');
   $query->join('storage_file', NULL, 'storage_instance.file_id = storage_file.file_id');
@@ -250,7 +250,7 @@ function _storage_audit(StorageContainer $container, $reference, array $info) {
 }
 
 
-function storage_audit(StorageServiceInterface $container, array &$context) {
+function storage_audit(StorageContainerInterface $container, array &$context) {
   if (!isset($context['sandbox']['progress'])) {
     $context['sandbox']['service_sandbox'] = array();
     $context['sandbox']['files'] = 0;
@@ -316,7 +316,7 @@ function storage_audit(StorageServiceInterface $container, array &$context) {
 }
 
 
-function _storage_audit_repair(StorageServiceInterface $container, array $instance, array &$results) {
+function _storage_audit_repair(StorageContainerInterface $container, array $instance, array &$results) {
 
   // Make sure we don't delete anything we shouldn't.
   if ($instance['file_id']) {
@@ -386,7 +386,7 @@ function _storage_audit_repair(StorageServiceInterface $container, array $instan
 }
 
 
-function storage_audit_repair(StorageServiceInterface $container, array &$context) {
+function storage_audit_repair(StorageContainerInterface $container, array &$context) {
   if (!isset($context['sandbox']['progress'])) {
     $context['sandbox']['progress'] = 0;
     $context['results']['records'] = 0;

@@ -3,7 +3,7 @@
 // Copyright 2008-2011 Jonathan Brown
 
 
-class StorageS3CloudFront extends StorageContainer implements StorageServiceInterface {
+class StorageS3CloudFront extends StorageContainer implements StorageContainerInterface {
 
   private function signature($source) {
 

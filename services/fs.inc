@@ -3,7 +3,7 @@
 // Copyright 2008-2010 Jonathan Brown
 
 
-class StorageFS extends StorageContainer implements StorageServiceInterface {
+class StorageFS extends StorageContainer implements StorageContainerInterface {
 
   public function serviceSettingsForm($edit = FALSE) {
 
