@@ -72,6 +72,9 @@ function storage_core_bridge_stream_wrappers() {
   if (strpos($_GET['q'], 'admin/structure/types/manage/') === 0 && arg(5) == 'fields') {
     $active_field = arg(6);
   }
+  elseif (strpos($_GET['q'], 'admin/structure/taxonomy/') === 0 && arg(4) == 'fields') {
+    $active_field = arg(5);
+  }
   // If a default image is being uploaded via AJAX then make all selector
   // streamwrappers visible so the form doesn't break.
   elseif (strpos($_GET['q'], 'file/ajax/field/settings/default_image') === 0) {
@@ -79,7 +82,7 @@ function storage_core_bridge_stream_wrappers() {
   } else {
     $active_field = FALSE;
   }
-  
+
   $fields = variable_get('storage_core_bridge_fields');
   $wrappers = array();
   
@@ -92,7 +95,7 @@ function storage_core_bridge_stream_wrappers() {
       'type' => (is_null($active_field) || ($field == $active_field)) ? STREAM_WRAPPERS_NORMAL : STREAM_WRAPPERS_HIDDEN,
     );
   }
-  
+
   return $wrappers;
 }
 
