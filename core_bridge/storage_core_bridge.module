@@ -440,7 +440,7 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
 
       $options = array(
         'source_uri' => $this->temp_uri,
-        'filename' => $storage_core_bridge_filename,
+        'filename' => $storage_core_bridge_filename[file_uri_scheme($this->uri)],
         'core_bridge_uri' => $this->uri,
       );
 
@@ -500,12 +500,13 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
       return array('mode' => 0040777);
     }
     
-    $filename = file_uri_target($uri);
+    $scheme = file_uri_scheme($uri);
+    $target = file_uri_target($uri);
 
-    if ($storage_core_bridge_filename == '' ||
-      (count(explode('/', $filename)) > count(explode('/', $storage_core_bridge_filename))))
+    if (!isset($storage_core_bridge_filename[$scheme]) || $storage_core_bridge_filename[$scheme] == '' ||
+      (count(explode('/', $target)) > count(explode('/', $storage_core_bridge_filename[$scheme]))))
     {
-      $storage_core_bridge_filename = $filename;
+      $storage_core_bridge_filename[$scheme] = $target;
     }
 
     try {
