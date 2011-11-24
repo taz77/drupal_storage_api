@@ -95,8 +95,14 @@ function storage_schema() {
   $schema['storage_container'] = array(
     'fields' => array(
       'container_id' => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
-      'name' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
-      'service_id' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
+      'name' => array(
+        'type' => 'varchar', 'length' => 255, 'not null' => TRUE,
+        'mysql_type' => 'varchar(255) CHARACTER SET utf8 COLLATE utf8_bin',
+      ),
+      'service_id' => array(
+        'type' => 'varchar', 'length' => 255, 'not null' => TRUE,
+        'mysql_type' => 'varchar(255) CHARACTER SET ascii COLLATE ascii_bin',
+      ),
       'settings' => array('type' => 'blob', 'not null' => TRUE, 'serialize' => TRUE),
       'access_control' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0),
       'enhanced_caching' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0),
@@ -109,7 +115,10 @@ function storage_schema() {
   $schema['storage_class'] = array(
     'fields' => array(
       'class_id' => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
-      'name' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
+      'name' => array(
+        'type' => 'varchar', 'length' => 255, 'not null' => TRUE,
+        'mysql_type' => 'varchar(255) CHARACTER SET utf8 COLLATE utf8_bin',
+      ),
       'options' => array('type' => 'blob', 'not null' => TRUE, 'serialize' => TRUE),
     ),
     'primary key' => array('class_id'),
@@ -129,7 +138,10 @@ function storage_schema() {
 
   $schema['storage_selector'] = array(
     'fields' => array(
-      'selector_id' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
+      'selector_id' => array(
+        'type' => 'varchar', 'length' => 255, 'not null' => TRUE,
+        'mysql_type' => 'varchar(255) CHARACTER SET ascii COLLATE ascii_bin',
+      ),
       'class_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
       'migrating' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0),
     ),
@@ -144,11 +156,23 @@ function storage_schema() {
   $schema['storage_file'] = array(
     'fields' => array(
       'file_id' => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
-      'whirlpool' => array('type' => 'blob', 'mysql_type' => 'BINARY(64)', 'length' => 64, 'not null' => TRUE),
-      'filename' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
+      'whirlpool' => array(
+        'type' => 'blob', 'length' => 64, 'not null' => TRUE,
+        'mysql_type' => 'BINARY(64)',
+      ),
+      'filename' => array(
+        'type' => 'varchar', 'length' => 255, 'not null' => TRUE,
+        'mysql_type' => 'varchar(255) CHARACTER SET utf8 COLLATE utf8_bin',
+      ),
       'size' => array('type' => 'int', 'unsigned' => TRUE, 'size' => 'big', 'not null' => TRUE),
-      'mimetype' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
-      'md5' => array('type' => 'blob', 'mysql_type' => 'BINARY(16)', 'length' => 16, 'not null' => TRUE),
+      'mimetype' => array(
+        'type' => 'varchar', 'length' => 255, 'not null' => TRUE,
+        'mysql_type' => 'varchar(255) CHARACTER SET ascii COLLATE ascii_bin',
+      ),
+      'md5' => array(
+        'type' => 'blob', 'length' => 16, 'not null' => TRUE,
+        'mysql_type' => 'BINARY(16)',
+      ),
     ),
     'primary key' => array('file_id'),
     'unique keys' => array(
@@ -159,11 +183,17 @@ function storage_schema() {
   $schema['storage'] = array(
     'fields' => array(
       'storage_id' => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
-      'selector_id' => array('type' => 'varchar', 'length' => 255),
+      'selector_id' => array(
+        'type' => 'varchar', 'length' => 255,
+        'mysql_type' => 'varchar(255) CHARACTER SET ascii COLLATE ascii_bin',
+      ),
       'file_id' => array('type' => 'int', 'unsigned' => TRUE),
       'nid' => array('type' => 'int', 'unsigned' => TRUE),
       'created' => array('type' => 'int', 'unsigned' => TRUE),
-      'source_uri' => array('type' => 'varchar', 'length' => 4095, 'not null' => TRUE, 'default' => ''),
+      'source_uri' => array(
+        'type' => 'varchar', 'length' => 4095, 'not null' => TRUE, 'default' => '',
+        'mysql_type' => 'varchar(4095) CHARACTER SET utf8 COLLATE utf8_bin',
+      ),
       'initial_container_id' => array('type' => 'int', 'unsigned' => TRUE),
       'data' => array('type' => 'blob', 'not null' => TRUE, 'serialize' => TRUE),
       'status' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 1),
@@ -179,7 +209,10 @@ function storage_schema() {
   $schema['storage_instance'] = array(
     'fields' => array(
       'container_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
-      'reference' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
+      'reference' => array(
+        'type' => 'varchar', 'length' => 255, 'not null' => TRUE,
+        'mysql_type' => 'varchar(255) CHARACTER SET utf8 COLLATE utf8_bin',
+      ),
       'file_id' => array('type' => 'int', 'unsigned' => TRUE),
     ),
     'primary key' => array('container_id', 'reference'),
@@ -196,8 +229,14 @@ function storage_schema() {
       'size' => array('type' => 'int', 'unsigned' => TRUE, 'size' => 'big', 'not null' => TRUE),
       'uid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
       'sid' => array('type' => 'varchar', 'length' => 128, 'not null' => TRUE),
-      'ip_address' => array('type' => 'varchar', 'length' => 39, 'not null' => TRUE),
-      'referrer' => array('type' => 'varchar', 'length' => 4095, 'not null' => TRUE),
+      'ip_address' => array(
+        'type' => 'varchar', 'length' => 39, 'not null' => TRUE,
+        'mysql_type' => 'varchar(39) CHARACTER SET ascii COLLATE ascii_bin',
+      ),
+      'referrer' => array(
+        'type' => 'varchar', 'length' => 4095, 'not null' => TRUE,
+        'mysql_type' => 'varchar(4095) CHARACTER SET utf8 COLLATE utf8_bin',
+      ),
     ),
   );
   
