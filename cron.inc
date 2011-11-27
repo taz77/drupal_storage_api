@@ -57,14 +57,6 @@ function _storage_check_migrations() {
 }
 
 
-function _storage_flush_storage_servings() {
-
-  db_delete('storage_serving')
-    ->condition('timestamp', time() - variable_get('statistics_flush_accesslog_timer', 259200), '<')
-    ->execute();
-}
-
-
 function _storage_container_maintenance() {
 
   $result = db_select('storage_container', NULL, array('fetch' => PDO::FETCH_ASSOC))
@@ -101,7 +93,6 @@ function _storage_cron() {
   _storage_remove_containers();
   _storage_check_files();
   _storage_check_migrations();
-  _storage_flush_storage_servings();
   _storage_container_maintenance();
   _storage_destroy_containers();
 }

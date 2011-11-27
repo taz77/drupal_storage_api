@@ -1,0 +1,6 @@
+name = Statistic
+description = "Records statistics of storage servings."
+package = Storage API
+dependencies[] = storage
+core = 7.x
+files[] = storage_statistics.module

@@ -76,31 +76,6 @@ class Storage {
     return $this->selector()->module();
   }
 
-  public function logServing($container_id = NULL) {
-    global $user;
-    
-    $serving = array(
-      'storage_id' => $this->storage_id,
-      'size' => $this->size,
-      'uid' => $user->uid,
-      'sid' => session_id(),
-      'ip_address' => ip_address(),
-      'timestamp' => REQUEST_TIME,
-      'referrer' => substr($_SERVER['HTTP_REFERER'], 0, 4095),
-    );
-    
-    if ($container_id) {
-      $serving['container_id'] = $container_id;
-    }
-
-    drupal_write_record('storage_serving', $serving);
-    
-    db_update('storage')
-      ->expression('servings', 'servings + 1')
-      ->condition('storage_id', $this->storage_id)
-      ->execute();
-  }
-
   /**
    * Determine whether the user has access to a file.
    *
@@ -251,6 +226,7 @@ class Storage {
    * Serve the specified file, either directly or by an HTTP 302 redirect.
    */
   public function serve() {
+    $container = NULL;
 
     if ($this->serving_container) {
       $container = $this->serving_container;
@@ -270,9 +246,10 @@ class Storage {
       }
     }
 
-    if (isset($container)) {
-      $this->logServing($container->container_id);
-      
+    // Allow other modules to react to this file being served.
+    module_invoke_all('storage_serving', $this, $container);
+
+    if ($container) {
       if (!$container->service()->info['serve'] ||
         ($container->access_control && !$container->service()->info['serve_secure']))
       {
@@ -285,7 +262,6 @@ class Storage {
     }
     elseif ($this->options['serve_source_uri'] && $this->source_uri) {
 
-      $this->logServing();
       $url = file_create_url($this->source_uri);
     }
     

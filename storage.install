@@ -197,7 +197,6 @@ function storage_schema() {
       'initial_container_id' => array('type' => 'int', 'unsigned' => TRUE),
       'data' => array('type' => 'blob', 'not null' => TRUE, 'serialize' => TRUE),
       'status' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 1),
-      'servings' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
       'serving_container' => array('type' => 'blob', 'serialize' => TRUE),
     ),
     'primary key' => array('storage_id'),
@@ -218,25 +217,6 @@ function storage_schema() {
     'primary key' => array('container_id', 'reference'),
     'unique keys' => array(
       'file_id' => array('container_id', 'file_id'),
-    ),
-  );
-  
-  $schema['storage_serving'] = array(
-    'fields' => array(
-      'timestamp' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
-      'storage_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
-      'container_id' => array('type' => 'int', 'unsigned' => TRUE),
-      'size' => array('type' => 'int', 'unsigned' => TRUE, 'size' => 'big', 'not null' => TRUE),
-      'uid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
-      'sid' => array('type' => 'varchar', 'length' => 128, 'not null' => TRUE),
-      'ip_address' => array(
-        'type' => 'varchar', 'length' => 39, 'not null' => TRUE,
-        'mysql_type' => 'varchar(39) CHARACTER SET ascii COLLATE ascii_bin',
-      ),
-      'referrer' => array(
-        'type' => 'varchar', 'length' => 4095, 'not null' => TRUE,
-        'mysql_type' => 'varchar(4095) CHARACTER SET utf8 COLLATE utf8_bin',
-      ),
     ),
   );
   
