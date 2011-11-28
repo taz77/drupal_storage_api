@@ -26,7 +26,7 @@ class StorageAPITestCase extends DrupalWebTestCase {
 
     $container = array(
       'name' => t('Local2'),
-      'service_id' => 'fs',
+      'service_id' => 'storage:fs',
       'settings' => array(
         'path' => $path,
         'base_url' => $path,

@@ -439,18 +439,20 @@ function storage_storage_service_check_rackspace() {
 
 
 function storage_service_info() {
+  $services = array();
 
-  $services = module_invoke_all('storage_services');
+  foreach (module_implements('storage_services') as $module) { 
+    foreach (module_invoke($module, 'storage_services') as $name => $info) {
+      // Add defaults.
+      $info += array(
+        'htaccess' => FALSE,
+        'copy' => FALSE,
+        'serve' => TRUE,
+        'serve_secure' => FALSE,
+      );
 
-  // Add defaults.
-  foreach ($services as &$service) {
-
-    $service += array(
-      'htaccess' => FALSE,
-      'copy' => FALSE,
-      'serve' => TRUE,
-      'serve_secure' => FALSE,
-    );
+      $services[$module . ':' . $name] = $info;
+    }
   }
 
   return $services;
@@ -614,13 +616,14 @@ function _storage_delete_file_if_unrequired($file_id) {
 
 
 function _storage_get_service_names() {
+  $name = array();
 
-  foreach (module_invoke_all('storage_services') as $service_id => $info) {
+  foreach (storage_service_info() as $service_id => $info) {
     $names[$service_id] = $info['name'];
   }
-    
+
   asort($names);
-  
+
   return $names;
 }
 

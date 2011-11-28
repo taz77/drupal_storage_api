@@ -18,7 +18,8 @@ class StorageService {
   }
 
   public function check() {
-    module_invoke_all('storage_service_check_' . $this->service_id);
+    list($module, $service) = explode(':', $this->service_id);
+    module_invoke($module, 'storage_service_check_' . $service);
   }
 
   public function flushServingContainer() {

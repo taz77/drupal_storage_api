@@ -72,20 +72,10 @@ function storage_create_container_form(array $form, array &$form_state) {
   );
 
   switch ($step) {
-    
+
     case 1:
-    
+
       $services = _storage_get_service_names();
-      
-      if (count($services) == 0) {
-      
-        $form[] = array(
-          '#markup' => '<p>There are no storage services available. Please enable a service module on the ' . 
-            l('modules page', 'admin/modules') . '.</p>'
-        );
-        
-        break;
-      }
 
       $form['name'] = array(
         '#title' => t('Name'),
@@ -98,7 +88,7 @@ function storage_create_container_form(array $form, array &$form_state) {
         '#type' => 'select',
         '#title' => t('Service'),
         '#options' => $services,
-        '#default_value' => isset($form_state['storage']['service_id']) ? $form_state['storage']['service_id'] : 'fs',
+        '#default_value' => isset($form_state['storage']['service_id']) ? $form_state['storage']['service_id'] : 'storage:fs',
       );
       
       $form['access_control'] = array(
