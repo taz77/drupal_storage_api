@@ -198,13 +198,7 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
   }
   
   public function serviceInstanceCreate(Storage $storage, $uri) {
-
-    if ($this->enhanced_caching) {
-      $reference = $storage->file_id . '/' . $storage->filename;
-    }
-    else {
-      $reference = $this->uniqueFilename($storage->filename);
-    }
+    $reference = $this->uniqueFilename($storage->filename);
 
     $rscf_container = $this->rscf_container();
 

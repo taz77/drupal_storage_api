@@ -68,7 +68,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageContainerIn
           $components[1] = base64_encode($storage->md5);
           $components[2] = $storage->mimetype;
           
-          $headers = array_merge($headers, $storage->HTTPHeaders($this->enhanced_caching));
+          $headers = array_merge($headers, $storage->HTTPHeaders());
           
           $curl_options[CURLOPT_INFILE] = $fp;
           $curl_options[CURLOPT_INFILESIZE] = $storage->size;
@@ -786,13 +786,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageContainerIn
   }
 
   public function serviceInstanceCreate(Storage $storage, $uri) {
-    
-    if ($this->enhanced_caching) {
-      $reference = $storage->file_id . '/' . $storage->filename;
-    }
-    else {
-      $reference = $this->uniqueFilename($storage->filename);
-    }
+    $reference = $this->uniqueFilename($storage->filename);
 
     $result = $this->request('PUT', $this->settings['bucket'], $reference, $storage, $uri);
     
@@ -805,13 +799,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageContainerIn
   }
 
   public function serviceInstanceCopy(Storage $storage, StorageContainer $source_container) {
-    
-    if ($this->enhanced_caching) {
-      $reference = $storage->file_id . '/' . $storage->filename;
-    }
-    else {
-      $reference = $this->uniqueFilename($storage->filename);
-    }
+    $reference = $this->uniqueFilename($storage->filename);
 
     $storage->copy_source = '/' . $source_container->settings['bucket'] . '/' . $source_container->reference;
     

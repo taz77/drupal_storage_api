@@ -107,12 +107,6 @@ function storage_create_container_form(array $form, array &$form_state) {
         '#default_value' => isset($form_state['storage']['access_control']) ? $form_state['storage']['access_control'] : FALSE,
         '#description' => t("Prevents files being served to users who are not authorised.<br />Depending on the service, this can have significant performance implications.<br />Even without this enabled, URLs will only be generated for files that the user has permission to access."),
       );
-      
-      $form['enhanced_caching'] = array(
-        '#type' => 'checkbox',
-        '#title' => t('Aggressive client-side caching'),
-        '#description' => t('Some services can generate URLs that will never be resued for a different file. This means the web browser doesn\'t have to check if the URL still points to the same file, incresing performance. However, URLs will not look as clean.'),
-      );
 
       $form['next'] = array(
         '#type' => 'submit',
@@ -132,7 +126,6 @@ function storage_create_container_form(array $form, array &$form_state) {
         t('Name') => $container->name(),
         t('Service') => $service_name,
         t('Access control') => $container->access_control ? t('Yes') : t('No'),
-        t('Enhanced caching') => $container->enhanced_caching ? t('Yes') : t('No'),
       );
 
       $form['info'] = array(
@@ -179,8 +172,7 @@ function storage_create_container_form_validate(array $form, array &$form_state)
       $form_state['storage']['name'] = $form_state['values']['name'];
       $form_state['storage']['service_id'] = $form_state['values']['service_id'];
       $form_state['storage']['access_control'] = $form_state['values']['access_control'];
-      $form_state['storage']['enhanced_caching'] = $form_state['values']['enhanced_caching'];
-      
+
       $service = storage_service_load($form_state['storage']['service_id']);
 
       try {
@@ -266,7 +258,6 @@ function storage_container_form(array $form, array &$form_state, StorageContaine
   $info = array(
     t('Service') => $container->service()->name(),
     t('Access control') => $container->access_control ? t('Yes') : t('No'),
-    t('Enhanced caching') => $container->enhanced_caching ? t('Yes') : t('No'),
     t('External') => $container->external ? t('Yes') : t('No'),
     t('Status') => $container->status(),
     t('Classes') => _storage_container_render_classes($container->classes()),

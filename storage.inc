@@ -387,23 +387,17 @@ class Storage {
 
 
   /**
-   * Generate HTTP headers for serving a specific file.
-   *
-   * The headers will let the file will be cached for 1 year, so URLs must not ever be reused.
+   * Generate HTTP headers for serving this storage.
    *
    * @return
    *   An array of HTTP headers.
    */
-  public function HTTPHeaders($enhanced_caching = FALSE) {
+  public function HTTPHeaders() {
     $headers[] = 'Content-Type: ' . $this->mimetype;
     $headers[] = 'Content-Length: ' . $this->size;
     $headers[] = 'Content-MD5: ' . base64_encode($this->md5);
     $headers[] = 'Last-Modified: ' . date(DATE_RFC1123, $this->created);
     $headers[] = 'Content-Disposition: attachment; filename="' . basename($this->filename) . '"';
-    
-    if ($enhanced_caching) {
-      $headers[] = 'Cache-control: max-age=' . 60 * 60 * 24 * 365;  // the file will stay fresh for a whole year 
-    }
 
     return $headers;
   }
