@@ -98,10 +98,6 @@ class Storage {
       return $result;
     }
 
-    if ($this->nid) {
-      return node_access('view', node_load($this->nid));
-    }
-    
     return TRUE;
   }
 
@@ -184,7 +180,6 @@ class Storage {
 
     $container = storage_container_load($this->initial_container_id);
     $uri = $this->getUri();
-    $link = $this->nid ? l(t('view'), 'node/' . $this->nid) : NULL;
 
     // If the storage's file is already in the system, then the instance might already exist.
     if (empty($new_file)) {
@@ -205,7 +200,7 @@ class Storage {
         }
 
         $message .= ' <br />' . $this->logInfo();
-        watchdog('storage', $message, NULL, WATCHDOG_WARNING, $link);
+        watchdog('storage', $message, NULL, WATCHDOG_WARNING);
         
         throw new StorageException();
       }
@@ -215,7 +210,7 @@ class Storage {
 
     $message = 'Generated file' . ($this->filename ? (' ' . $this->filename) : '');
     $message .= '<br />' . $this->logInfo();
-    watchdog('storage', $message, NULL, WATCHDOG_NOTICE, $link);
+    watchdog('storage', $message);
     
     $container->reference = $reference;
     
@@ -450,10 +445,8 @@ class Storage {
 
         $message = 'Acquired file from url: ' . $this->source_uri . ' . <br />';
         $message .= $this->logInfo();
-        
-        $link = $this->nid ? l(t('view'), 'node/' . $this->nid) : NULL;
-      
-        watchdog('storage', $message, NULL, WATCHDOG_NOTICE, $link);
+
+        watchdog('storage', $message);
 
         return $uri;
       }
@@ -469,10 +462,8 @@ class Storage {
 
       $message = 'Failed acquiring file from url: ' . $this->source_uri . ' . <br />';
       $message .= $this->logInfo();
-      
-      $link = $this->nid ? l(t('view'), 'node/' . $this->nid) : NULL;
-      
-      watchdog('storage', $message, NULL, WATCHDOG_WARNING, $link);
+
+      watchdog('storage', $message, NULL, WATCHDOG_WARNING);
 
       return FALSE;
     }

@@ -237,8 +237,6 @@ class StorageSelector {
    *       specified.
    *     - 'filename'
    *       The file's filename.
-   *     - 'nid'
-   *       The nid of the node this file should be associated with.
    *     - 'created' (default current time)
    *       Unix timestamp of when the storage was created.
    *     - 'data'
@@ -286,8 +284,6 @@ class StorageSelector {
     drupal_write_record('storage', $options);
     $storage = storage_load($options['storage_id']);
 
-    $link = $storage->nid ? l(t('view'), 'node/' . $storage->nid) : NULL;
-
     if (isset($source_uri)) {
       $exists = FALSE;
 
@@ -310,7 +306,7 @@ class StorageSelector {
           }
 
           $message .= ' <br />' . $storage->logInfo();
-          watchdog('storage', $message, NULL, WATCHDOG_WARNING, $link);
+          watchdog('storage', $message, NULL, WATCHDOG_WARNING);
 
           $storage->remove();
           throw new StorageException();
@@ -321,7 +317,7 @@ class StorageSelector {
     $message = 'File added: ' . $storage->filename . '<br />';
     $message .= $storage->logInfo();
 
-    watchdog('storage', $message, NULL, WATCHDOG_NOTICE, $link);
+    watchdog('storage', $message);
 
     return $storage;
   }
