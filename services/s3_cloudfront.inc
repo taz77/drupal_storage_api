@@ -798,7 +798,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageContainerIn
     }
   }
 
-  public function serviceInstanceCopy(Storage $storage, StorageContainer $source_container) {
+  public function serviceInstanceCopy(Storage $storage, StorageContainerInterface $source_container) {
     $reference = $this->uniqueFilename($storage->filename);
 
     $storage->copy_source = '/' . $source_container->settings['bucket'] . '/' . $source_container->reference;
