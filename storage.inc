@@ -91,6 +91,23 @@ class Storage {
     return $selector->storageAdd($options);
   }
 
+  public function children() {
+    $children = array();
+
+    $storage_ids = db_select('storage')
+      ->fields('storage', array('storage_id'))
+      ->condition('parent_id', $this->storage_id)
+      ->isNotNull('selector_id')
+      ->execute()
+      ->fetchCol();
+
+    foreach ($storage_ids as $storage_id) {
+      $children[] = storage_load($storage_id);
+    }
+
+    return $children;
+  }
+
   /**
    * Determine whether the user has access to a file.
    *
@@ -404,19 +421,8 @@ class Storage {
     watchdog('storage', $message, NULL);
 
     if ($recursive) {
-      // Remove storages derived from this one.
-      $storage_ids = db_select('storage')
-        ->fields('storage', array('storage_id'))
-        ->condition('parent_id', $this->storage_id)
-        ->isNotNull('selector_id')
-        ->execute()
-        ->fetchCol();
-
-      foreach ($storage_ids as $storage_id) {
-        try {
-          storage_load($storage_id)->remove();
-        }
-        catch (StorageException $e) {}
+      foreach($this->children() as $child) {
+        $child->remove();
       }
     }
   }
