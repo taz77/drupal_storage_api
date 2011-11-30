@@ -16,7 +16,11 @@ class Storage {
   public function __construct($storage) {
 
     if (!is_array($storage)) {
-    
+      // Avoid querying the database if the storage_id is NULL.
+      if (!$storage) {
+        throw new StorageException();
+      }
+
       // Either the file is being deleted and no longer has a selector,
       // or we grab the selector with migrating = 0.
       $query = db_select('storage');
@@ -76,6 +80,17 @@ class Storage {
     return $this->selector()->module();
   }
 
+  public function parent() {
+
+    return storage_load($this->parent_id);
+  }
+
+  public function addChild(StorageSelector $selector, array $options) {
+
+    $options['parent_id'] = $this->storage_id;
+    return $selector->storageAdd($options);
+  }
+
   /**
    * Determine whether the user has access to a file.
    *
@@ -98,7 +113,13 @@ class Storage {
       return $result;
     }
 
-    return TRUE;
+    try {
+      // Fall back to the access control of the parent storage.
+      return $this->parent()->access();
+    }
+    catch (StorageException $e) {
+      return TRUE;
+    }
   }
 
 
@@ -363,7 +384,7 @@ class Storage {
    *
    * All instances of the storage will be removed during cron.
    */
-  public function remove() {
+  public function remove($recursive = TRUE) {
 
     db_update('storage')
       ->fields(array(
@@ -374,10 +395,30 @@ class Storage {
       ->condition('storage_id', $this->storage_id)
       ->execute();
     
+    // Allow other modules to react to this storage being removed.
+    module_invoke_all('storage_remove', $this);
+
     $message = 'File removed' . ($this->filename ? (': ' . $this->filename . ' ') : '') . ' <br />';
     $message .= $this->logInfo();
     
     watchdog('storage', $message, NULL);
+
+    if ($recursive) {
+      // Remove storages derived from this one.
+      $storage_ids = db_select('storage')
+        ->fields('storage', array('storage_id'))
+        ->condition('parent_id', $this->storage_id)
+        ->isNotNull('selector_id')
+        ->execute()
+        ->fetchCol();
+
+      foreach ($storage_ids as $storage_id) {
+        try {
+          storage_load($storage_id)->remove();
+        }
+        catch (StorageException $e) {}
+      }
+    }
   }
 
 

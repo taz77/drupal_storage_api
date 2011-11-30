@@ -1,42 +1,6 @@
 <?php
 
-// Copyright 2010 Jonathan Brown
-
-
-/**
- * Implements hook_schema().
- */
-function storage_core_bridge_schema() {
-  
-  $schema['storage_styled_image'] = array(
-    'fields' => array(
-      'source_id' => array(
-        'type' => 'int',
-        'unsigned' => TRUE,
-        'not null' => TRUE,
-      ),
-      'style' => array(
-        'type' => 'varchar',
-        'length' => '255',
-        'not null' => TRUE,
-      ),
-      'storage_id' => array(
-        'type' => 'int',
-        'unsigned' => TRUE,
-        'not null' => TRUE,
-      ),
-    ),
-    'primary key' => array('source_id', 'style'),
-    'unique keys' => array(
-      'storage_id' => array('storage_id'),
-    ),
-    'indexes' => array(
-      'style' => array('style'),
-    ),
-  );
-
-  return $schema;
-}
+// Copyright 2010-2011 Jonathan Brown
 
 
 /**
@@ -46,6 +10,9 @@ function storage_core_bridge_schema_alter(array &$schema) {
 
   $schema['storage']['fields']['core_bridge_uri'] = array('type' => 'varchar', 'length' => 255);
   $schema['storage']['unique keys'] = array('core_bridge_uri' => array('core_bridge_uri'));
+
+  $schema['storage']['fields']['image_style'] = array('type' => 'varchar', 'length' => 255);
+  $schema['storage']['indexes']['image_style'] = array('image_style');
 }
 
 
@@ -58,6 +25,10 @@ function storage_core_bridge_install() {
   $spec = array('type' => 'varchar', 'length' => 255);
   $keys = array('unique keys' => array('core_bridge_uri' => array('core_bridge_uri')));
   db_add_field('storage', 'core_bridge_uri', $spec, $keys);
+
+  $spec = array('type' => 'varchar', 'length' => 255);
+  $keys = array('indexes' => array('image_style' => array('image_style')));
+  db_add_field('storage', 'image_style', $spec, $keys);
 
   // Create selectors for fields.
   variable_set('storage_core_bridge_fields', array());
@@ -83,5 +54,6 @@ function storage_core_bridge_install() {
 function storage_core_bridge_uninstall() {
 
   db_drop_field('storage', 'core_bridge_uri');
+  db_drop_field('storage', 'image_style');
   variable_del('storage_core_bridge_fields');
 }

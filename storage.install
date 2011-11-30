@@ -187,6 +187,7 @@ function storage_schema() {
         'mysql_type' => 'varchar(255) CHARACTER SET ascii COLLATE ascii_bin',
       ),
       'file_id' => array('type' => 'int', 'unsigned' => TRUE),
+      'parent_id' => array('type' => 'int', 'unsigned' => TRUE),
       'created' => array('type' => 'int', 'unsigned' => TRUE),
       'source_uri' => array(
         'type' => 'varchar', 'length' => 4095, 'not null' => TRUE, 'default' => '',
@@ -199,6 +200,7 @@ function storage_schema() {
     ),
     'primary key' => array('storage_id'),
     'indexes' => array(
+      'parent_id' => array('parent_id'),
       'status' => array('status'),
     ),
   );

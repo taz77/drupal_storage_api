@@ -237,6 +237,8 @@ class StorageSelector {
    *       specified.
    *     - 'filename'
    *       The file's filename.
+   *     - 'parent_id'
+   *       The storage_id of the storage this storage is derived from.
    *     - 'created' (default current time)
    *       Unix timestamp of when the storage was created.
    *     - 'data'

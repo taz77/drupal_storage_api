@@ -199,7 +199,7 @@ function storage_core_bridge_form_image_style_form_alter(array &$form, array &$f
   }
   else {
     $form['storage_api']['#disabled'] = TRUE;
-    $description = t("As this image style is being provided by a module, the storage class of the source image will also be used for its derived images.");
+    $description = t("As this image style is being provided by a module, the storage class of the parent image will also be used for its derived images.");
     $form['storage_api']['storage_class'] = storage_core_bridge_image_style_selector()->formItem(NULL, $description);
   }
 }
@@ -216,7 +216,7 @@ function storage_core_bridge_storage_id($uri) {
 
   $storage_id = db_select('storage')
     ->fields('storage', array('storage_id'))
-    ->condition('storage.core_bridge_uri', $uri)
+    ->condition('core_bridge_uri', $uri)
     ->execute()
     ->fetchField();
 
@@ -253,82 +253,72 @@ function storage_core_bridge_uri_field_name($uri) {
 
 
 /**
- * Loads the storage of a styled image from a source URI.
+ * Creates the storage of a styled image from its URI.
  *
  * @param $uri
- *   The URI of the storage of the source image.
- * @param $style_name
- *   The name of the image style.
+ *   The URI of the storage to be created.
  *
  * @return
- *   The storage of a styled image.
+ *   The storage of the styled image.
  *
  * @throws StorageException
- *   When it isn't possible to load the storage of the styled image.
+ *   When it isn't possible to create the storage.
  */
-function storage_core_bridge_styled_image_load($uri, $style_name) {
+function storage_core_bridge_styled_image_create($uri) {
+  $components = explode('/', file_uri_target($uri));
+  $scheme = file_uri_scheme($uri);
 
-  $source_id = storage_core_bridge_storage_id($uri);
+  // Make sure this is a styled image URI.
+  if ((array_shift($components) != 'styles') || !($style_name = array_shift($components)) ||
+    (array_shift($components) != $scheme))
+  {
+    throw new StorageException();
+  }
 
-  $storage_id = db_select('storage_styled_image')
-    ->fields('storage_styled_image', array('storage_id'))
-    ->condition('storage_styled_image.source_id', $source_id)
-    ->condition('storage_styled_image.style', $style_name)
+  // Load the storage of the parent image.
+  $parent = storage_core_bridge_load($scheme . '://' . implode('/', $components));
+
+  // Determine the filename of the styled image.
+  $components = explode('/', $parent->filename);
+  $basename = array_pop($components);
+  array_push($components, $style_name, $basename);
+
+  // Populate the options for the new storage.
+  $options = array(
+    'filename' => implode('/', $components),
+    'core_bridge_uri' => $uri,
+    'image_style' => $style_name,
+  );
+
+  // Try to determine the file_id of the new storage. This means
+  // deduplication can occur without the image being generated.
+  $query = db_select('storage', 'parent');
+  $query->join('storage', 'child', 'parent.storage_id = child.parent_id');
+
+  $file_id = $query->condition('parent.file_id', $parent->file_id)
+    ->condition('child.image_style', $style_name)
+    ->fields('child', array('file_id'))
+    ->range(0, 1)
     ->execute()
     ->fetchField();
-    
-  if ($storage_id) {
-    $storage = storage_load($storage_id);
+
+  if ($file_id) {
+    $options['file_id'] = $file_id;
+  }
+
+  // Decide which selector to use.
+  $style = image_style_load($style_name);
+
+  if ($style['storage'] & IMAGE_STORAGE_EDITABLE) {
+    $selector = storage_core_bridge_image_style_selector($style['isid']);
   }
   else {
-    $source_storage = storage_load($source_id);
-
-    // Determine the filename of the styled image.
-    $components = explode('/', $source_storage->filename);
-    $basename = array_pop($components);
-    array_push($components, $style_name, $basename);
-    $options['filename'] = implode('/', $components);
-
-    // Try to determine the file_id of the styled image. This means
-    // deduplication can occur without the image being generated.
-    $query = db_select('storage', 'source_storage');
-    $query->join('storage_styled_image', NULL, 'source_storage.storage_id = storage_styled_image.source_id');
-    $query->join('storage', NULL, 'storage_styled_image.storage_id = storage.storage_id');
-
-    $file_id = $query->condition('source_storage.file_id', $source_storage->file_id)
-      ->condition('storage_styled_image.style', $style_name)
-      ->fields('storage', array('file_id'))
-      ->range(0, 1)
-      ->execute()
-      ->fetchField();
-
-    if ($file_id) {
-      $options['file_id'] = $file_id;
-    }
-
-    // Create the storage.
-    $style = image_style_load($style_name);
-
-    if ($style['storage'] & IMAGE_STORAGE_EDITABLE) {
-      $selector = storage_core_bridge_image_style_selector($style['isid']);
-    }
-    else {
-      $field_name = storage_core_bridge_uri_field_name($uri);
-      $selector = storage_core_bridge_field_selector($field_name);
-    }
-
-    $storage = $selector->storageAdd($options);
-
-    db_insert('storage_styled_image')
-      ->fields(array(
-        'source_id' => $source_id,
-        'style' => $style_name,
-        'storage_id' => $storage->storage_id,
-      ))
-      ->execute();
+    $field_name = storage_core_bridge_uri_field_name($uri);
+    $selector = storage_core_bridge_field_selector($field_name);
   }
-  
-  return $storage;
+
+  // Create the storage.
+  return $parent->addChild($selector, $options);
 }
 
 
@@ -337,16 +327,8 @@ function storage_core_bridge_styled_image_load($uri, $style_name) {
  */
 function storage_core_bridge_storage_generate(Storage $storage) {
 
-  $styled_image = db_select('storage_styled_image')
-    ->fields('storage_styled_image')
-    ->condition('storage_styled_image.storage_id', $storage->storage_id)
-    ->execute()
-    ->fetchAssoc();
-
-  $source_storage = storage_load($styled_image['source_id']);
-
-  $style = image_style_load($styled_image['style']);
-  $source = $source_storage->getUri();
+  $style = image_style_load($storage->image_style);
+  $source = $storage->parent()->getUri();
   $destination = storage_temp_uri();
 
   image_style_create_derivative($style, $source, $destination);
@@ -360,43 +342,34 @@ function storage_core_bridge_storage_generate(Storage $storage) {
  */
 function storage_core_bridge_image_style_flush(array $style) {
 
-  $storage_ids = db_select('storage_styled_image')
-    ->fields('storage_styled_image', array('storage_id'))
-    ->condition('storage_styled_image.style', $style['name'])
+  $storage_ids = db_select('storage')
+    ->fields('storage', array('storage_id'))
+    ->condition('image_style', $style['name'])
+    ->isNotNull('selector_id')
     ->execute()
     ->fetchCol();
-    
-  foreach ($storage_ids as $storage_id) {
-    try {
-      storage_load($storage_id)->remove();
-    }
-    catch (StorageException $e) {}
-  }
 
-  db_delete('storage_styled_image')
-    ->condition('storage_styled_image.style', $style['name'])
-    ->execute();
+  foreach ($storage_ids as $storage_id) {
+    storage_load($storage_id)->remove();
+  }
 }
 
 
-function storage_core_bridge_image_delete_derivatives($source_id) {
+/**
+ * Implements hook_storage_remove().
+ */
+function storage_core_bridge_storage_remove(Storage $storage) {
 
-  $storage_ids = db_select('storage_styled_image')
-    ->fields('storage_styled_image', array('storage_id'))
-    ->condition('storage_styled_image.source_id', $source_id)
-    ->execute()
-    ->fetchCol();
-
-  foreach ($storage_ids as $storage_id) {
-    try {
-      storage_load($storage_id)->remove();
-    }
-    catch (StorageException $e) {}
+  if ($storage->core_bridge_uri) {
+    // Clear core_bridge_uri so a new storage can have the same URI without
+    // breaking referential integrity. Clear image_style so the deduplication
+    // code doesn't just copy the previous styled image.
+    db_update('storage')
+      ->expression('core_bridge_uri', 'NULL')
+      ->expression('image_style', 'NULL')
+      ->condition('storage_id', $storage->storage_id)
+      ->execute();
   }
-
-  db_delete('storage_styled_image')
-    ->condition('storage_styled_image.source_id', $source_id)
-    ->execute();
 }
 
 
@@ -480,9 +453,8 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
   }
   
   public function unlink($uri) {
-    $storage = storage_core_bridge_load($uri);
-    $storage->remove();
-    storage_core_bridge_image_delete_derivatives($storage->storage_id);
+    // Remove the storage its derivatives (styled images).
+    storage_core_bridge_load($uri)->remove();
     return TRUE;
   }
 
@@ -541,17 +513,15 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
   }
   
   public function getExternalUrl() {
-    $components = explode('/', file_uri_target($this->uri));
-    $scheme = file_uri_scheme($this->uri);
 
     try {
-      if ((array_shift($components) == 'styles') && ($style = array_shift($components)) && 
-        (array_shift($components) == $scheme))
-      {
-        $storage = storage_core_bridge_styled_image_load($scheme . '://' . implode('/', $components), $style);
-      }
-      else {
+      try {
         $storage = storage_core_bridge_load($this->uri);
+      }
+      catch (StorageException $e) {
+        // We couldn't find the storage - maybe it's a styled image that hasn't
+        // been created yet.
+        $storage = storage_core_bridge_styled_image_create($this->uri);
       }
 
       return $storage->serveURL(TRUE);
