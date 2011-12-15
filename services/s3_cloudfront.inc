@@ -309,11 +309,12 @@ class StorageS3CloudFront extends StorageContainer implements StorageContainerIn
 
     return array(
       '' => t('US Standard'),
-      'us-west-1' => t('US-West (Northern California)'),
-      'us-west-2' => t('US-West (Oregon)'),
-      'EU' => t('EU (Ireland)'),
+      'us-west-1' => t('US West (Northern California)'),
+      'us-west-2' => t('US West (Oregon)'),
+      'eu-west-1' => t('EU (Ireland)'),
       'ap-southeast-1' => t('Asia Pacific (Singapore)'),
       'ap-northeast-1' => t('Asia Pacific (Tokyo)'),
+      'sa-east-1' => t('South America (Sao Paulo)'),
     );
   }
 
@@ -521,6 +522,14 @@ class StorageS3CloudFront extends StorageContainer implements StorageContainerIn
   }
 
   public function serviceSettingsForm($edit = FALSE) {
+    // Add defaults.
+    $this->settings += array(
+      'access_key_id' => '',
+      'bucket' => '',
+      'location' => '',
+      'reduced_redundancy' => FALSE,
+      'url_lifetime' => 60 * 60,
+    );
 
     $items['credentials_info'] = array(
       '#markup' => t('Get your credentials !link.', array('!link' => l(t('here'), 
@@ -533,7 +542,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageContainerIn
       '#title' => t('Access key ID'),
       '#required' => TRUE,
       '#validated' => TRUE,
-      '#default_value' => isset($this->settings['access_key_id']) ? $this->settings['access_key_id'] : NULL,
+      '#default_value' => $this->settings['access_key_id'],
     );
     
     $items['secret_access_key'] = array(
@@ -544,28 +553,27 @@ class StorageS3CloudFront extends StorageContainer implements StorageContainerIn
     );
 
     if (!$edit) {
-
       $items['bucket'] = array(
         '#type' => 'textfield',
         '#title' => t('Bucket name'),
         '#required' => TRUE,
         '#validated' => TRUE,
-        '#default_value' => isset($this->settings['bucket']) ? $this->settings['bucket'] : NULL,
+        '#default_value' => $this->settings['bucket'],
         '#maxlength' => 63,
         '#description' => t('The bucket namespace is shared by all users of Amazon S3.'),
       );
 
       $items['location'] = array(
         '#type' => 'select',
-        '#title' => t('Location'),
+        '#title' => t('Region'),
         '#options' => $this->locations(),
-        '#default_value' => isset($this->settings['location']) ? $this->settings['location'] : NULL,
+        '#default_value' => $this->settings['location'],
       );
 
       $items['reduced_redundancy'] = array(
         '#type' => 'checkbox',
         '#title' => t('Reduced redundancy'),
-        '#default_value' => isset($this->settings['reduced_redundancy']) ? $this->settings['reduced_redundancy'] : NULL,
+        '#default_value' => $this->settings['reduced_redundancy'],
       );
     }
 
@@ -578,7 +586,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageContainerIn
         '#title' => t('URL lifetime'),
         '#required' => TRUE,
         '#validated' => TRUE,
-        '#default_value' => isset($this->settings['url_lifetime']) ? $this->settings['url_lifetime'] : 60 * 60,
+        '#default_value' => $this->settings['url_lifetime'],
         '#description' => $description,
         '#size' => 8,
         '#maxlength' => 8,

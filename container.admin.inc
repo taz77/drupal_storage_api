@@ -162,6 +162,7 @@ function storage_create_container_form_validate(array $form, array &$form_state)
       $form_state['storage']['name'] = $form_state['values']['name'];
       $form_state['storage']['service_id'] = $form_state['values']['service_id'];
       $form_state['storage']['access_control'] = $form_state['values']['access_control'];
+      $form_state['storage']['settings'] = array();
 
       $service = storage_service_load($form_state['storage']['service_id']);
 
