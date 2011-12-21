@@ -70,6 +70,17 @@ class Storage {
     drupal_write_record('storage', $this, 'storage_id');
   }
 
+  public function duplicate() {
+    $storage = clone $this;
+    unset($storage->storage_id);
+    drupal_write_record('storage', $storage);
+
+    $message = 'Storage duplicated:<br />' . $storage->logInfo();
+    watchdog('storage', $message);
+
+    return $storage;
+  }
+
   public function selector() {
 
     return storage_selector($this->selector_id);
