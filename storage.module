@@ -695,6 +695,44 @@ function theme_storage_info_table(array $variables) {
 }
 
 
+class StorageLock {
+  public $name;
+  private $id;
+
+  public function __construct($name) {
+    global $databases;
+    $this->name = $name;
+    $this->id = $databases['default']['default']['database'] . ':storage:' . $name;
+
+    $success = db_query('SELECT GET_LOCK(:name, 86400)', array(':name' => $this->id))
+      ->fetchField();
+
+    if (!$success) {
+      throw new StorageException();
+    }
+  }
+
+  public function __destruct() {
+    db_query('DO RELEASE_LOCK(:name)', array(':name' => $this->id));
+  }
+
+  public function __toString() {
+    return $this->name;
+  }
+}
+
+
+/**
+ * Creates a lock.
+ *
+ * @return
+ *   A lock.
+ */
+function storage_lock($name) {
+
+  return new StorageLock($name);
+}
+
 class StorageTempURI {
   private $uri;
 

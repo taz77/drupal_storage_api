@@ -215,6 +215,14 @@ class Storage {
    *   When it isn't possible to generate the storage.
    */
   private function generate() {
+    // Get the lock.
+    $lock = storage_lock('generate:' . $this->storage_id);
+
+    // Check if the storage is still ungenerated.
+    try {
+      return $this->selectContainerInstance(TRUE);
+    }
+    catch (StorageException $e) {}
 
     $container = storage_container_load($this->initial_container_id);
     $uri = $this->getUri();
@@ -225,7 +233,6 @@ class Storage {
     }
 
     if (empty($reference)) {
-    
       try {
         $reference = $container->instanceCreate($this, $uri);
       }
