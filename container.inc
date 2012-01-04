@@ -618,7 +618,10 @@ abstract class StorageContainer {
 
   public function serviceInstanceOutput($reference) {
 
-    readfile($this->serviceInstanceGetUri($reference));
+    // $uri can be a StorageTempURI - keep an instance of it here otherwise
+    // readfile will destroy it too soon.
+    $uri = $this->serviceInstanceGetUri($reference);
+    readfile($uri);
   }
 
 
