@@ -189,7 +189,6 @@ function storage_create_container_form_validate(array $form, array &$form_state)
       $container->serviceSettingsValidate();
 
       if (!form_get_errors()) {
-      
         try {
           $container->create();
           $form_state['storage'] = $container;

@@ -381,7 +381,6 @@ function storage_selector($arg0, $arg1 = NULL) {
   return new StorageSelector($arg0, $arg1);
 }
 
-
 /**
  * Implements hook_storage_services().
  */
@@ -418,25 +417,51 @@ function storage_storage_services() {
   return $services;
 }
 
+/**
+ * Implements hook_libraries_info().
+ */
+function storage_libraries_info() {
+  $libraries = array();
+
+  $libraries['php-cloudfiles'] = array(
+    'name' => 'php-cloudfiles',
+    'vendor url' => 'https://github.com/rackspace/php-cloudfiles',
+    'download url' => 'https://github.com/rackspace/php-cloudfiles/downloads',
+    'version' => 'whatever',
+    'files' => array(
+      'php' => array(
+        'cloudfiles.php',
+      ),
+    ),
+  );
+
+  return $libraries;
+}
 
 /**
  * Implements hook_storage_service_check_SERVICE_ID().
  */
 function storage_storage_service_check_rackspace() {
+  $items = array();
 
-  if (module_exists('libraries')) {
+  if (module_exists('libraries') && function_exists('libraries_detect')) {
     $library = libraries_detect('php-cloudfiles');
 
-    if ($library['installed'] == TRUE) {
+    if ($library['installed']) {
       return;
     }
   }
+  else {
+    $items[] = t("Enable Libraries API 7.x-2.x");
+  }
 
-  $message = t('Download <a href="http://github.com/rackspace/php-cloudfiles/downloads" target="_blank">php-cloudfiles</a>, decompress it, rename the directory to <em>php-cloudfiles</em> and put it in <em>sites/all/libraries</em>.<br />Alternatively you can use <a href="http://git-scm.com/" target="_blank">Git</a>:') . '<br /><code>git clone git://github.com/rackspace/php-cloudfiles.git</code>';
+  $message = t("Download <a href=\"!download_url\" target=\"_blank\">php-cloudfiles</a>, decompress it, rename the directory to <em>php-cloudfiles</em> and put it in <em>sites/all/libraries</em>.<br />Alternatively you can use <a href=\"http://git-scm.com/\" target=\"_blank\">Git</a>:", array('!download_url' => $library['download url']));
+  $message .= '<br /><code>git clone git://github.com/rackspace/php-cloudfiles.git</code>';
 
-  throw new StorageException($message);
+  $items[] = $message;
+
+  throw new StorageException(theme('item_list', array('items' => $items)));
 }
-
 
 function storage_service_info() {
   $services = array();
@@ -800,26 +825,5 @@ function storage_modules_uninstalled($modules) {
       storage_selector($selector_id)->destroy();
     }
   }
-}
-
-
-/**
- * Implements hook_libraries_info().
- */
-function storage_libraries_info() {
-
-  $libraries['php-cloudfiles'] = array(
-    'name' => 'php-cloudfiles',
-    'vendor url' => 'https://github.com/rackspace/php-cloudfiles',
-    'download url' => 'https://github.com/rackspace/php-cloudfiles/downloads',
-    'version' => 'whatever',
-    'files' => array(
-      'php' => array(
-        'cloudfiles.php',
-      ),
-    ),
-  );
-
-  return $libraries;
 }
 

@@ -6,8 +6,7 @@
 class StorageRackspace extends StorageContainer implements StorageContainerInterface {
   private $conn;
 
-  private function log_exception($e, $dsm = TRUE) {
-
+  private function log_exception(Exception $e, $dsm = TRUE) {
     watchdog('storage_rackspace', 'php-cloudfiles exception: @msg', array('@msg' => $e->getMessage()), WATCHDOG_ERROR);
     
     if ($dsm && user_access('administer storage')) {
@@ -15,9 +14,8 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
     }
   }
 
-  private function init(array $settings) {
-
-    if (module_exists('libraries')) {
+  private function init() {
+    if (module_exists('libraries') && function_exists('libraries_load')) {
       $library = libraries_load('php-cloudfiles');
     }
 
@@ -32,7 +30,7 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
       throw new StorageException();
     }
 
-    $auth = new CF_Authentication($settings['username'], $settings['api_key']);
+    $auth = new CF_Authentication($this->settings['username'], $this->settings['api_key']);
     $auth->ssl_use_cabundle();
 
     try {
@@ -42,7 +40,7 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
       $this->log_exception($e, FALSE);
       
       if (user_access('administer storage')) {
-        drupal_set_message(t('Invalid username or access key.'));
+        drupal_set_message(t('Invalid username or access key.'), 'error');
       }
         
       throw new StorageException();
@@ -56,34 +54,39 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
     $this->conn->ssl_use_cabundle();
   }
 
-  private function rscf_container() {
-    $rscf_containers = &drupal_static(__FUNCTION__);
+  private function cf_container() {
+    $cf_containers = &drupal_static(__FUNCTION__, array());
     
-    if (isset($rscf_containers[$this->container_id])) {
-      return $rscf_containers[$this->container_id];
+    if (isset($cf_containers[$this->container_id])) {
+      return $cf_containers[$this->container_id];
     }
 
-    $this->init($this->settings);
+    $this->init();
     
     try {
-      $rscf_container = $this->conn->get_container($this->settings['rscf_container']);
+      $cf_container = $this->conn->get_container($this->settings['cf_container']);
     }
     catch (Exception $e) {
       $this->log_exception($e);
       throw new StorageException();
     }
 
-    $rscf_containers[$this->container_id] = $rscf_container;
+    $cf_containers[$this->container_id] = $cf_container;
 
-    return $rscf_container;
+    return $cf_container;
   }
 
   public function serviceSettingsForm($edit = FALSE) {
+    // Add defaults.
+    $this->settings += array(
+      'username' => '',
+      'cf_container' => '',
+    );
 
     $items['credentials_info'] = array(
       '#markup' => t('Get your credentials !link.', array('!link' => l(t('here'), 
-        'http://www.rackspacecloud.com/cloud_hosting_products/files', 
-          array('attributes' => array('target' => '_blank')))))
+        'http://www.rackspace.com/cloud/cloud_hosting_products/files/', 
+        array('attributes' => array('target' => '_blank')))))
     );
 
     $items['username'] = array(
@@ -91,7 +94,7 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
       '#title' => t('Username'),
       '#required' => TRUE,
       '#validated' => TRUE,
-      '#default_value' => isset($this->settings['username']) ? $this->settings['username'] : NULL,
+      '#default_value' => $this->settings['username'],
     );
     
     $items['api_key'] = array(
@@ -102,13 +105,12 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
     );
 
     if (!$edit) {
-
-      $items['rscf_container'] = array(
+      $items['cf_container'] = array(
         '#type' => 'textfield',
         '#title' => t('Cloud Files container'),
         '#required' => TRUE,
         '#validated' => TRUE,
-        '#default_value' => isset($this->settings['rscf_container']) ? $this->settings['rscf_container'] : NULL,
+        '#default_value' => $this->settings['cf_container'],
       );
     }
     
@@ -116,7 +118,6 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
   }
   
   public function serviceSettingsValidate($edit = FALSE) {
-
     if (!$this->settings['username']) {
       form_set_error('settings][username', t('Username field is required.'));
     }
@@ -125,8 +126,8 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
       form_set_error('settings][api_key', t('API key field is required.'));
     }
     
-    if (!$this->settings['rscf_container']) {
-      form_set_error('settings][rscf_container', t('Cloud Files container name field is required.'));
+    if (!$this->settings['cf_container']) {
+      form_set_error('settings][cf_container', t('Cloud Files container name field is required.'));
     }
     
     if (form_get_errors()) {
@@ -134,7 +135,7 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
     }
     
     try {
-      $this->init($this->settings);
+      $this->init();
     }
     catch (StorageException $e) {
       form_set_error('settings');
@@ -142,33 +143,35 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
   }
   
   public function serviceCreate() {
-    $this->init($this->settings);
+    $this->init();
     
     try {
-      $rscf_container = $this->conn->get_container($this->settings['rscf_container']);
+      $cf_container = $this->conn->get_container($this->settings['cf_container']);
     }
     catch (NoSuchContainerException $e) {}
     catch (Exception $e) {
       $this->log_exception($e);
       form_set_error('settings');
+      throw new StorageException();
     }
     
-    if (isset($rscf_container)) {
-      form_set_error('settings][rscf_container', t('Cloud Files container %name already exists.', 
-        array('%name' => $this->settings['rscf_container'])));
+    if (isset($cf_container)) {
+      form_set_error('settings][cf_container', t('Cloud Files container %name already exists.', 
+        array('%name' => $this->settings['cf_container'])));
+      throw new StorageException();
     }
     
     try {
-      $rscf_container = $this->conn->create_container($this->settings['rscf_container']);
+      $cf_container = $this->conn->create_container($this->settings['cf_container']);
     
       if ($this->access_control) {
-        $rscf_container->make_private();    // strangely, this has to be done explicity, or it might be public
+        $cf_container->make_private();    // strangely, this has to be done explicity, or it might be public
       }
       else {
-        $rscf_container->make_public(60 * 60 * 24 * 3);    // 3 days is the maximum ttl that can be set in the api
-        $this->settings['base_url'] = $rscf_container->cdn_uri;
+        $cf_container->make_public(60 * 60 * 24 * 3);    // 3 days is the maximum ttl that can be set in the api
+        $this->settings['base_url'] = $cf_container->cdn_uri;
       }
-    }  
+    }
     catch (Exception $e) {
       $this->log_exception($e);
       throw new StorageException();
@@ -176,20 +179,19 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
   }
   
   public function serviceInfo() {
-
     $info = array(
       t('Username') => $this->settings['username'],
-      t('Container') => $this->settings['rscf_container'],
+      t('Container') => $this->settings['cf_container'],
     );
 
     return $info;
   }
   
   public function serviceDestroy() {
-    $this->init($this->settings);
+    $this->init();
     
     try {
-      $this->conn->delete_container($this->settings['rscf_container']);
+      $this->conn->delete_container($this->settings['cf_container']);
     }
     catch (Exception $e) {
       $this->log_exception($e);
@@ -200,10 +202,10 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
   public function serviceInstanceCreate(Storage $storage, $uri) {
     $reference = $this->uniqueFilename($storage->filename);
 
-    $rscf_container = $this->rscf_container();
+    $cf_container = $this->cf_container();
 
     try {
-      $object = $rscf_container->create_object($reference);
+      $object = $cf_container->create_object($reference);
       $object->content_type = $storage->mimetype;
       $object->set_etag(base64_encode($storage->md5));
       $object->load_from_filename($uri, FALSE);
@@ -220,7 +222,7 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
       log_exception($e);
 
       try {
-        $rscf_container->delete_object($reference);
+        $cf_container->delete_object($reference);
       }
       catch(Exception $e) {}
 
@@ -231,11 +233,10 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
   }
   
   public function serviceInstanceExists($reference) {
-  
-    $rscf_container = $this->rscf_container();
+    $cf_container = $this->cf_container();
 
     try {
-      $object = $rscf_container->get_object($reference);
+      $object = $cf_container->get_object($reference);
     }
     catch(Exception $e) {
       return FALSE;
@@ -245,11 +246,10 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
   }
 
   public function serviceInstanceDestroy($reference) {
-
-    $rscf_container = $this->rscf_container();
+    $cf_container = $this->cf_container();
       
     try {
-      $rscf_container->delete_object($reference);
+      $cf_container->delete_object($reference);
     }
     catch(Exception $e) {
       $this->log_exception($e);
@@ -258,12 +258,11 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
   }
   
   public function serviceInstanceGetUri($reference) {
-
-    $rscf_container = $this->rscf_container();
+    $cf_container = $this->cf_container();
     $temp_uri = storage_temp_uri();
     
     try {
-      $object = $rscf_container->get_object($reference);
+      $object = $cf_container->get_object($reference);
       $object->save_to_filename($temp_uri);
     }
     catch(Exception $e) {

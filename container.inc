@@ -629,7 +629,9 @@ abstract class StorageContainer {
   public function servicePostCreate() {}
   public function serviceUpdate() {}
   public function serviceMaintenance() {}
-  public function serviceListReferences() {}
+  public function serviceListReferences() {
+    throw new StorageException();
+  }
   public function serviceInstanceCopy(Storage $storage, StorageContainerInterface $source_container) {}
 }
 
