@@ -540,10 +540,10 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
     return TRUE;
   }
 
-  public function realpath() {
-    return $this->uri;
-  }
-
+  /**
+   * This function is called whenever the desired URI already exists and an
+   * alternative is being sought.
+   */
   public function dirname($uri = NULL) {
     global $storage_core_bridge_dirname;
 
@@ -575,6 +575,5 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
   public function dir_readdir() {}
   public function dir_rewinddir() {}
   public function dir_closedir() {}
-  public function getDirectoryPath() {}
+  public function realpath() {}
 }
-
