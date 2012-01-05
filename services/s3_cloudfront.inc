@@ -832,7 +832,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageContainerIn
       'max-keys' => 100,
     );
     
-    if ($sandbox['marker']) {
+    if (isset($sandbox['marker'])) {
       $query['marker'] = $sandbox['marker'];
     }
   
