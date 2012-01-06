@@ -214,9 +214,9 @@ function storage_core_bridge_image_style_form_submit(array $form, array &$form_s
 
 function storage_core_bridge_storage_id($uri) {
 
-  $storage_id = db_select('storage')
-    ->fields('storage', array('storage_id'))
-    ->condition('core_bridge_uri', $uri)
+  $storage_id = db_select('storage_core_bridge')
+    ->fields('storage_core_bridge', array('storage_id'))
+    ->condition('uri', $uri)
     ->execute()
     ->fetchField();
 
@@ -286,17 +286,16 @@ function storage_core_bridge_styled_image_create($uri) {
   // Populate the options for the new storage.
   $options = array(
     'filename' => implode('/', $components),
-    'core_bridge_uri' => $uri,
-    'image_style' => $style_name,
   );
 
   // Try to determine the file_id of the new storage. This means
   // deduplication can occur without the image being generated.
   $query = db_select('storage', 'parent');
   $query->join('storage', 'child', 'parent.storage_id = child.parent_id');
+  $query->join('storage_core_bridge', 'core_bridge', 'child.storage_id = core_bridge.storage_id');
 
   $file_id = $query->condition('parent.file_id', $parent->file_id)
-    ->condition('child.image_style', $style_name)
+    ->condition('core_bridge.image_style', $style_name)
     ->fields('child', array('file_id'))
     ->range(0, 1)
     ->execute()
@@ -318,7 +317,17 @@ function storage_core_bridge_styled_image_create($uri) {
   }
 
   // Create the storage.
-  return $parent->addChild($selector, $options);
+  $storage = $parent->addChild($selector, $options);
+
+  db_insert('storage_core_bridge')
+    ->fields(array(
+      'storage_id' => $storage->storage_id,
+      'uri' => $uri,
+      'image_style' => $style_name,
+    ))
+    ->execute();
+
+  return $storage;
 }
 
 
@@ -327,7 +336,13 @@ function storage_core_bridge_styled_image_create($uri) {
  */
 function storage_core_bridge_storage_generate(Storage $storage) {
 
-  $style = image_style_load($storage->image_style);
+  $style_name = db_select('storage_core_bridge')
+    ->fields('storage_core_bridge', array('image_style'))
+    ->condition('storage_id', $storage->storage_id)
+    ->execute()
+    ->fetchField();
+
+  $style = image_style_load($style_name);
   $source = $storage->parent()->getUri();
   $destination = storage_temp_uri();
 
@@ -342,10 +357,9 @@ function storage_core_bridge_storage_generate(Storage $storage) {
  */
 function storage_core_bridge_image_style_flush(array $style) {
 
-  $storage_ids = db_select('storage')
-    ->fields('storage', array('storage_id'))
+  $storage_ids = db_select('storage_core_bridge')
+    ->fields('storage_core_bridge', array('storage_id'))
     ->condition('image_style', $style['name'])
-    ->isNotNull('selector_id')
     ->execute()
     ->fetchCol();
 
@@ -360,16 +374,9 @@ function storage_core_bridge_image_style_flush(array $style) {
  */
 function storage_core_bridge_storage_remove(Storage $storage) {
 
-  if ($storage->core_bridge_uri) {
-    // Clear core_bridge_uri so a new storage can have the same URI without
-    // breaking referential integrity. Clear image_style so the deduplication
-    // code doesn't just copy the previous styled image.
-    db_update('storage')
-      ->expression('core_bridge_uri', 'NULL')
-      ->expression('image_style', 'NULL')
-      ->condition('storage_id', $storage->storage_id)
-      ->execute();
-  }
+  db_delete('storage_core_bridge')
+    ->condition('storage_id', $storage->storage_id)
+    ->execute();
 }
 
 
@@ -414,13 +421,19 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
       $options = array(
         'source_uri' => $this->temp_uri,
         'filename' => $storage_core_bridge_filename[file_uri_scheme($this->uri)],
-        'core_bridge_uri' => $this->uri,
       );
 
       $field_name = storage_core_bridge_uri_field_name($this->uri);
 
       try {
         $storage = storage_core_bridge_field_selector($field_name)->storageAdd($options);
+
+        db_insert('storage_core_bridge')
+          ->fields(array(
+            'storage_id' => $storage->storage_id,
+            'uri' => $this->uri,
+          ))
+          ->execute();
       }
       catch (StorageException $e) {}
     }
@@ -453,7 +466,7 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
   }
   
   public function unlink($uri) {
-    // Remove the storage its derivatives (styled images).
+    // Remove the storage and its derivatives (styled images).
     storage_core_bridge_load($uri)->remove();
     return TRUE;
   }
