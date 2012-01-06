@@ -84,9 +84,10 @@ function storage_requirements($phase) {
 
 
 /**
- * Implements hook_schema() .
+ * Implements hook_schema().
  */
 function storage_schema() {
+  $schema = array();
 
   /*
    * Configuration.
@@ -186,8 +187,8 @@ function storage_schema() {
         'type' => 'varchar', 'length' => 255,
         'mysql_type' => 'varchar(255) CHARACTER SET ascii COLLATE ascii_bin',
       ),
-      'file_id' => array('type' => 'int', 'unsigned' => TRUE),
       'parent_id' => array('type' => 'int', 'unsigned' => TRUE),
+      'file_id' => array('type' => 'int', 'unsigned' => TRUE),
       'created' => array('type' => 'int', 'unsigned' => TRUE),
       'source_uri' => array(
         'type' => 'varchar', 'length' => 4095, 'not null' => TRUE, 'default' => '',
