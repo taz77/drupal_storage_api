@@ -1,5 +1,5 @@
 name = Audit
-description = "Performs audits of storage instances."
+description = "Performs audits of storage containers."
 package = Storage API
 dependencies[] = storage
 core = 7.x

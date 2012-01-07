@@ -417,7 +417,6 @@ function storage_audit_repair(StorageContainerInterface $container, array &$cont
     ->execute();
 
   foreach ($result as $instance) {
-  
     _storage_audit_repair($container, $instance, $context['results']);
     
     $context['sandbox']['progress']++;

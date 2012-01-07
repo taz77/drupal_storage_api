@@ -4,6 +4,14 @@
 
 abstract class StorageContainer {
 
+  public $container_id;
+  public $service_id;
+  public $name;
+  public $access_control;
+  public $external;
+  public $status;
+  public $settings;
+
   public function __construct(array $fields, $unserialize = TRUE) {
   
     if ($unserialize && isset($container['settings'])) {

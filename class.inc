@@ -1,6 +1,6 @@
 <?php
 
-// Copyright 2010-2011 Jonathan Brown
+// Copyright 2010-2012 Jonathan Brown
 
 class StorageClass {
 

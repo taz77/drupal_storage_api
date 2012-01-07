@@ -1,11 +1,11 @@
 <?php
 
-// Copyright 2008-2011 Jonathan Brown
+// Copyright 2008-2012 Jonathan Brown
 
 
 function storage_containers() {
 
-  $header = array(t('Container'), t('Access control'), t('Status'), t('Instances'), t('Size'));
+  $header = array(t('Container'), t('Access control'), t('Status'), t('Files'), t('Size'));
 
   $result = $query = db_select('storage_container', NULL, array('fetch' => PDO::FETCH_ASSOC))
     ->fields('storage_container')
@@ -251,7 +251,7 @@ function storage_container_form(array $form, array &$form_state, StorageContaine
     t('External') => $container->external ? t('Yes') : t('No'),
     t('Status') => $container->status(),
     t('Classes') => _storage_container_render_classes($container->classes()),
-    t('Instances') => $container->count(),
+    t('Files') => $container->count(),
     t('Size') => $container->size(TRUE),
   );
 
