@@ -172,7 +172,7 @@ class StorageSelector {
       $new_class = storage_class_load($form_item['class_id']);
       
       $message = 'Migrating ' . $num_files . ' ' . format_plural($num_files, 'file', 'files');
-      $message .= ' to storage class <i>' . $new_class->name() . '</i>.';
+      $message .= ' to storage class <i>' . check_plain($new_class->name) . '</i>.';
       
       drupal_set_message($message);
       watchdog('storage', $message, NULL);
@@ -214,7 +214,7 @@ class StorageSelector {
         ->execute();
         
       $message = 'Storage selector ' . check_plain($this->selector_id);
-      $message .= ' has been fully migrated to class <i>' . $this->storageClass()->name() . '</i>.';
+      $message .= ' has been fully migrated to class <i>' . check_plain($this->storageClass()->name) . '</i>.';
       
       watchdog('storage', $message, NULL);
     }
@@ -301,7 +301,7 @@ class StorageSelector {
         }
         catch (StorageException $e) {
           $message = 'Failed to create initial instance of file ' . $storage->filename;
-          $message .= ' in storage container <i>' . $initial_container->name() . '</i>.';
+          $message .= ' in storage container <i>' . check_plain($initial_container->name()) . '</i>.';
 
           if (user_access('administer storage')) {
             drupal_set_message($message);

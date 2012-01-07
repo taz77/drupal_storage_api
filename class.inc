@@ -44,10 +44,6 @@ class StorageClass {
     catch (StorageException $e) {}
   }
 
-  public function name() {
-    return check_plain($this->name);
-  }
-  
   public function path() {
     return 'admin/structure/storage/classes/' . $this->class_id;
   }
@@ -172,11 +168,14 @@ class StorageClass {
 
     cache_clear_all();
 
-    $message = 'Storage container <i>' . $container->name() . 
-      '</i> has been removed from class <i>' . $this->name() .'</i>.';
-      
-    drupal_set_message($message);
-    watchdog('storage', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $this->path()));
+    $message = "Storage container %container has been removed from class %class.";
+    $replacements = array(
+      '%container' => $container->name(),
+      '%class' => $this->name,
+    );
+
+    drupal_set_message(t($message, $replacements));
+    watchdog('storage', $message, $replacements, WATCHDOG_NOTICE, l(t('view'), $this->path()));
   }
   
   public function insert() {
@@ -190,10 +189,11 @@ class StorageClass {
   public function create() {
     $this->insert();
     
-    $msg = 'Storage class !class has been created.';
-    drupal_set_message(t($msg, array('!class' => $this->link())));
-    watchdog('storage', $msg, array('!class' => $this->name()), WATCHDOG_NOTICE, 
-      l(t('view'), $this->path()));
+    $message = "Storage class !class has been created.";
+    $replacements = array('!class' => $this->link());
+
+    drupal_set_message(t($message, $replacements));
+    watchdog('storage', $message, $replacements, WATCHDOG_NOTICE, l(t('view'), $this->path()));
   }
 
   public function delete() {

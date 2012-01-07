@@ -1,20 +1,23 @@
 <?php
 
-// Copyright 2010-2011 Jonathan Brown
+// Copyright 2010-2012 Jonathan Brown
 
 class StorageService {
   public $service_id;
-  public $info;
+  public $name;
+  public $class;
+  public $htaccess;
+  public $copy;
+  public $serve;
+  public $serve_secure;
 
   public function __construct($service_id) {
     $this->service_id = $service_id;
 
     $services = storage_service_info();
-    $this->info = $services[$this->service_id];
-  }
-  
-  public function name() {
-    return check_plain($this->info['name']);
+    foreach($services[$this->service_id] as $key => $value) {
+      $this->$key = $value;
+    }
   }
 
   public function check() {

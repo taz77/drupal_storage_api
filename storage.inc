@@ -249,7 +249,7 @@ class Storage {
       }
       catch (StorageException $e) {
         $message = 'Failed to create instance of file ' . ($this->filename ? ($this->filename . ' ') : '');
-        $message .= 'in storage container <i>' . $container->name() . '</i>.';
+        $message .= 'in storage container <i>' . check_plain($container->name()) . '</i>.';
 
         if (user_access('administer storage')) {
           drupal_set_message($message);
@@ -301,8 +301,8 @@ class Storage {
     module_invoke_all('storage_serving', $this, $container);
 
     if ($container) {
-      if (!$container->service()->info['serve'] ||
-        ($container->access_control && !$container->service()->info['serve_secure']))
+      if (!$container->service()->serve ||
+        ($container->access_control && !$container->service()->serve_secure))
       {
         // This will not return.
         $this->serveSecure($container);
@@ -364,8 +364,8 @@ class Storage {
 
     if (isset($container)) {
 
-      if ($container->service()->info['serve'] &&
-        (!$container->access_control || $container->service()->info['serve_secure']))
+      if ($container->service()->serve &&
+        (!$container->access_control || $container->service()->serve_secure))
       {
         $url = $container->serviceInstanceServe($container->reference);
       }

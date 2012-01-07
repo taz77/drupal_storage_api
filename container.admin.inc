@@ -5,7 +5,7 @@
 
 function storage_containers() {
 
-  $header = array(t('Container'), t('Service'), t('Access control'), t('Status'), t('Instances'), t('Size'));
+  $header = array(t('Container'), t('Access control'), t('Status'), t('Instances'), t('Size'));
 
   $result = $query = db_select('storage_container', NULL, array('fetch' => PDO::FETCH_ASSOC))
     ->fields('storage_container')
@@ -18,7 +18,6 @@ function storage_containers() {
 
     $rows[] = array(
       $container->link(),
-      $container->service()->name(),
       $container->access_control ? t('Yes') : t('No'),
       $container->status(),
       $container->count(),
@@ -77,13 +76,6 @@ function storage_create_container_form(array $form, array &$form_state) {
 
       $services = _storage_get_service_names();
 
-      $form['name'] = array(
-        '#title' => t('Name'),
-        '#type' => 'textfield',
-        '#required' => TRUE,
-        '#default_value' => isset($form_state['storage']['name']) ? $form_state['storage']['name'] : NULL,
-      );
-
       $form['service_id'] = array(
         '#type' => 'select',
         '#title' => t('Service'),
@@ -91,6 +83,13 @@ function storage_create_container_form(array $form, array &$form_state) {
         '#default_value' => isset($form_state['storage']['service_id']) ? $form_state['storage']['service_id'] : 'storage:fs',
       );
       
+      $form['name'] = array(
+        '#title' => t('Name'),
+        '#type' => 'textfield',
+        '#default_value' => isset($form_state['storage']['name']) ? $form_state['storage']['name'] : NULL,
+        '#description' => t("Optional"),
+      );
+
       $form['access_control'] = array(
         '#type' => 'checkbox',
         '#title' => t('Access control'),
@@ -110,11 +109,11 @@ function storage_create_container_form(array $form, array &$form_state) {
     
       $container = storage_container_new($form_state['storage'], FALSE);
     
-      $service_name = $container->service()->name();
-    
+      $service_name = check_plain($container->service()->name);
+
       $info = array(
-        t('Name') => $container->name(),
         t('Service') => $service_name,
+        t('Name') => check_plain($container->name),
         t('Access control') => $container->access_control ? t('Yes') : t('No'),
       );
 
@@ -170,7 +169,7 @@ function storage_create_container_form_validate(array $form, array &$form_state)
         $service->check();
       }
       catch (StorageException $e) {
-        $message = $service->name() . ' ' . t('service is not set up properly.') . '<br />';
+        $message = check_plain($service->name) . ' ' . t('service is not set up properly.') . '<br />';
         $message .= $e->getMessage();
         form_set_error('service_id', $message);
       }
@@ -246,7 +245,8 @@ function storage_container_form(array $form, array &$form_state, StorageContaine
   $form['#container'] = $container;
 
   $info = array(
-    t('Service') => $container->service()->name(),
+    t('Service') => check_plain($container->service()->name),
+    t('Name') => check_plain($container->name),
     t('Access control') => $container->access_control ? t('Yes') : t('No'),
     t('External') => $container->external ? t('Yes') : t('No'),
     t('Status') => $container->status(),
@@ -321,7 +321,7 @@ function storage_container_form_unsuspend(array $form, array &$form_state) {
 function storage_container_suspend_form(array $form, array &$form_state, StorageContainerInterface $container) {
   $form['#container'] = $container;
 
-  return confirm_form($form, 'Are you sure you want to suspend storage container <i>' . $container->name() . '</i> ?', 
+  return confirm_form($form, 'Are you sure you want to suspend storage container <i>' . check_plain($container->name()) . '</i> ?', 
     $container->path(), t(''));
 }
 
@@ -338,7 +338,7 @@ function storage_container_suspend_form_submit(array $form, array &$form_state) 
   $container->update();
   $container->flushServingContainer();
 
-  $message = 'Storage container <i>' . $container->name() . '</i> has been suspended.';
+  $message = 'Storage container <i>' . check_plain($container->name()) . '</i> has been suspended.';
 
   drupal_set_message($message);
   watchdog('storage', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $container->path()));
@@ -357,7 +357,7 @@ function storage_container_unsuspend_form(array $form, array &$form_state, Stora
   $form['#container'] = $container;
 
   return confirm_form($form, 'Are you sure you want to unsuspend storage container <i>' . 
-    $container->name() . '</i> ?', $container->path(), t(''));
+    check_plain($container->name()) . '</i> ?', $container->path(), t(''));
 }
 
 
@@ -373,7 +373,7 @@ function storage_container_unsuspend_form_submit(array $form, array &$form_state
   $container->update();
   $container->flushServingContainer();
 
-  $message = 'Storage container <i>' . $container->name() . '</i> has been unsuspended.';
+  $message = 'Storage container <i>' . check_plain($container->name()) . '</i> has been unsuspended.';
 
   drupal_set_message($message);
   watchdog('storage', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $container->path()));
@@ -458,13 +458,13 @@ function storage_container_edit_form(array $form, array &$form_state, StorageCon
   $form['name'] = array(
     '#title' => 'Name',
     '#type' => 'textfield',
-    '#required' => TRUE,
     '#default_value' => $container->name,
+    '#description' => t("Optional"),
   );
 
   $form['settings'] = array(
     '#type' => 'fieldset',
-    '#title' => $container->service()->name() . t(' settings'),
+    '#title' => check_plain($container->service()->name) . t(' settings'),
     '#tree' => TRUE,
   );
   
@@ -525,7 +525,7 @@ function storage_container_edit_form_submit(array $form, array &$form_state) {
   $container->update();
   $container->flushServingContainer();
 
-  $message = 'Storage container <i>' . $container->name() . '</i> has been updated.';
+  $message = 'Storage container <i>' . check_plain($container->name()) . '</i> has been updated.';
 
   drupal_set_message($message);
   watchdog('storage', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $container->path()));

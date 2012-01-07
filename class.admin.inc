@@ -77,8 +77,9 @@ function storage_create_class_form(array $form, array &$form_state) {
     
   $containers = array();
  
-  foreach ($result as $container) {
-    $containers[$container['container_id']] = $container['name'];
+  foreach ($result as $fields) {
+    $container = storage_container_new($fields);
+    $containers[$container->container_id] = check_plain($container->name());
   }
 
   $form['initial_container_id'] = array(
@@ -195,7 +196,6 @@ function storage_class(StorageClass $class) {
     $container = storage_container_load($container_info['container_id']);
     
     $row[] = $container->link();
-    $row[] = $container->service()->name();
     $row[] = $container_info['propagate'] ? t('Yes') : t('No');
     $row[] = $container_info['serving'] ? t('Yes') : t('No');
     $row[] = $container_info['remove'] ? t('Yes') : t('No');
@@ -209,7 +209,7 @@ function storage_class(StorageClass $class) {
     $rows[] = array(array('data' => t('There are no containers in this class.'), 'colspan' => 7, 'class' => 'message'));
   }
 
-  $header = array(t('Container'), t('Service'), t('Propagate'), t('Serving'), t('Remove'), t('Files'), t('Size'));
+  $header = array(t('Container'), t('Propagate'), t('Serving'), t('Remove'), t('Files'), t('Size'));
   
   $output .= theme('table', array(
     'header' => $header, 
@@ -258,7 +258,7 @@ function storage_class_edit_form(array $form, array &$form_state, StorageClass $
     );
 
     $form['services'][$container->container_id] = array(
-      '#markup' => $container->service()->name(),
+      '#markup' => check_plain($container->service()->name),
     );
 
     $form['weights'][$container->container_id] = array(
@@ -296,8 +296,9 @@ function storage_class_edit_form(array $form, array &$form_state, StorageClass $
     
   $containers = array();
  
-  foreach ($result as $container) {
-    $containers[$container['container_id']] = $container['name'];
+  foreach ($result as $fields) {
+    $container = storage_container_new($fields);
+    $containers[$container->container_id] = check_plain($container->name());
   }
 
   $form['initial_container_id'] = array(
@@ -423,10 +424,11 @@ function storage_class_edit_form_submit(array $form, array &$form_state) {
   
   cache_clear_all();
   
-  $message = 'Storage class <i>' . $class->name() . '</i> has been updated.';
+  $message = "Storage class %name has been updated.";
+  $replacements = array('%name' => $class->name);
 
-  drupal_set_message($message);
-  watchdog('storage', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $class->path()));
+  drupal_set_message(t($message, $replacements));
+  watchdog('storage', $message, $replacements, WATCHDOG_NOTICE, l(t('view'), $class->path()));
 
   $form_state['redirect'] = $class->path();
 }
@@ -504,8 +506,9 @@ function storage_class_add_container_form(array $form, array &$form_state, Stora
     
   $containers = array();
  
-  foreach ($result as $container) {
-    $containers[$container['container_id']] = $container['name'];
+  foreach ($result as $fields) {
+    $container = storage_container_new($fields);
+    $containers[$container->container_id] = check_plain($container->name());
   }
   
   if(count($containers) == 0) {

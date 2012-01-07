@@ -1,6 +1,6 @@
 <?php
 
-// Copyright 2008-2011 Jonathan Brown
+// Copyright 2008-2012 Jonathan Brown
 
 
 class StorageS3CloudFront extends StorageContainer implements StorageContainerInterface {
@@ -345,7 +345,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageContainerIn
     $this->settings['cloudfront_status'] = (string) $result['simplexml']->Status;
     $this->settings['cloudfront_domain'] = (string) $result['simplexml']->DomainName;
 
-    $message = 'Added CloudFront distribution to storage container <i>' . $this->name() . '</i>.';
+    $message = 'Added CloudFront distribution to storage container <i>' . check_plain($this->name()) . '</i>.';
 
     drupal_set_message($message);
     watchdog('storage_s3', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $this->path()));
@@ -371,7 +371,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageContainerIn
     $this->settings['cloudfront_streaming_status'] = (string) $result['simplexml']->Status;
     $this->settings['cloudfront_streaming_domain'] = (string) $result['simplexml']->DomainName;
 
-    $message = 'Added CloudFront streaming distribution to storage container <i>' . $this->name() . '</i>.';
+    $message = 'Added CloudFront streaming distribution to storage container <i>' . check_plain($this->name()) . '</i>.';
 
     drupal_set_message($message);
     watchdog('storage_s3', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $this->path()));
@@ -387,7 +387,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageContainerIn
     
     if ($result['http_code'] != 200) {
       $this->settings['cloudfront'] = FALSE;
-      $message = 'Failed to deploy CloudFront distribution for storage container <i>' . $this->name() . '</i>.';
+      $message = 'Failed to deploy CloudFront distribution for storage container <i>' . check_plain($this->name()) . '</i>.';
     }
     else {
       $this->settings['cloudfront_status'] = (string) $result['simplexml']->Status;
@@ -396,7 +396,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageContainerIn
         return;
       }
 
-      $message = 'Deployed CloudFront distribution for storage container <i>' . $this->name() . '</i>.';
+      $message = 'Deployed CloudFront distribution for storage container <i>' . check_plain($this->name()) . '</i>.';
     }
 
     $this->update();
@@ -415,7 +415,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageContainerIn
     
     if ($result['http_code'] != 200) {
       $this->settings['cloudfront_streaming'] = FALSE;
-      $message = 'Failed to deploy CloudFront streaming distribution for storage container <i>' . $this->name() . '</i>.';
+      $message = 'Failed to deploy CloudFront streaming distribution for storage container <i>' . check_plain($this->name()) . '</i>.';
     }
     else {
       $this->settings['cloudfront_streaming_status'] = (string) $result['simplexml']->Status;
@@ -424,7 +424,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageContainerIn
         return;
       }
 
-      $message = 'Deployed CloudFront streaming distribution for storage container <i>' . $this->name() . '</i>.';
+      $message = 'Deployed CloudFront streaming distribution for storage container <i>' . check_plain($this->name()) . '</i>.';
     }
 
     $this->update();
@@ -460,7 +460,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageContainerIn
       $result = $this->requestCloudFront('PUT', FALSE, $xml);
 
       if ($result['http_code'] == 200) {
-        $message = 'Disabled CloudFront distribution for container <i>' . $this->name() . '</i>.';
+        $message = 'Disabled CloudFront distribution for container <i>' . check_plain($this->name()) . '</i>.';
         watchdog('storage_s3', $message, NULL, WATCHDOG_NOTICE);
       }
     }
@@ -468,7 +468,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageContainerIn
       $result = $this->requestCloudFront('DELETE');
 
       if ($result['http_code'] == 204) {
-        $message = 'Deleted CloudFront distribution for container <i>' . $this->name() . '</i>.';
+        $message = 'Deleted CloudFront distribution for container <i>' . check_plain($this->name()) . '</i>.';
         watchdog('storage_s3', $message, NULL, WATCHDOG_NOTICE);
         return;
       }
@@ -504,7 +504,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageContainerIn
       $result = $this->requestCloudFront('PUT', TRUE, $xml);
 
       if ($result['http_code'] == 200) {
-        $message = 'Disabled CloudFront streaming distribution for container <i>' . $this->name() . '</i>.';
+        $message = 'Disabled CloudFront streaming distribution for container <i>' . check_plain($this->name()) . '</i>.';
         watchdog('storage_s3', $message, NULL, WATCHDOG_NOTICE);
       }
     }
@@ -512,7 +512,7 @@ class StorageS3CloudFront extends StorageContainer implements StorageContainerIn
       $result = $this->requestCloudFront('DELETE', TRUE);
 
       if ($result['http_code'] == 204) {
-        $message = 'Deleted CloudFront streaming distribution for container <i>' . $this->name() . '</i>.';
+        $message = 'Deleted CloudFront streaming distribution for container <i>' . check_plain($this->name()) . '</i>.';
         watchdog('storage_s3', $message, NULL, WATCHDOG_NOTICE);
         return;
       }

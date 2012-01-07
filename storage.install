@@ -96,13 +96,13 @@ function storage_schema() {
   $schema['storage_container'] = array(
     'fields' => array(
       'container_id' => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
-      'name' => array(
-        'type' => 'varchar', 'length' => 255, 'not null' => TRUE,
-        'mysql_type' => 'varchar(255) CHARACTER SET utf8 COLLATE utf8_bin',
-      ),
       'service_id' => array(
         'type' => 'varchar', 'length' => 255, 'not null' => TRUE,
         'mysql_type' => 'varchar(255) CHARACTER SET ascii COLLATE ascii_bin',
+      ),
+      'name' => array(
+        'type' => 'varchar', 'length' => 255, 'not null' => TRUE,
+        'mysql_type' => 'varchar(255) CHARACTER SET utf8 COLLATE utf8_bin',
       ),
       'access_control' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0),
       'external' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0),

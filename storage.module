@@ -263,7 +263,7 @@ function storage_service_load($service_id) {
 
 function storage_service_title(StorageService $service) {
 
-  return $service->name();
+  return check_plain($service->name);
 }
 
 
@@ -328,7 +328,7 @@ function storage_container_new(array $fields, $unserialize = TRUE) {
 
 function storage_container_title(StorageContainerInterface $container) {
 
-  return $container->name();
+  return check_plain($container->name());
 }
 
 
@@ -372,7 +372,7 @@ function storage_class_menu_load($class_id) {
 
 function storage_class_title(StorageClass $class) {
 
-  return $class->name();
+  return check_plain($class->name);
 }
 
 
@@ -486,7 +486,7 @@ function storage_service_info() {
 
 function storage_container_class($service_id) {
   $service = storage_service_load($service_id);
-  return $service->info['class'];
+  return $service->class;
 }
 
 
@@ -704,6 +704,10 @@ function theme_storage_info_table(array $variables) {
   $rows = array();
 
   foreach ($variables['info'] as $key => $value) {
+    if ($value === '') {
+      continue;
+    }
+
     $rows[] = array(
       array(
         'data' => $key . ':',

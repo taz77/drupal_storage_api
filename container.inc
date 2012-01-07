@@ -95,9 +95,9 @@ abstract class StorageContainer {
       $this->serviceCreate();
     }
     catch (StorageException $e) {
-      $msg = 'Failed to create storage container !container.';
-      watchdog('storage', $msg, array('!container' => $this->name()), WATCHDOG_ERROR);
-      throw new StorageException(t($msg, array('!container' => $this->name())));
+      $msg = 'Failed to create storage container @container.';
+      watchdog('storage', $msg, array('@container' => $this->name()), WATCHDOG_ERROR);
+      throw new StorageException(t($msg, array('@container' => $this->name())));
     }
     
     drupal_write_record('storage_container', $this);
@@ -106,18 +106,18 @@ abstract class StorageContainer {
       $this->update();
     }
     
-    if ($this->service()->info['htaccess']) {
+    if ($this->service()->htaccess) {
       $this->htaccessCreate();
     }
 
     $msg = 'Storage container !container has been created.';
     drupal_set_message(t($msg, array('!container' => $this->link())));
-    watchdog('storage', $msg, array('!container' => $this->name()), WATCHDOG_NOTICE, 
+    watchdog('storage', $msg, array('!container' => check_plain($this->name())), WATCHDOG_NOTICE, 
       l(t('view'), $this->path()));
   }
 
   public function name() {
-    return check_plain($this->name);
+    return $this->service()->name . ($this->name ? (' - ' . $this->name) : '');
   }
   
   public function path() {
@@ -125,7 +125,7 @@ abstract class StorageContainer {
   }
   
   public function link() {
-    return l($this->name, $this->path());
+    return l($this->name(), $this->path());
   }
   
   public function update() {
@@ -266,7 +266,7 @@ abstract class StorageContainer {
     }
     
     // Is it possible to short circuit?
-    if ($this->service()->info['copy'] && !$check) {
+    if ($this->service()->copy && !$check) {
       if ($this->tryInstanceCopy($storage)) {
         return;
       }
@@ -398,7 +398,7 @@ abstract class StorageContainer {
 
   public function instanceLink($reference) {
 
-    if ($this->service()->info['serve']) {
+    if ($this->service()->serve) {
       return l($reference, $this->serviceInstanceServe($reference));
     }
     else {
@@ -459,7 +459,7 @@ abstract class StorageContainer {
         ->execute();
     }
 
-    $message = 'Storage container <i>' . $this->name() . '</i> has been destroyed.';
+    $message = 'Storage container <i>' . check_plain($this->name()) . '</i> has been destroyed.';
     drupal_set_message($message);
     watchdog('storage', $message, NULL);
   }
@@ -527,7 +527,7 @@ abstract class StorageContainer {
 
   public function logInfo() {
 
-    $info = 'container: ' . $this->name() . ', <br />';
+    $info = 'container: ' . check_plain($this->name()) . ', <br />';
 
     return $info;
   }

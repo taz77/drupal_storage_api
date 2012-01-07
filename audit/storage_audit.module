@@ -86,7 +86,7 @@ function storage_audit_form(array $form, array &$form_state, StorageContainerInt
   );
   
   $info = array(
-    t("Service") => $container->service()->name(),
+    t("Service") => check_plain($container->service()->name),
     t("Files") => $container->count(),
     t("Size") => $container->size(TRUE),
     t("Audited") => isset($audited) ? format_date($audited) : t("No"),
@@ -286,7 +286,7 @@ function storage_audit(StorageContainerInterface $container, array &$context) {
 
     // If the file is called .htaccess and this container is supposed to have a
     // .htaccess file, then just ignore it.
-    if ($reference == '.htaccess' && $container->service()->info['htaccess']) {
+    if ($reference == '.htaccess' && $container->service()->htaccess) {
       continue;
     }
 
