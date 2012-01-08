@@ -793,7 +793,7 @@ function storage_temp_uri() {
 
 function storage_new_local_storage_path() {
 
-  return file_create_filename('storage', conf_path());
+  return file_create_filename('storage', variable_get('file_public_path', conf_path() . '/files'));
 }
 
 

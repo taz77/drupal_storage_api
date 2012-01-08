@@ -6,13 +6,19 @@
 class StorageFS extends StorageContainer implements StorageContainerInterface {
 
   public function serviceSettingsForm($edit = FALSE) {
+    // Add defaults.
+    if (!isset($this->settings['path'])) {
+      $this->settings['path'] = storage_new_local_storage_path();
+    }
+    if (!isset($this->settings['base_url'])) {
+      $this->settings['base_url'] = $this->settings['path'];
+    }
 
     $items['path'] = array(
       '#type' => 'textfield',
       '#title' => t('Directory path'),
       '#description' => t("Can be absolute or relative."),
-      '#default_value' => isset($this->settings['path']) ? $this->settings['path'] : 
-        storage_new_local_storage_path(),
+      '#default_value' => $this->settings['path'],
       '#required' => TRUE,
       '#validated' => TRUE,
     );
@@ -30,8 +36,7 @@ class StorageFS extends StorageContainer implements StorageContainerInterface {
         '#type' => 'textfield',
         '#title' => t('Base URL path'),
         '#description' => t($description),
-        '#default_value' => isset($this->settings['base_url']) ? $this->settings['base_url'] : 
-          $items['path']['#default_value'],
+        '#default_value' => $this->settings['base_url'],
       );
     }
 
