@@ -77,8 +77,10 @@ function storage_core_bridge_field_delete_field(array $field) {
  * Implements hook_stream_wrappers().
  */
 function storage_core_bridge_stream_wrappers() {
+  $fields = variable_get('storage_core_bridge_fields');
+  $wrappers = array();
 
-  // Work out which selector streamwrapper should be visible.
+  // Work out which selector stream wrapper should be visible.
   if (strpos($_GET['q'], 'admin/structure/types/manage/') === 0 && arg(5) == 'fields') {
     $active_field = arg(6);
   }
@@ -93,17 +95,27 @@ function storage_core_bridge_stream_wrappers() {
     $active_field = FALSE;
   }
 
-  $fields = variable_get('storage_core_bridge_fields');
-  $wrappers = array();
-  
-  foreach ($fields as $field) {
-
-    $wrappers['storage-' . str_replace('_', '-', $field)] = array(
-      'name' => t("Storage class (select below)"),
-      'class' => 'DrupalStorageStreamWrapper',
-      'description' => t("Files managed by Storage API."),
-      'type' => (is_null($active_field) || ($field == $active_field)) ? STREAM_WRAPPERS_NORMAL : STREAM_WRAPPERS_HIDDEN,
-    );
+  // The Media module erroneously lists hidden schemes, so only declare the
+  // active one on field admin pages.
+  if ($active_field) {
+    if (in_array($active_field, $fields)) {
+      $wrappers['storage-' . str_replace('_', '-', $active_field)] = array(
+        'name' => t("Storage class (select below)"),
+        'class' => 'DrupalStorageStreamWrapper',
+        'description' => t("Files managed by Storage API."),
+        'type' => STREAM_WRAPPERS_NORMAL,
+      );
+    }
+  }
+  else {
+    foreach ($fields as $field) {
+      $wrappers['storage-' . str_replace('_', '-', $field)] = array(
+        'name' => t("Storage class (select below)"),
+        'class' => 'DrupalStorageStreamWrapper',
+        'description' => t("Files managed by Storage API."),
+        'type' => is_null($active_field) ? STREAM_WRAPPERS_NORMAL : STREAM_WRAPPERS_HIDDEN,
+      );
+    }
   }
 
   return $wrappers;
