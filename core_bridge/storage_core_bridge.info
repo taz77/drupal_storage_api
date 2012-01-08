@@ -1,5 +1,5 @@
 name = Core bridge
-description = "Allows files managed by Drupal core to be stored and served by Storage API."
+description = "Allows file and image fields to utilise Storage API."
 package = Storage API
 dependencies[] = storage
 dependencies[] = field

@@ -1,6 +1,16 @@
 <?php
 
-// Copyright 2010-2011 Jonathan Brown
+/**
+ * @file
+ * Storage API core bridge module file.
+ *
+ * Do not use this module as an example of how a module should utilise Storage
+ * API. Its purpose is to work with the existing file and image field modules.
+ * Normally a module would utilise Storage API directly, rather than via stream
+ * wrappers.
+ */
+ 
+// Copyright 2010-2012 Jonathan Brown
 
 
 function storage_core_bridge_field_selector($field_name) {
