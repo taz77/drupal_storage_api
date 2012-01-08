@@ -1,6 +1,6 @@
 <?php
 
-// Copyright 2008-2011 Jonathan Brown
+// Copyright 2008-2012 Jonathan Brown
 
 
 /**
@@ -406,9 +406,9 @@ function storage_storage_services() {
       'name' => t('Rackspace Cloud Files'),
       'class' => 'StorageRackspace',
     ),
-    's3_cloudfront' => array(
-      'name' => t('Amazon S3 / CloudFront'),
-      'class' => 'StorageS3CloudFront',
+    's3' => array(
+      'name' => t("Amazon S3"),
+      'class' => 'StorageS3',
       'copy' => TRUE,
       'serve_secure' => TRUE,
     ),
