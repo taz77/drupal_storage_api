@@ -51,14 +51,14 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
             $components[] = 'x-amz-acl:public-read';
           }
 
-          if (!empty($this->settings['reduced_redundancy'])) {
-            $headers[] = 'x-amz-storage-class: REDUCED_REDUNDANCY';
-            $components[] = 'x-amz-storage-class:REDUCED_REDUNDANCY';
-          }
-
           if (isset($storage->copy_source)) {
             $headers[] = 'x-amz-copy-source: ' . $storage->copy_source;
             $components[] = 'x-amz-copy-source:' . $storage->copy_source;
+          }
+
+          if (!empty($this->settings['reduced_redundancy'])) {
+            $headers[] = 'x-amz-storage-class: REDUCED_REDUNDANCY';
+            $components[] = 'x-amz-storage-class:REDUCED_REDUNDANCY';
           }
         }
 
@@ -114,7 +114,7 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
       $object_name = '/' . $object_name;
     
     $components[] = '/' . $bucket . drupal_encode_path($object_name);
-    
+
     $signature = $this->signature(implode("\n", $components));
     $headers[] = 'Authorization: AWS ' . $this->settings['access_key_id'] . ':' . $signature;
 
@@ -810,8 +810,8 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
     $reference = $this->uniqueFilename($storage->filename);
 
     $storage->copy_source = '/' . $source_container->settings['bucket'] . '/' . $source_container->reference;
-    
     $result = $this->request('PUT', $this->settings['bucket'], $reference, $storage);
+    unset($storage->copy_source);
     
     if ($result['http_code'] == 200 && $result['simplexml']) {
 
