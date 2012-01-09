@@ -734,7 +734,7 @@ class Storage {
     $this->destroyUnrequiredInstances($container_ids);
     
     if ($this->selector_id) {
-      unset($this->initial_container_id);
+      $this->initial_container_id = NULL;
       $this->status = STORAGE_STATUS_IDLE;
       $this->update();
     }
