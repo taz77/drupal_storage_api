@@ -1,6 +1,5 @@
 <?php
 
-// Copyright 2010-2011 Jonathan Brown
 
 abstract class StorageContainer {
 

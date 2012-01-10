@@ -1,7 +1,5 @@
 <?php
 
-// Copyright 2009-2011 Jonathan Brown
-
 
 class StorageRackspace extends StorageContainer implements StorageContainerInterface {
   private $conn;

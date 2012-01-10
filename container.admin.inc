@@ -1,7 +1,5 @@
 <?php
 
-// Copyright 2008-2012 Jonathan Brown
-
 
 function storage_containers() {
 

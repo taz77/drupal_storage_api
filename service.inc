@@ -1,6 +1,5 @@
 <?php
 
-// Copyright 2010-2012 Jonathan Brown
 
 class StorageService {
   public $service_id;

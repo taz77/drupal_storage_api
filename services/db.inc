@@ -1,7 +1,5 @@
 <?php
 
-// Copyright 2008-2010 Jonathan Brown
-
 
 class StorageDB extends StorageContainer implements StorageContainerInterface {
 

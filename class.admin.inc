@@ -1,7 +1,5 @@
 <?php
 
-// Copyright 2008-2012 Jonathan Brown
-
 
 function _storage_classes_query() {
 

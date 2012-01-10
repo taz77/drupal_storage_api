@@ -1,7 +1,5 @@
 <?php
 
-// Copyright 2011 Jonathan Brown
-
 
 /**
  * Implements hook_schema()

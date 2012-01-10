@@ -1,7 +1,5 @@
 <?php
 
-// Copyright 2008-2012 Jonathan Brown
-
 
 class StorageS3 extends StorageContainer implements StorageContainerInterface {
 

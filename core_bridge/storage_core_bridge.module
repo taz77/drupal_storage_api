@@ -10,8 +10,6 @@
  * wrappers.
  */
  
-// Copyright 2010-2012 Jonathan Brown
-
 
 function storage_core_bridge_field_selector($field_name) {
 

@@ -1,7 +1,5 @@
 <?php
 
-// Copyright 2008-2011 Jonathan Brown
-
 
 function _storage_remove_containers() {
 

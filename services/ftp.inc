@@ -1,7 +1,5 @@
 <?php
 
-// Copyright 2009-2011 Jonathan Brown
-
 
 class StorageFTP extends StorageContainer implements StorageContainerInterface {
 
