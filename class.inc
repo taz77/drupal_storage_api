@@ -28,7 +28,7 @@ class StorageClass {
         throw new StorageException();
       }
 
-      $class['options'] = unserialize($class['options']);
+      storage_unserialize_class_options($class['options']);
     }
     
     foreach ($class as $key => $value) {
@@ -225,14 +225,29 @@ class StorageClass {
       'redirect' => array(
         '#title' => t('Serve by redirection'),
         '#type' => 'checkbox',
-        '#default_value' => isset($this->options['redirect']) ? $this->options['redirect'] : FALSE,
+        '#default_value' => $this->options['redirect'],
       ),
       'serve_source_uri' => array(
-        '#title' => t('Serve source url'),
+        '#title' => t('Serve source URL'),
         '#type' => 'checkbox',
-        '#default_value' => isset($this->options['serve_source_uri']) ? $this->options['serve_source_uri'] : FALSE,
+        '#default_value' => $this->options['serve_source_uri'],
         '#description' => t('If no instances are available, serve the source url.'),
-      )
+      ),
+    );
+
+    // Are data URIs supported?
+    $description = '';
+
+    if (!storage_test_theme_image_data_uri()) {
+      $description = t("Not supported by Drupal core installation.") . '<br />';
+    }
+    $description .= t("See !link.", array('!link' => storage_data_uri_doc_link()));
+
+    $form['options']['data_uri'] = array(
+      '#title' => t("Serve as data URI"),
+      '#type' => 'checkbox',
+      '#default_value' => $this->options['data_uri'],
+      '#description' => $description,
     );
 
     return $form;

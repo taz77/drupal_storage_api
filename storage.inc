@@ -53,7 +53,7 @@ class Storage {
     }
 
     if (isset($storage['options'])) {
-      $storage['options'] = unserialize($storage['options']);
+      storage_unserialize_class_options($storage['options']);
     }
 
     if (isset($storage['serving_container'])) {
@@ -163,7 +163,6 @@ class Storage {
    *   When there is no container instance.
    */
   public function selectContainerInstance($serving = FALSE) {
-
     // Avoid querying the database altogether if there is no file_id. This is
     // also currently necessary due to a core bug:
     // http://drupal.org/node/813540
@@ -330,10 +329,19 @@ class Storage {
     drupal_exit();
   }
 
+  private function dataUri(StorageContainerInterface $container) {
+    $uri = 'data:' . str_replace(' ', '', $this->mimetype);
+    $uri .= ';base64,';
+    $uri .= base64_encode($container->serviceInstanceGetContents($container->reference));
+    return $uri;
+  }
+
   /**
    * Generates a URL that will serve the supplied file.
    *
-   * If the files's class is set to serve by redirection, then the URL will be on your site. Otherwise, Storage API will determine which container to serve from and generate a direct URL.
+   * If the files's class is set to serve by redirection, then the URL will be
+   * on your site. Otherwise, Storage API will determine which container to
+   * serve from and generate a direct URL.
    *
    * @param $absolute
    *   Whether the generated URL should be absolute.
@@ -366,14 +374,19 @@ class Storage {
       if ($container->service()->serve &&
         (!$container->access_control || $container->service()->serve_secure))
       {
-        $url = $container->serviceInstanceServe($container->reference);
+        if ($this->options['data_uri']) {
+          $url = $this->dataUri($container);
+        }
+        else {
+          $url = $container->serviceInstanceServe($container->reference);
+        }
       }
     }
     elseif ($this->options['serve_source_uri'] && $this->source_uri) {
 
       $url = file_create_url($this->source_uri);
     }
-    
+
     if (!isset($url)) {
       $url = $this->path();
     }

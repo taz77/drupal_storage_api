@@ -18,15 +18,17 @@ class StorageSelector {
   /**
    * Creates a new class selector.
    */
-  public function create() {
-  
-    $class_id = db_select('storage_class')
-      ->fields('storage_class', array('class_id'))
-      ->orderBy('name')
-      ->orderBy('class_id')
-      ->range(0, 1)
-      ->execute()
-      ->fetchField();
+  public function create($class_id = NULL) {
+
+    if (!$class_id) {
+      $class_id = db_select('storage_class')
+        ->fields('storage_class', array('class_id'))
+        ->orderBy('name')
+        ->orderBy('class_id')
+        ->range(0, 1)
+        ->execute()
+        ->fetchField();
+    }
       
     db_insert('storage_selector')
       ->fields(array(

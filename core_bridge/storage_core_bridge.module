@@ -17,11 +17,15 @@ function storage_core_bridge_field_selector($field_name) {
 }
 
 
-function storage_core_bridge_image_style_selector($isid = 'null') {
+function storage_core_bridge_image_style_selector($isid) {
 
   return storage_selector('storage_core_bridge', 'image_style:' . $isid);
 }
 
+function storage_core_bridge_image_style_default_selector($isid) {
+
+  return storage_selector('storage_core_bridge', 'image_style_default:' . $isid);
+}
 
 function storage_core_bridge_field_selector_create($field_name) {
 
@@ -31,7 +35,6 @@ function storage_core_bridge_field_selector_create($field_name) {
   $fields[] = $field_name;
   variable_set('storage_core_bridge_fields', $fields);
 }
-
 
 function storage_core_bridge_field_selector_destroy($field_name) {
 
@@ -127,6 +130,7 @@ function storage_core_bridge_image_style_save(array $style) {
 
   if (isset($style['is_new'])) {
     storage_core_bridge_image_style_selector($style['isid'])->create();
+    storage_core_bridge_image_style_default_selector($style['isid'])->create();
   }
 }
 
@@ -136,6 +140,7 @@ function storage_core_bridge_image_style_save(array $style) {
  */
 function storage_core_bridge_image_style_delete(array $style) {
   storage_core_bridge_image_style_selector($style['isid'])->destroy();
+  storage_core_bridge_image_style_default_selector($style['isid'])->destroy();
 }
 
 
@@ -149,6 +154,7 @@ function storage_core_bridge_form_image_style_revert_form_alter(array &$form, ar
 
 function storage_core_bridge_image_style_revert_form_submit(array $form, array &$form_state) {
   storage_core_bridge_image_style_selector($form_state['image_style']['isid'])->destroy();
+  storage_core_bridge_image_style_default_selector($form_state['image_style']['isid'])->destroy();
 }
 
 
@@ -209,18 +215,40 @@ function storage_core_bridge_form_image_style_form_alter(array &$form, array &$f
   $form['storage_api'] = array(
     '#type' => 'fieldset',
     '#title' => t("Storage API"),
-    '#description' => t("These settings only apply to styled images which are derived from images managed by Storage API."),
   );
 
   if ($form_state['image_style']['storage'] & IMAGE_STORAGE_EDITABLE) {
+    $form['storage_api']['#description'] = t("These settings only apply to styled images which are derived from images managed by Storage API.");
     $form['storage_api']['storage_class'] =
-      storage_core_bridge_image_style_selector($form_state['image_style']['isid'])->formItem();
+      storage_core_bridge_image_style_selector($form_state['image_style']['isid'])->formItem("Storage class for styled images");
+
+    $form['storage_api']['default_images'] = array(
+      '#title' => t("Default images"),
+      '#type' => 'fieldset',
+      '#collapsible' => TRUE,
+      '#collapsed' => TRUE,
+    );
+
+    $form['storage_api']['default_images']['separate_storage_class'] = array(
+      '#title' => t("Separate class for styled default images (select below)"),
+      '#type' => 'checkbox',
+    );
+
+    $form['storage_api']['default_images']['storage_class'] =
+      storage_core_bridge_image_style_default_selector($form_state['image_style']['isid'])->formItem("Storage class for styled default images");
+
+    if ($form['storage_api']['storage_class']['class_id']['#default_value'] != 
+      $form['storage_api']['default_images']['storage_class']['class_id']['#default_value'])
+    {
+      $form['storage_api']['default_images']['#collapsible'] = FALSE;
+      $form['storage_api']['default_images']['#collapsed'] = FALSE;
+      $form['storage_api']['default_images']['separate_storage_class']['#default_value'] = TRUE;
+    }
+
     $form['#submit'][] = 'storage_core_bridge_image_style_form_submit';
   }
   else {
-    $form['storage_api']['#disabled'] = TRUE;
-    $description = t("As this image style is being provided by a module, the storage class of the parent image will also be used for its derived images.");
-    $form['storage_api']['storage_class'] = storage_core_bridge_image_style_selector()->formItem(NULL, $description);
+    $form['storage_api']['#description'] = t("As this image style is being provided by a module, the storage class of the parent image will also be used for its derived images.");
   }
 }
 
@@ -229,27 +257,19 @@ function storage_core_bridge_image_style_form_submit(array $form, array &$form_s
 
   storage_core_bridge_image_style_selector($form_state['image_style']['isid'])
     ->submit($form_state['values']['storage_api']['storage_class']);
-}
 
+  if (!$form_state['values']['storage_api']['default_images']['separate_storage_class']) {
 
-function storage_core_bridge_storage_id($uri) {
-
-  $storage_id = db_select('storage_core_bridge')
-    ->fields('storage_core_bridge', array('storage_id'))
-    ->condition('uri', $uri)
-    ->execute()
-    ->fetchField();
-
-  if (!$storage_id) {
-    throw new StorageException();
+    $form_state['values']['storage_api']['default_images']['storage_class']['class_id'] = 
+      $form_state['values']['storage_api']['storage_class']['class_id'];
   }
 
-  return $storage_id;
+  storage_core_bridge_image_style_default_selector($form_state['image_style']['isid'])
+    ->submit($form_state['values']['storage_api']['default_images']['storage_class']);
 }
 
-
 /**
- * Loads a storage a URI.
+ * Loads a storage from its URI.
  *
  * @param $uri
  *   The URI of the storage to load.
@@ -262,7 +282,13 @@ function storage_core_bridge_storage_id($uri) {
  */
 function storage_core_bridge_load($uri) {
 
-  return storage_load(storage_core_bridge_storage_id($uri));
+  $storage_id = db_select('storage_core_bridge')
+    ->fields('storage_core_bridge', array('storage_id'))
+    ->condition('uri', $uri)
+    ->execute()
+    ->fetchField();
+
+  return storage_load($storage_id);
 }
 
 
@@ -329,7 +355,13 @@ function storage_core_bridge_styled_image_create($uri) {
   $style = image_style_load($style_name);
 
   if ($style['storage'] & IMAGE_STORAGE_EDITABLE) {
-    $selector = storage_core_bridge_image_style_selector($style['isid']);
+    // Are we rendering a default image?
+    if (strpos($parent->filename, 'default_images/') === 0) {
+      $selector = storage_core_bridge_image_style_default_selector($style['isid']);
+    }
+    else {
+      $selector = storage_core_bridge_image_style_selector($style['isid']);
+    }
   }
   else {
     $field_name = storage_core_bridge_uri_field_name($uri);
@@ -384,7 +416,10 @@ function storage_core_bridge_image_style_flush(array $style) {
     ->fetchCol();
 
   foreach ($storage_ids as $storage_id) {
-    storage_load($storage_id)->remove();
+    try {
+      storage_load($storage_id)->remove();
+    }
+    catch (StorageException $e) {}
   }
 }
 
@@ -557,7 +592,7 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
         $storage = storage_core_bridge_styled_image_create($this->uri);
       }
 
-      return $storage->serveURL(TRUE);
+      return $storage->serveURL();
     }
     catch (StorageException $e) {
       return FALSE;

@@ -50,6 +50,14 @@ function storage_requirements($phase) {
       'severity' => REQUIREMENT_OK,
     );
 
+    $data_uri_enabled = storage_test_theme_image_data_uri();
+
+    $requirements['storage_data_uri'] = array(
+      'title' => t('Storage - data URIs'),
+      'value' => $data_uri_enabled ? t("Supported") : t("Unsupported") . ' ' . t("(see !link)", array('!link' => storage_data_uri_doc_link())),
+      'severity' => $data_uri_enabled ? REQUIREMENT_OK : REQUIREMENT_WARNING,
+    );
+
     $services = storage_service_info();
   
     // Get service_ids of all containers.
@@ -231,10 +239,7 @@ function storage_install() {
   // Create a class.
   $class = new StorageClass(array(
     'name' => t('Everything'), 
-    'options' => array(
-      'redirect' => FALSE,
-      'serve_source_uri' => FALSE,
-    )
+    'options' => array()
   ));
   
   $class->create();

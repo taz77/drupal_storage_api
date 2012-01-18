@@ -153,8 +153,9 @@ function storage_class(StorageClass $class) {
   $info = array(
     t('Files') => $class_info['files'],
     t('Size') => storage_format_size((int) $class_info['size']),
-    t('Redirection') => (isset($class->options['redirect']) && $class->options['redirect']) ? t('Yes') : t('No'),
-    t('Serve source') => (isset($class->options['serve_source_uri']) && $class->options['serve_source_uri']) ? t('Yes') : t('No'),
+    t('Serve by redirection') => $class->options['redirect'] ? t('Yes') : t('No'),
+    t('Serve source') => $class->options['serve_source_uri'] ? t('Yes') : t('No'),
+    t('Serve as data URI') => $class->options['data_uri'] ? t('Yes') : t('No'),
     t('Initial container') => (isset($class->initial_container) && $class->initial_container) ? $class->initial_container->link() : t('n/a'),
   );
   
@@ -228,7 +229,6 @@ function storage_class(StorageClass $class) {
  * @see storage_class_edit_form_submit()
  */
 function storage_class_edit_form(array $form, array &$form_state, StorageClass $class) {
-
   $form = $class->formElements();
   $form['#class'] = $class;
   

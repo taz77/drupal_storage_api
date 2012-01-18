@@ -1,6 +1,8 @@
 <?php
 
 class StorageAPITestCase extends DrupalWebTestCase {
+  protected $profile = 'testing';
+
   public static function getInfo() {
     return array(
       'name' => 'Storage',
@@ -44,7 +46,7 @@ class StorageAPITestCase extends DrupalWebTestCase {
     $selector->create();
     
     $options = array(
-      'source_uri' => 'CHANGELOG.txt',
+      'source_uri' => 'modules/simpletest/files/html-1.txt',
       'get_filename' => TRUE,
     );
 
@@ -57,7 +59,7 @@ class StorageAPITestCase extends DrupalWebTestCase {
       ->countQuery()
       ->execute()
       ->fetchField();
-      
+
     $this->assertTrue($exists, t('Intial instance exists.'));
     
     $this->cronRun();
@@ -77,8 +79,31 @@ class StorageAPITestCase extends DrupalWebTestCase {
       ->countQuery()
       ->execute()
       ->fetchField();
-      
+
     $this->assertFalse($exists, t('Intial instance removed.'));
+
+    // Create another class.
+    $class2 = new StorageClass(array(
+      'name' => t('AAA'),
+      'options' => array(
+        'redirect' => FALSE,
+        'serve_source_uri' => FALSE,
+      )
+    ));
+
+    $class2->create();
+
+    $selector = storage_selector('storage', 'test2');
+    $selector->create($class->class_id);
+    $this->assertEqual($selector->storageClass()->class_id, $class->class_id, t('Class set when creating selector.'));
+
+    $class->options['data_uri'] = TRUE;
+    $class->update();
+
+    $storage = storage_load($storage->storage_id);
+
+    $output = $storage->serveURL();
+    $expected = 'data:text/plain;charset=us-ascii;base64,PGgxPlNpbXBsZVRlc3QgSFRNTDwvaDE+';
+    $this->assertEqual($output, $expected, t('Correct data URI created.'));
   }
 }
-

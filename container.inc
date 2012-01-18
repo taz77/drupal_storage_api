@@ -571,8 +571,10 @@ abstract class StorageContainer {
   }
 
   public function serviceInstanceGetContents($reference) {
-
-    $contents = file_get_contents($this->serviceInstanceGetUri($reference));
+    // $uri can be a StorageTempURI - keep an instance of it here otherwise
+    // file_get_contents() will destroy it too soon.
+    $uri = $this->serviceInstanceGetUri($reference);
+    $contents = file_get_contents($uri);
 
     if ($contents === FALSE) {
       throw new StorageException();
@@ -620,12 +622,12 @@ abstract class StorageContainer {
 
   public function serviceInstanceServe($reference) {
 
-    return file_create_url($this->settings['base_url'] . '/' . $reference);
+    return $this->settings['base_url'] . '/' . $reference;
   }
 
   public function serviceInstanceOutput($reference) {
     // $uri can be a StorageTempURI - keep an instance of it here otherwise
-    // readfile will destroy it too soon.
+    // readfile() will destroy it too soon.
     $uri = $this->serviceInstanceGetUri($reference);
     readfile($uri);
   }
