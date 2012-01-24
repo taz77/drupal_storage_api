@@ -382,6 +382,30 @@ function storage_core_bridge_styled_image_create($uri) {
   return $storage;
 }
 
+/**
+ * Implements hook_storage_access().
+ */
+function storage_core_bridge_storage_access(Storage $storage) {
+
+  // Get the info in file_usage table for this storage.
+  $query = db_select('storage_core_bridge');
+  $query->join('file_managed', NULL, 'storage_core_bridge.uri = file_managed.uri');
+  $query->join('file_usage', NULL, 'file_managed.fid = file_usage.fid');
+
+  $file_usage = $query->fields('file_usage')
+    ->condition('storage_core_bridge.storage_id', $storage->storage_id)
+    ->execute()
+    ->fetchAssoc();
+
+  // If this file isn't known, it's probably a styled image (they aren't
+  // recorded in file_managed). Access will be determined from the source image.
+  if (!$file_usage || ($file_usage['type'] != 'node')) {
+    return;
+  }
+
+  $node = node_load($file_usage['id']);
+  return node_access('view', $node);
+}
 
 /**
  * Implements hook_storage_generate().
