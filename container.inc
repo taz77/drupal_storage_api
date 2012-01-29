@@ -46,7 +46,7 @@ abstract class StorageContainer {
       ->execute()
       ->fetchField();
       
-    return $format ? storage_format_size($size) : $size;
+    return $format ? storage_format_byte_count($size) : $size;
   }
 
   public function status() {

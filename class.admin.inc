@@ -36,7 +36,7 @@ function storage_classes_list() {
     
     $row[] = l($class['name'], 'admin/structure/storage/classes/' . $class['class_id']);
     $row[] = $class['files'];
-    $row[] = storage_format_size((int) $class['size']);
+    $row[] = storage_format_byte_count($class['size']);
     
     $rows[] = $row;
   }
@@ -152,7 +152,7 @@ function storage_class(StorageClass $class) {
   
   $info = array(
     t('Files') => $class_info['files'],
-    t('Size') => storage_format_size((int) $class_info['size']),
+    t('Size') => storage_format_byte_count($class_info['size']),
     t('Serve by redirection') => $class->options['redirect'] ? t('Yes') : t('No'),
     t('Serve source') => $class->options['serve_source_uri'] ? t('Yes') : t('No'),
     t('Serve as data URI') => $class->options['data_uri'] ? t('Yes') : t('No'),
@@ -199,7 +199,7 @@ function storage_class(StorageClass $class) {
     $row[] = $container_info['serving'] ? t('Yes') : t('No');
     $row[] = $container_info['remove'] ? t('Yes') : t('No');
     $row[] = (int)$container_info['count'];
-    $row[] = storage_format_size((int) $container_info['size']);
+    $row[] = storage_format_byte_count($container_info['size']);
     
     $rows[] = $row;
   }

@@ -406,7 +406,7 @@ class Storage {
     
     $info .= 'storage_id: ' . $this->storage_id;
     $info .= $this->file_id ? (', file_id: ' . $this->file_id) : '';
-    $info .= $this->size ? (', size: ' . storage_format_size($this->size)) : '';
+    $info .= $this->size ? (', size: ' . storage_format_byte_count($this->size)) : '';
 
     return $info;
   }
@@ -422,7 +422,7 @@ class Storage {
   
   
   public function size() {
-    return storage_format_size($this->size);
+    return storage_format_byte_count($this->size);
   }
 
 

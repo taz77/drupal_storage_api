@@ -66,7 +66,7 @@ class StorageFS extends StorageContainer implements StorageContainerInterface {
   
   public function serviceInfo() {
 
-    $info['Free space'] = storage_format_size(@disk_free_space($this->settings['path']));
+    $info['Free space'] = storage_format_byte_count(@disk_free_space($this->settings['path']));
     $info['Directory'] = realpath($this->settings['path']);
 
     if (!$this->access_control) {

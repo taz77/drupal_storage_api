@@ -659,37 +659,30 @@ function _storage_get_service_names() {
   return $names;
 }
 
-
 /**
- * Generates a human-readable representation of a byte count.
+ * Formats a byte count into a human-readable representation.
  *
  * See http://en.wikipedia.org/wiki/Kilobyte for more information.
  *
- * @param $size
- *   A byte count.
+ * @param $count
+ *   An integer byte count.
  *
  * @return
  *   A human readable representation of the byte count.
  */
-function storage_format_size($size) {
-
-  if ($size < 1000) {
-    return format_plural($size, '1 byte', '@count bytes');
-  }
-
-  $units = array('kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB');
+function storage_format_byte_count($count) {
+  $units = array('B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB');
 
   foreach ($units as $unit) {
-    $size /= 1000;
-
-    if ($size < 1000) {
+    if ($count < 1000) {
       break;
     }
+
+    $count /= 1000;
   }
 
-  return round($size, 2) . ' ' . $unit;
+  return round($count, 2) . ' ' . $unit;
 }
-
 
 /**
  * Implements hook_theme().
