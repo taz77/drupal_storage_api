@@ -648,7 +648,7 @@ function _storage_delete_file_if_unrequired($file_id) {
 
 
 function _storage_get_service_names() {
-  $name = array();
+  $names = array();
 
   foreach (storage_service_info() as $service_id => $info) {
     $names[$service_id] = $info['name'];
