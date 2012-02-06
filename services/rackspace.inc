@@ -74,7 +74,7 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
     return $cf_container;
   }
 
-  public function serviceSettingsForm($edit = FALSE) {
+  public function serviceSettingsForm($already_exists) {
     // Add defaults.
     $this->settings += array(
       'username' => '',
@@ -94,7 +94,7 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
       '#validated' => TRUE,
       '#default_value' => $this->settings['username'],
     );
-    
+
     $items['api_key'] = array(
       '#type' => 'password',
       '#title' => t('API key'),
@@ -102,20 +102,18 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
       '#validated' => TRUE,
     );
 
-    if (!$edit) {
-      $items['cf_container'] = array(
-        '#type' => 'textfield',
-        '#title' => t('Cloud Files container'),
-        '#required' => TRUE,
-        '#validated' => TRUE,
-        '#default_value' => $this->settings['cf_container'],
-      );
-    }
-    
+    $items['cf_container'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Cloud Files container'),
+      '#required' => TRUE,
+      '#validated' => TRUE,
+      '#default_value' => $this->settings['cf_container'],
+    );
+
     return $items;
   }
-  
-  public function serviceSettingsValidate($edit = FALSE) {
+
+  public function serviceSettingsValidate($already_exists) {
     if (!$this->settings['username']) {
       form_set_error('settings][username', t('Username field is required.'));
     }
@@ -138,26 +136,31 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
     catch (StorageException $e) {
       form_set_error('settings');
     }
-  }
-  
-  public function serviceCreate() {
-    $this->init();
-    
+
     try {
-      $cf_container = $this->conn->get_container($this->settings['cf_container']);
+      $this->conn->get_container($this->settings['cf_container']);
     }
-    catch (NoSuchContainerException $e) {}
+    catch (NoSuchContainerException $e) {
+      if ($already_exists) {
+        form_set_error('settings][cf_container', t("Cloud Files container %name does not exist.",
+          array('%name' => $this->settings['cf_container'])));
+      }
+      return;
+    }
     catch (Exception $e) {
       $this->log_exception($e);
       form_set_error('settings');
-      throw new StorageException();
+      return;
     }
-    
-    if (isset($cf_container)) {
-      form_set_error('settings][cf_container', t('Cloud Files container %name already exists.', 
+
+    if (!$already_exists) {
+      form_set_error('settings][cf_container', t("Cloud Files container %name already exists.",
         array('%name' => $this->settings['cf_container'])));
-      throw new StorageException();
     }
+  }
+
+  public function serviceCreate() {
+    $this->init();
     
     try {
       $cf_container = $this->conn->create_container($this->settings['cf_container']);
@@ -175,7 +178,7 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
       throw new StorageException();
     }
   }
-  
+
   public function serviceInfo() {
     $info = array(
       t('Username') => $this->settings['username'],

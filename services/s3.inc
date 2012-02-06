@@ -135,7 +135,7 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
     if (isset($result['temp_uri']) && $result['http_code'] != 200) {
       unset($result['temp_uri']);
     }
-    
+
     if (is_string($transfer) && $transfer != '') {
       $result['transfer'] = $transfer;
 
@@ -519,7 +519,7 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
     throw new StorageException();
   }
 
-  public function serviceSettingsForm($edit = FALSE) {
+  public function serviceSettingsForm($already_exists) {
     // Add defaults.
     $this->settings += array(
       'access_key_id' => '',
@@ -550,30 +550,30 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
       '#validated' => TRUE,
     );
 
-    if (!$edit) {
-      $items['bucket'] = array(
-        '#type' => 'textfield',
-        '#title' => t('Bucket name'),
-        '#required' => TRUE,
-        '#validated' => TRUE,
-        '#default_value' => $this->settings['bucket'],
-        '#maxlength' => 63,
-        '#description' => t('The bucket namespace is shared by all users of Amazon S3.'),
-      );
+    $items['bucket'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Bucket name'),
+      '#required' => TRUE,
+      '#validated' => TRUE,
+      '#default_value' => $this->settings['bucket'],
+      '#maxlength' => 63,
+      '#description' => t('The bucket namespace is shared by all users of Amazon S3.'),
+    );
 
+    if (!$already_exists) {
       $items['location'] = array(
         '#type' => 'select',
         '#title' => t('Region'),
         '#options' => $this->locations(),
         '#default_value' => $this->settings['location'],
       );
-
-      $items['reduced_redundancy'] = array(
-        '#type' => 'checkbox',
-        '#title' => t('Reduced redundancy'),
-        '#default_value' => $this->settings['reduced_redundancy'],
-      );
     }
+
+    $items['reduced_redundancy'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Reduced redundancy'),
+      '#default_value' => $this->settings['reduced_redundancy'],
+    );
 
     if ($this->access_control) {
     
@@ -612,7 +612,7 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
     return $items;
   }
   
-  public function serviceSettingsValidate($edit = FALSE) {
+  public function serviceSettingsValidate($already_exists) {
 
     if (!$this->settings['access_key_id']) {
       form_set_error('settings][access_key_id', t('Access Key ID field is required.'));
@@ -629,8 +629,7 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
     if (form_get_errors()) {
       return;
     }
-      
-    
+
     // Test account credentials.
     $result = $this->request('GET');   // HEAD doesn't work
     
@@ -638,26 +637,26 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
       form_set_error('settings][bucket');
       return;
     }
-  }
-  
-  public function serviceCreate() {
 
     // Check if bucket is already owned by this account.
-    $result = $this->request('HEAD', $this->settings['bucket']);
+    $this->result = $this->request('HEAD', $this->settings['bucket']);
 
-    if ($result['http_code'] == 200) {
-    
+    if (!$already_exists && $this->result['http_code'] == 200) {
       $result = $this->request('GET', $this->settings['bucket']);
-      
+
       if (count($result['simplexml']->Contents) > 0) {
-      
-        form_set_error('settings][bucket', t('Bucket %name is already owned by this account, but is not empty.', 
+        form_set_error('settings][bucket', t("Bucket %name is already owned by this account, but is not empty.", 
           array('%name' => $this->settings['bucket'])));
-          
-        throw new StorageException();
       }
     }
-    else {
+
+    if ($already_exists && $this->result['http_code'] != 200) {
+      form_set_error('settings][bucket', t("Bucket not owned by this account."));
+    }
+  }
+
+  public function serviceCreate() {
+    if ($this->result['http_code'] != 200) {
       $result = $this->request('PUT', $this->settings['bucket']);
 
       if ($result['http_code'] != 200) {
@@ -669,7 +668,7 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
       watchdog('storage_s3', $message, NULL, WATCHDOG_NOTICE);
     }
   }
-  
+
   public function servicePostCreate() {
 
     if ($this->settings['cloudfront']) {
@@ -702,10 +701,10 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
 
     $info = array(
       t('Bucket') => $this->settings['bucket'],
-      t('Location') => $locations[$this->settings['location']],
+      t('Location') => isset($this->settings['location']) ? $locations[$this->settings['location']] : t("Unknown"),
       t('Reduced redundancy') => $this->settings['reduced_redundancy'] ? t('Yes') : t('No'),
     );
-    
+
     if ($this->access_control) {
       $info[t('URL lifetime')] = format_interval($this->settings['url_lifetime']);
     }

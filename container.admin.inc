@@ -48,6 +48,13 @@ function storage_create_container_form(array $form, array &$form_state) {
 
   if (!isset($form_state['values']['step'])) {
     $step = 1;
+    // Set defaults.
+    $form_state['storage'] = array(
+      'service_id' => 'storage:fs',
+      'name' => '',
+      'access_control' => FALSE,
+      'already_exists' => FALSE,
+    );
   }
   else {
     if ($form_state['clicked_button']['#value'] == t('Back')) {
@@ -56,12 +63,11 @@ function storage_create_container_form(array $form, array &$form_state) {
     else {
       $step = $form_state['values']['step'];
       
-      if (!form_get_errors())
+      if (!form_get_errors()) {
         $step++;
+      }
     }
   }
-
-
 
   $form['step'] = array(
     '#type' => 'value',
@@ -71,28 +77,33 @@ function storage_create_container_form(array $form, array &$form_state) {
   switch ($step) {
 
     case 1:
-
       $services = _storage_get_service_names();
 
       $form['service_id'] = array(
         '#type' => 'select',
         '#title' => t('Service'),
         '#options' => $services,
-        '#default_value' => isset($form_state['storage']['service_id']) ? $form_state['storage']['service_id'] : 'storage:fs',
+        '#default_value' => $form_state['storage']['service_id'],
       );
       
       $form['name'] = array(
         '#title' => t('Name'),
         '#type' => 'textfield',
-        '#default_value' => isset($form_state['storage']['name']) ? $form_state['storage']['name'] : NULL,
+        '#default_value' => $form_state['storage']['name'],
         '#description' => t("Optional"),
       );
 
       $form['access_control'] = array(
         '#type' => 'checkbox',
         '#title' => t('Access control'),
-        '#default_value' => isset($form_state['storage']['access_control']) ? $form_state['storage']['access_control'] : FALSE,
+        '#default_value' => $form_state['storage']['access_control'],
         '#description' => t("Prevents files being served to users who are not authorised.<br />Depending on the service, this can have significant performance implications.<br />Even without this enabled, URLs will only be generated for files that the user has permission to access."),
+      );
+
+      $form['already_exists'] = array(
+        '#type' => 'checkbox',
+        '#title' => t('Already exists'),
+        '#default_value' => $form_state['storage']['already_exists'],
       );
 
       $form['next'] = array(
@@ -102,17 +113,15 @@ function storage_create_container_form(array $form, array &$form_state) {
 
       break;
       
-      
     case 2:
-    
       $container = storage_container_new($form_state['storage'], FALSE);
-    
       $service_name = check_plain($container->service()->name);
 
       $info = array(
-        t('Service') => $service_name,
-        t('Name') => check_plain($container->name),
-        t('Access control') => $container->access_control ? t('Yes') : t('No'),
+        t("Service") => $service_name,
+        t("Name") => check_plain($container->name),
+        t("Access control") => $container->access_control ? t("Yes") : t("No"),
+        t("Already exists") => $container->already_exists ? t("Yes") : t("No"),
       );
 
       $form['info'] = array(
@@ -125,7 +134,7 @@ function storage_create_container_form(array $form, array &$form_state) {
         '#tree' => TRUE
       );
       
-      $form['settings'] += $container->serviceSettingsForm();
+      $form['settings'] += $container->serviceSettingsForm($form_state['storage']['already_exists']);
       
       $form['back'] = array(
         '#type' => 'submit',
@@ -155,10 +164,10 @@ function storage_create_container_form_validate(array $form, array &$form_state)
   switch ($form_state['values']['step']) {
   
     case 1:
-    
       $form_state['storage']['name'] = $form_state['values']['name'];
       $form_state['storage']['service_id'] = $form_state['values']['service_id'];
       $form_state['storage']['access_control'] = $form_state['values']['access_control'];
+      $form_state['storage']['already_exists'] = $form_state['values']['already_exists'];
       $form_state['storage']['settings'] = array();
 
       $service = storage_service_load($form_state['storage']['service_id']);
@@ -171,23 +180,22 @@ function storage_create_container_form_validate(array $form, array &$form_state)
         $message .= $e->getMessage();
         form_set_error('service_id', $message);
       }
-    
+
       break;
       
-      
     case 2:
-    
       $form_state['storage']['settings'] = $form_state['values']['settings'];
-    
-      if ($form_state['clicked_button']['#value'] == t('Back'))
+
+      if ($form_state['clicked_button']['#value'] == t('Back')) {
         break;
-        
+      }
+
       $container = storage_container_new($form_state['storage'], FALSE);
-      $container->serviceSettingsValidate();
+      $container->serviceSettingsValidate($form_state['storage']['already_exists']);
 
       if (!form_get_errors()) {
         try {
-          $container->create();
+          $container->create($form_state['storage']['already_exists']);
           $form_state['storage'] = $container;
         }
         catch (StorageException $e) {

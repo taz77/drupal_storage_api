@@ -51,9 +51,8 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
 
   private function createDirectoryRecursive($path) {
     $original_dir = ftp_pwd($this->ftpStream);
-    
+
     foreach (explode('/', $path) as $directory) {
-    
       try {
         $this->changeDirectory($directory);
       }
@@ -87,7 +86,7 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
     }
   }
 
-  public function serviceSettingsForm($edit = FALSE) {
+  public function serviceSettingsForm($already_exists) {
 
     $items['host'] = array(
       '#type' => 'textfield',
@@ -149,7 +148,7 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
     return $items;
   }
   
-  public function serviceSettingsValidate($edit = FALSE) {
+  public function serviceSettingsValidate($already_exists) {
 
     if (!$this->settings['host']) {
       form_set_error('settings][host', t('Host field is required.'));
@@ -174,27 +173,36 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
       form_set_error('settings', t('Failed to authenticate.'));
       return;
     }
-    
-    if (!$edit) {
+
+    if (!$already_exists) {
       try {
         $this->changeDirectory($this->settings['directory']);
       }
       catch (StorageException $e) {
         return;
       }
-    
-      form_set_error('settings][directory', t('Directory already exists.'));
+      form_set_error('settings][directory', t("Directory already exists."));
+    }
+    else {
+      try {
+        $this->changeDirectory($this->settings['directory']);
+      }
+      catch (StorageException $e) {
+        form_set_error('settings][directory', t("Directory does not exist."));
+      }
     }
   }
-  
+
   public function serviceCreate() {
     $this->login(FALSE);
     $this->createDirectoryRecursive($this->settings['directory']);
+  }
+
+  public function servicePostCreate() {
     $this->changeDirectory($this->settings['directory']);
   }
-  
-  public function serviceInfo() {
 
+  public function serviceInfo() {
     $info = array(
       t('Host') => $this->settings['host'],
       t('Port') => $this->settings['port'] ? $this->settings['port'] : 21,

@@ -85,9 +85,13 @@ abstract class StorageContainer {
 
     $temp_uri = storage_temp_uri();
     file_put_contents($temp_uri, implode("\n", $lines) . "\n");
-    
+
     $storage = new Storage(array('filename' => '.htaccess'));
-    $this->serviceInstanceCreate($storage, $temp_uri);
+
+    try {
+      $this->serviceInstanceCreate($storage, $temp_uri);
+    }
+    catch (StorageException $e) {};
   }
 
   /**
@@ -96,15 +100,17 @@ abstract class StorageContainer {
    * @throws StorageException
    *   When it wasn't possible to create the container.
    */
-  public function create() {
+  public function create($already_exists = FALSE) {
   
-    try {
-      $this->serviceCreate();
-    }
-    catch (StorageException $e) {
-      $msg = 'Failed to create storage container @container.';
-      watchdog('storage', $msg, array('@container' => $this->name()), WATCHDOG_ERROR);
-      throw new StorageException(t($msg, array('@container' => $this->name())));
+    if (!$already_exists) {
+      try {
+        $this->serviceCreate();
+      }
+      catch (StorageException $e) {
+        $msg = 'Failed to create storage container @container.';
+        watchdog('storage', $msg, array('@container' => $this->name()), WATCHDOG_ERROR);
+        throw new StorageException(t($msg, array('@container' => $this->name())));
+      }
     }
     
     drupal_write_record('storage_container', $this);
@@ -654,7 +660,7 @@ interface StorageContainerInterface {
   public function count();
   public function size($format = FALSE);
   public function status();
-  public function create();
+  public function create($already_exists = FALSE);
   public function name();
   public function path();
   public function link();
@@ -674,8 +680,8 @@ interface StorageContainerInterface {
   public function referenceExists($reference);
   public function uniqueFilename($filename);
   public function logInfo();
-  public function serviceSettingsForm($edit = FALSE);
-  public function serviceSettingsValidate($edit = FALSE);
+  public function serviceSettingsForm($already_exists);
+  public function serviceSettingsValidate($already_exists);
   public function serviceCreate();
   public function servicePostCreate();
   public function serviceInfo();

@@ -741,7 +741,7 @@ class Storage {
     if ($failure) {
       throw new StorageException();
     }
-  
+
     // The storage is fully propagated, now we can destroy unrequired instances.
     $this->destroyUnrequiredInstances($container_ids);
     

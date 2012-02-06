@@ -9,8 +9,13 @@ class StorageDB extends StorageContainer implements StorageContainerInterface {
     return new StorageDBActive();
   }
 
-  public function serviceSettingsForm($edit = FALSE) {
+  public function serviceSettingsForm($already_exists) {
     global $databases;
+    // Add defaults.
+    $this->settings += array(
+      'db' => 'default',
+      'table' => $already_exists ? '' : 'storage_contents',
+    );
 
     foreach ($databases as $key => $database) {
       $options[$key] = $key;
@@ -22,7 +27,7 @@ class StorageDB extends StorageContainer implements StorageContainerInterface {
       '#options' => $options,
       '#required' => TRUE,
       '#validated' => TRUE,
-      '#default_value' => isset($this->settings['db']) ? $this->settings['db'] : 'default',
+      '#default_value' => $this->settings['db'],
     );
 
     $items['table'] = array(
@@ -31,26 +36,32 @@ class StorageDB extends StorageContainer implements StorageContainerInterface {
       '#description' => t('Without prefix or {}.'),
       '#required' => TRUE,
       '#validated' => TRUE,
-      '#default_value' => isset($this->settings['table']) ? $this->settings['table'] : 'storage_contents',
+      '#default_value' => $this->settings['table'],
     );
 
     return $items;
   }
 
-  public function serviceSettingsValidate($edit = FALSE) {
+  public function serviceSettingsValidate($already_exists) {
     $active = $this->setActiveDB();
 
     if (!$this->settings['table']) {
       form_set_error('settings][table', t('Database table field is required.'));
+      return;
     }
-    elseif (db_table_exists($this->settings['table'])) {
-      form_set_error('settings][table', t('Database table already exists.'));
+    
+    if (!$already_exists && db_table_exists($this->settings['table'])) {
+      form_set_error('settings][table', t("Database table already exists."));
+    }
+
+    if ($already_exists && !db_table_exists($this->settings['table'])) {
+      form_set_error('settings][table', t("Database table does not exist."));
     }
   }
 
   public function serviceCreate() {
     $active = $this->setActiveDB();
-
+    
     $spec = array(
       'fields' => array(
         'file_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),

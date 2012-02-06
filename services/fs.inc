@@ -3,10 +3,10 @@
 
 class StorageFS extends StorageContainer implements StorageContainerInterface {
 
-  public function serviceSettingsForm($edit = FALSE) {
+  public function serviceSettingsForm($already_exists) {
     // Add defaults.
     if (!isset($this->settings['path'])) {
-      $this->settings['path'] = storage_new_local_storage_path();
+      $this->settings['path'] = $already_exists ? '' : storage_new_local_storage_path();
     }
     if (!isset($this->settings['base_url'])) {
       $this->settings['base_url'] = $this->settings['path'];
@@ -21,11 +21,11 @@ class StorageFS extends StorageContainer implements StorageContainerInterface {
       '#validated' => TRUE,
     );
 
-    if ($edit) {
+    if ($already_exists) {
       $items['path']['#description'] .= '<br />' . 
         t('If this setting is changed, the directory must be moved manually to the new path.');
     }
-    
+
     if (!$this->access_control) {
       $description  = "The URL path of the directory path specified above (typically exactly the same).<br/>";
       $description .= "Can be absolute or relative.";
@@ -41,25 +41,27 @@ class StorageFS extends StorageContainer implements StorageContainerInterface {
     return $items;
   }
   
-  public function serviceSettingsValidate($edit = FALSE) {
+  public function serviceSettingsValidate($already_exists) {
 
     if (!$this->settings['path']) {
       form_set_error('settings][path', t('Directory path field is required.'));
+      return;
     }
-    elseif (!$edit) {
-      if (file_prepare_directory($this->settings['path'])) {
-        form_set_error('settings][path', t('Directory already exists.'));
-      }
+    
+    if (!$already_exists && file_prepare_directory($this->settings['path'], 0)) {
+      form_set_error('settings][path', t("Directory already exists."));
+    }
+
+    if ($already_exists && !file_prepare_directory($this->settings['path'], 0)) {
+      form_set_error('settings][path', t("Directory does not exist."));
     }
   }
-  
+
   public function serviceCreate() {
-
-    $storage_path = drupal_get_path('module', 'storage');
-
     if (!file_prepare_directory($this->settings['path'], FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS)) {
       form_set_error('settings][path', t('The directory %directory could not be created. Please check permissions.',
         array('%directory' => $this->settings['path'])));
+
       throw new StorageException();
     }
   }
