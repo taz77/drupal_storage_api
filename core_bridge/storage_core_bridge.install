@@ -39,10 +39,12 @@ function storage_core_bridge_install() {
   }
 
   // Create selectors for image styles.
-  foreach (image_styles() as $style) {
-    if ($style['storage'] & IMAGE_STORAGE_EDITABLE) {
-      storage_core_bridge_image_style_selector($style['isid'])->create();
-      storage_core_bridge_image_style_default_selector($style['isid'])->create();
+  if (function_exists('image_styles')) {
+    foreach (image_styles() as $style) {
+      if ($style['storage'] & IMAGE_STORAGE_EDITABLE) {
+        storage_core_bridge_image_style_selector($style['isid'])->create();
+        storage_core_bridge_image_style_default_selector($style['isid'])->create();
+      }
     }
   }
 }
@@ -59,11 +61,13 @@ function storage_core_bridge_uninstall() {
  */
 function storage_core_bridge_update_7000() {
   // Create selectors for styled default images.
-  foreach (image_styles() as $style) {
-    if ($style['storage'] & IMAGE_STORAGE_EDITABLE) {
-      $selector = storage_core_bridge_image_style_selector($style['isid']);
-      $class_id = $selector->storageClass()->class_id;
-      storage_core_bridge_image_style_default_selector($style['isid'])->create($class_id);
+  if (function_exists('image_styles')) {
+    foreach (image_styles() as $style) {
+      if ($style['storage'] & IMAGE_STORAGE_EDITABLE) {
+        $selector = storage_core_bridge_image_style_selector($style['isid']);
+        $class_id = $selector->storageClass()->class_id;
+        storage_core_bridge_image_style_default_selector($style['isid'])->create($class_id);
+      }
     }
   }
 }
