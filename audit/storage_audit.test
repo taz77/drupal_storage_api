@@ -18,6 +18,17 @@ class StorageAuditTestCase extends DrupalWebTestCase {
     $this->drupalLogin($web_user);
   }
 
+  function testStorageAudit() {
+    $container = storage_container_load(1);
+
+    $files = storage_audit($container);
+    $this->assertEqual($files, 0, t("No files found in container."));
+
+    file_unmanaged_copy('CHANGELOG.txt', $container->settings['path']);
+    $files = storage_audit($container);
+    $this->assertEqual($files, 1, t("One file found in container."));
+  }
+
   function testStorageAuditImport() {
     $container = storage_container_load(1);
     file_unmanaged_copy('CHANGELOG.txt', $container->settings['path']);
