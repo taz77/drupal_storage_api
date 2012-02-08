@@ -29,7 +29,7 @@ class StorageSelector {
         ->execute()
         ->fetchField();
     }
-      
+
     db_insert('storage_selector')
       ->fields(array(
         'selector_id' => $this->selector_id,
@@ -251,7 +251,6 @@ class StorageSelector {
    *   When it isn't possible to add the storage to the selector.
    */
   public function storageAdd(array $options = array()) {
-
     // Add defaults.
     $options += array(
       'selector_id' => $this->selector_id,
@@ -267,11 +266,12 @@ class StorageSelector {
     }
 
     if (isset($options['source_uri'])) {
-
       if ($initial_container) {
         $source_uri = $options['source_uri'];   // TODO: Make this URI local.
-        $filename = isset($options['filename']) ? $options['filename'] : basename($options['source_uri']);
-        $options['file_id'] = _storage_file_id($source_uri, $filename, $new_file);
+
+        if (!isset($options['file_id'])) {
+          $options['file_id'] = _storage_file_id($source_uri, NULL, $new_file);
+        }
       }
 
       if (!$options['keep_source_uri']) {
@@ -287,13 +287,9 @@ class StorageSelector {
     $storage = storage_load($options['storage_id']);
 
     if (isset($source_uri)) {
-      $exists = FALSE;
-
       // If the storage's file is already known to the system, then the
       // instance might already exist.
-      if (!$new_file) {
-        $exists = $initial_container->instanceExists($storage);
-      }
+      $exists = $initial_container->instanceExists($storage);
 
       if (!$exists) {
         try {
@@ -324,4 +320,3 @@ class StorageSelector {
     return $storage;
   }
 }
-

@@ -554,18 +554,19 @@ function storage_mime_detect($uri, $filename) {
   return ($mime == '') ? 'application/octet-stream; charset=binary' : $mime;
 }
 
-
-function _storage_file_id($uri, $filename, &$new_file = NULL) {
-
+function _storage_file_id($uri, $filename = NULL, &$new_file = NULL) {
   $fileinfo = @stat($uri);
-  
+
   if (!$fileinfo) {
     throw new StorageException();
   }
 
   $whirlpool = hash_file('whirlpool', $uri, TRUE);
-  
-  $txn = db_transaction();
+  if (!$filename) {
+    $filename = basename(parse_url($uri, PHP_URL_PATH));
+  }
+
+  $transaction = db_transaction();
   $file_id = db_select('storage_file')
     ->fields('storage_file', array('file_id'))
     ->condition('whirlpool', $whirlpool)
@@ -574,7 +575,7 @@ function _storage_file_id($uri, $filename, &$new_file = NULL) {
     ->fetchField();
 
   if ($file_id === FALSE) {
-  
+
     $file = array(
       'whirlpool' => $whirlpool,
       'filename' => $filename,
@@ -588,7 +589,7 @@ function _storage_file_id($uri, $filename, &$new_file = NULL) {
     $file_id = $file['file_id'];
     $new_file = TRUE;
   }
-  
+
   return $file_id;
 }
 

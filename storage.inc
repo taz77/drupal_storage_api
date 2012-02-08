@@ -26,7 +26,7 @@ class Storage {
       $query->leftJoin('storage_file', NULL, 'storage.file_id = storage_file.file_id');
       $query->leftJoin('storage_selector', NULL, 'storage.selector_id = storage_selector.selector_id');
       $query->leftJoin('storage_class', NULL, 'storage_selector.class_id = storage_class.class_id');
-      
+
       $storage = $query->fields('storage')
         ->fields('storage_file')
         ->fields('storage_selector')
@@ -42,7 +42,7 @@ class Storage {
         throw new StorageException();
       }
     }
-    
+
     if (isset($storage['data'])) {
       $storage['data'] = unserialize($storage['data']);
     }
@@ -499,7 +499,7 @@ class Storage {
     $uri = _storage_acquire_from_url($this->source_uri);
     
     if ($uri) {
-      $file_id = _storage_file_id($uri, basename(parse_url($this->source_uri, PHP_URL_PATH)), $new_file);
+      $file_id = _storage_file_id($uri, NULL, $new_file);
 
       if (!$this->file_id) {
         $this->file_id = $file_id;

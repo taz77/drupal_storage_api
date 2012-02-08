@@ -619,6 +619,7 @@ abstract class StorageContainer {
     }
 
     $info = array(
+      'uri' => $uri,
       'size' => $stat['size'],
       'whirlpool' => hash_file('whirlpool', $uri, TRUE),
     );

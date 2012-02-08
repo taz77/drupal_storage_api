@@ -2,7 +2,6 @@ name = Storage
 description = "Storage module."
 package = Storage API
 core = 7.x
-files[] = storage.install
 files[] = storage.module
 files[] = storage.test
 files[] = service.inc
@@ -10,10 +9,6 @@ files[] = container.inc
 files[] = class.inc
 files[] = selector.inc
 files[] = storage.inc
-files[] = cron.inc
-
-files[] = container.admin.inc
-files[] = class.admin.inc
 
 files[] = services/db.inc
 files[] = services/fs.inc

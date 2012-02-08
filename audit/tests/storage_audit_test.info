@@ -1,0 +1,6 @@
+name = "Storage Audit module tests"
+package = Testing
+dependencies[] = storage
+dependencies[] = storage_audit
+core = 7.x
+hidden = TRUE
