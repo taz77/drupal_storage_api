@@ -1,8 +1,7 @@
 <?php
 
-
 /**
- * Implement hook_install() .
+ * Implement hook_install().
  */
 function storage_audit_install() {
 
@@ -10,18 +9,16 @@ function storage_audit_install() {
   db_add_field('storage_instance', 'audit', $spec);
 }
 
-
 /**
- * Implement hook_uninstall() .
+ * Implement hook_uninstall().
  */
 function storage_audit_uninstall() {
 
   db_drop_field('storage_instance', 'audit');
 }
 
-
 /**
- * Implement hook_schema_alter() .
+ * Implement hook_schema_alter().
  */
 function storage_audit_schema_alter(array &$schema) {
 

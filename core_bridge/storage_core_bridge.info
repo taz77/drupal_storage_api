@@ -4,5 +4,3 @@ package = Storage API
 dependencies[] = storage
 dependencies[] = field
 core = 7.x
-files[] = storage_core_bridge.install
-files[] = storage_core_bridge.module

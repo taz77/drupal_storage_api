@@ -16,7 +16,6 @@ function storage_core_bridge_field_selector($field_name) {
   return storage_selector('storage_core_bridge', 'field:' . $field_name);
 }
 
-
 function storage_core_bridge_image_style_selector($isid) {
 
   return storage_selector('storage_core_bridge', 'image_style:' . $isid);

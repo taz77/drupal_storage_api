@@ -1,17 +1,14 @@
 <?php
 
-
 /**
 * @file
-* Hooks provided by Storage API.
+* Hooks provided by Storage.
 */
-
 
 /**
 * @addtogroup hooks
 * @{
 */
-
 
 /**
  * Generate a file.
