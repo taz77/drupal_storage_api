@@ -163,7 +163,7 @@ function _storage_audit_file(StorageContainerInterface $container, $reference, a
   }
 }
 
-function _storage_audit(StorageContainer $container, $sandbox, &$finished) {
+function _storage_audit(StorageContainer $container, array &$sandbox, &$finished) {
   $manifest = $container->serviceManifest($sandbox, $finished);
   $files = 0;
 
