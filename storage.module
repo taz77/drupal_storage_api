@@ -562,7 +562,7 @@ function _storage_file_id($uri, $filename = NULL, &$new_file = NULL) {
 
   $whirlpool = hash_file('whirlpool', $uri, TRUE);
   if (!$filename) {
-    $filename = basename(parse_url($uri, PHP_URL_PATH));
+    $filename = basename(file_uri_target($uri));
   }
 
   $transaction = db_transaction();

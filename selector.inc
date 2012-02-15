@@ -254,7 +254,11 @@ class StorageSelector {
     // Add defaults.
     $options += array(
       'selector_id' => $this->selector_id,
+      'source_uri' => NULL,
       'keep_source_uri' => FALSE,
+      'file_id' => NULL,
+      'filename' => NULL,
+      'parent_id' => NULL,
       'created' => time(),
       'data' => array(),
     );
@@ -265,20 +269,20 @@ class StorageSelector {
       $options['initial_container_id'] = $initial_container->container_id;
     }
 
-    if (isset($options['source_uri'])) {
+    if ($options['source_uri']) {
       if ($initial_container) {
         $source_uri = $options['source_uri'];   // TODO: Make this URI local.
 
-        if (!isset($options['file_id'])) {
-          $options['file_id'] = _storage_file_id($source_uri, NULL, $new_file);
+        if (!$options['file_id']) {
+          $options['file_id'] = _storage_file_id($source_uri, $options['filename'], $new_file);
         }
       }
 
       if (!$options['keep_source_uri']) {
-        unset($options['source_uri']);
+        $options['source_uri'] = NULL;
       }
     }
-    elseif (isset($options['filename'])) {
+    elseif ($options['filename']) {
       // Store the filename so it can be in the generator URL.
       $options['data']['filename'] = $options['filename'];
     }
