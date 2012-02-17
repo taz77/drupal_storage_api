@@ -9,7 +9,19 @@
  * Normally a module would utilise Storage API directly, rather than via stream
  * wrappers.
  */
- 
+
+/**
+ * Implements hook_storage_core_bridge_field_types().
+ */
+function storage_core_bridge_storage_core_bridge_field_types() {
+
+  return array('file', 'image');
+}
+
+function storage_core_bridge_field_types() {
+
+  return module_invoke_all('storage_core_bridge_field_types');
+}
 
 function storage_core_bridge_field_selector($field_name) {
 
@@ -50,24 +62,22 @@ function storage_core_bridge_field_selector_destroy($field_name) {
   variable_set('storage_core_bridge_fields', $fields);
 }
 
-
 /**
  * Implements hook_field_create_field().
  */
 function storage_core_bridge_field_create_field(array $field) {
 
-  if (in_array($field['type'], array('file', 'image'))) {
+  if (in_array($field['type'], storage_core_bridge_field_types())) {
     storage_core_bridge_field_selector_create($field['field_name']);
   }
 }
-
 
 /**
  * Implements hook_field_delete_field().
  */
 function storage_core_bridge_field_delete_field(array $field) {
 
-  if (in_array($field['type'], array('file', 'image'))) {
+  if (in_array($field['type'], storage_core_bridge_field_types())) {
     storage_core_bridge_field_selector_destroy($field['field_name']);
   }
 }
@@ -162,7 +172,7 @@ function storage_core_bridge_image_style_revert_form_submit(array $form, array &
  */
 function storage_core_bridge_form_field_ui_field_settings_form_alter(array &$form, array &$form_state) {
 
-  if (!in_array($form['field']['type']['#value'], array('file', 'image'))) {
+  if (!in_array($form['field']['type']['#value'], storage_core_bridge_field_types())) {
     return;
   }
 
@@ -188,7 +198,7 @@ function storage_core_bridge_field_ui_field_settings_form_submit(array $form, ar
  */
 function storage_core_bridge_form_field_ui_field_edit_form_alter(array &$form, array &$form_state) {
 
-  if (!in_array($form['#field']['type'], array('file', 'image'))) {
+  if (!in_array($form['#field']['type'], storage_core_bridge_field_types())) {
     return;
   }
 
