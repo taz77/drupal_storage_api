@@ -94,7 +94,10 @@ function storage_core_bridge_stream_wrappers() {
   if (strpos($_GET['q'], 'admin/structure/types/manage/') === 0 && arg(5) == 'fields') {
     $active_field = arg(6);
   }
-  elseif (strpos($_GET['q'], 'admin/structure/taxonomy/') === 0 && arg(4) == 'fields') {
+  elseif ((strpos($_GET['q'], 'admin/structure/taxonomy/') === 0 ||
+    strpos($_GET['q'], 'admin/structure/field-collections/') === 0) &&
+    arg(4) == 'fields')
+  {
     $active_field = arg(5);
   }
   // If a default image is being uploaded via AJAX then make all selector
