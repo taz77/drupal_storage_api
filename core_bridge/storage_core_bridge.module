@@ -14,32 +14,26 @@
  * Implements hook_storage_core_bridge_field_types().
  */
 function storage_core_bridge_storage_core_bridge_field_types() {
-
   return array('file', 'image');
 }
 
 function storage_core_bridge_field_types() {
-
   return module_invoke_all('storage_core_bridge_field_types');
 }
 
 function storage_core_bridge_field_selector($field_name) {
-
   return storage_selector('storage_core_bridge', 'field:' . $field_name);
 }
 
 function storage_core_bridge_image_style_selector($isid) {
-
   return storage_selector('storage_core_bridge', 'image_style:' . $isid);
 }
 
 function storage_core_bridge_image_style_default_selector($isid) {
-
   return storage_selector('storage_core_bridge', 'image_style_default:' . $isid);
 }
 
 function storage_core_bridge_field_selector_create($field_name) {
-
   storage_core_bridge_field_selector($field_name)->create();
 
   $fields = variable_get('storage_core_bridge_fields');
@@ -48,7 +42,6 @@ function storage_core_bridge_field_selector_create($field_name) {
 }
 
 function storage_core_bridge_field_selector_destroy($field_name) {
-
   storage_core_bridge_field_selector($field_name)->destroy();
 
   $fields = variable_get('storage_core_bridge_fields');
@@ -94,9 +87,10 @@ function storage_core_bridge_stream_wrappers() {
   if (strpos($_GET['q'], 'admin/structure/types/manage/') === 0 && arg(5) == 'fields') {
     $active_field = arg(6);
   }
-  elseif ((strpos($_GET['q'], 'admin/structure/taxonomy/') === 0 ||
+  elseif (strpos($_GET['q'], 'admin/config/people/accounts/fields/') === 0 ||
+    ((strpos($_GET['q'], 'admin/structure/taxonomy/') === 0 ||
     strpos($_GET['q'], 'admin/structure/field-collections/') === 0) &&
-    arg(4) == 'fields')
+    arg(4) == 'fields'))
   {
     $active_field = arg(5);
   }

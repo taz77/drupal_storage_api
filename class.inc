@@ -239,7 +239,7 @@ class StorageClass {
     $description = '';
 
     if (!storage_test_theme_image_data_uri()) {
-      $description = t("Not supported by Drupal core installation.") . '<br />';
+      $description = t("Not supported by this installation of Drupal.") . '<br />';
     }
     $description .= t("See !link.", array('!link' => storage_data_uri_doc_link()));
 
