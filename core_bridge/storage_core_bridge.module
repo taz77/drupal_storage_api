@@ -622,7 +622,7 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
         $storage = storage_core_bridge_styled_image_create($this->uri);
       }
 
-      return $storage->serveURL();
+      return $storage->serveURL(TRUE);
     }
     catch (StorageException $e) {
       return FALSE;
