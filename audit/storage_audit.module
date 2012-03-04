@@ -20,7 +20,7 @@ define('STORAGE_AUDIT_STATUS_INVALID', 2);
  */
 function storage_audit_menu() {
 
-  $items['admin/structure/storage/containers/%storage_container/audit'] = array(
+  $items['admin/structure/storage/container/%storage_container_menu/audit'] = array(
     'title' => "Audit",
     'access arguments' => array('administer storage'),
     'type' => MENU_LOCAL_TASK,

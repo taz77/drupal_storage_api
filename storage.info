@@ -1,6 +1,6 @@
-name = Storage
-description = "Storage module."
-package = Storage API
+name = "Storage"
+description = "Provides an advanced API for managed file storage and serving."
+package = "Storage API"
 core = 7.x
 files[] = storage.module
 files[] = storage.test

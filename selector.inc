@@ -95,14 +95,14 @@ class StorageSelector {
       $text = "This can be safely changed at any time.<br />";
       $text .= "Configure storage classes <a href=\"!path\">here</a>.";
 
-      $description = t($text, array('!path' => url('admin/structure/storage/classes')));
+      $description = t($text, array('!path' => url('admin/structure/storage')));
     }
 
     $selector['class_id'] = array(
       '#type' => 'select',
       '#title' => $title ? $title : t("Storage class"),
-      '#description' => t($description, array('!path' => url('admin/structure/storage/classes'))),
-      '#options' => $classes
+      '#description' => $description,
+      '#options' => $classes,
     );
 
     $current_class_id = db_select('storage_selector')

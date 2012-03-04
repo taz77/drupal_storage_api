@@ -134,7 +134,7 @@ abstract class StorageContainer {
   }
   
   public function path() {
-    return 'admin/structure/storage/containers/' . $this->container_id;
+    return 'admin/structure/storage/container/' . $this->container_id;
   }
   
   public function link() {

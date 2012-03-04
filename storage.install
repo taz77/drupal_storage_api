@@ -24,7 +24,6 @@ function storage_requirements($phase) {
   );
   
   if ($phase == 'runtime') {
-
     if (extension_loaded('fileinfo')) {
       $finfo = @finfo_open(FILEINFO_MIME);
     

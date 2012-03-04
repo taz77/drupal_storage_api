@@ -1,6 +1,6 @@
-name = Core bridge
-description = "Allows file and image fields to utilise Storage API."
-package = Storage API
+name = "Core Bridge"
+description = "Allows file and image fields to utilize Storage API."
+package = "Storage API"
 dependencies[] = storage
 dependencies[] = field
 core = 7.x

@@ -51,102 +51,17 @@ function storage_menu() {
     'access callback' => 'storage_access',
     'access arguments' => array(3),
   );
-  
 
   $items['admin/structure/storage'] = array(
-    'title' => 'Storage',
+    'title' => "File storage",
     'access arguments' => array('administer storage'),
-    'description' => 'Configure storage.',
-    'page callback' => 'system_admin_menu_block_page',
-    'file' => 'system.admin.inc',
-    'file path' => drupal_get_path('module', 'system'),
+    'description' => "Manage classes and containers for file storage and serving.",
+    'page callback' => 'storage_admin',
+    'file' => 'storage.admin.inc',
   );
 
-
-  $items['admin/structure/storage/containers'] = array(
-    'title' => 'Containers',
-    'description' => 'Configure storage containers.',
-    'access arguments' => array('administer storage'),
-    'page callback' => 'storage_containers',
-    'weight' => 1,
-    'file' => 'container.admin.inc',
-  );
-  
-  $items['admin/structure/storage/containers/create'] = array(
-    'title' => 'Create container',
-    'access arguments' => array('administer storage'),
-    'type' => MENU_LOCAL_ACTION,
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('storage_create_container_form'),
-    'weight' => 1,
-    'file' => 'container.admin.inc',
-  );
-  
-  $items['admin/structure/storage/containers/%storage_container_menu'] = array(
-    'title callback' => 'storage_container_title',
-    'title arguments' => array(4),
-    'access arguments' => array('administer storage'),
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('storage_container_form', 4),
-    'file' => 'container.admin.inc',
-  );
-
-  $items['admin/structure/storage/containers/%storage_container_menu/view'] = array(
-    'title' => 'View',
-    'access arguments' => array('administer storage'),
-    'type' => MENU_DEFAULT_LOCAL_TASK,
-    'weight' => 0,
-    'file' => 'container.admin.inc',
-  );
-
-  $items['admin/structure/storage/containers/%storage_container_menu/edit'] = array(
-    'title' => 'Edit',
-    'access arguments' => array('administer storage'),
-    'type' => MENU_LOCAL_TASK,
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('storage_container_edit_form', 4),
-    'weight' => 2,
-    'file' => 'container.admin.inc',
-  );
-
-  $items['admin/structure/storage/containers/%storage_container_menu/destroy'] = array(
-    'title' => 'Destroy',
-    'access arguments' => array('administer storage'),
-    'type' => MENU_LOCAL_TASK,
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('storage_container_destroy_form', 4),
-    'weight' => 3,
-    'file' => 'container.admin.inc',
-  );
-
-  $items['admin/structure/storage/containers/%storage_container_menu/suspend'] = array(
-    'access arguments' => array('administer storage'),
-    'type' => MENU_CALLBACK,
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('storage_container_suspend_form', 4),
-    'file' => 'container.admin.inc',
-  );
-  
-  $items['admin/structure/storage/containers/%storage_container_menu/unsuspend'] = array(
-    'access arguments' => array('administer storage'),
-    'type' => MENU_CALLBACK,
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('storage_container_unsuspend_form', 4),
-    'file' => 'container.admin.inc',
-  );
-
-
-  $items['admin/structure/storage/classes'] = array(
-    'title' => 'Classes',
-    'description' => 'Configure storage classes.',
-    'access arguments' => array('administer storage'),
-    'page callback' => 'storage_classes_list',
-    'weight' => 2,
-    'file' => 'class.admin.inc',
-  );
-
-  $items['admin/structure/storage/classes/create'] = array(
-    'title' => 'Create class',
+  $items['admin/structure/storage/create-class'] = array(
+    'title' => "Create class",
     'access arguments' => array('administer storage'),
     'type' => MENU_LOCAL_ACTION,
     'page callback' => 'drupal_get_form',
@@ -155,7 +70,7 @@ function storage_menu() {
     'file' => 'class.admin.inc',
   );
 
-  $items['admin/structure/storage/classes/%storage_class_menu'] = array(
+  $items['admin/structure/storage/class/%storage_class_menu'] = array(
     'title callback' => 'storage_class_title',
     'title arguments' => array(4),
     'access arguments' => array('administer storage'),
@@ -163,17 +78,17 @@ function storage_menu() {
     'page arguments' => array(4),
     'file' => 'class.admin.inc',
   );
-  
-  $items['admin/structure/storage/classes/%storage_class_menu/view'] = array(
-    'title' => 'View',
+
+  $items['admin/structure/storage/class/%storage_class_menu/view'] = array(
+    'title' => "View",
     'access arguments' => array('administer storage'),
     'type' => MENU_DEFAULT_LOCAL_TASK,
     'weight' => 0,
     'file' => 'class.admin.inc',
   );
-  
-  $items['admin/structure/storage/classes/%storage_class_menu/edit'] = array(
-    'title' => 'Edit',
+
+  $items['admin/structure/storage/class/%storage_class_menu/edit'] = array(
+    'title' => "Edit",
     'access arguments' => array('administer storage'),
     'type' => MENU_LOCAL_TASK,
     'page callback' => 'drupal_get_form',
@@ -181,9 +96,9 @@ function storage_menu() {
     'weight' => 1,
     'file' => 'class.admin.inc',
   );
-  
-  $items['admin/structure/storage/classes/%storage_class_menu/delete'] = array(
-    'title' => 'Delete',
+
+  $items['admin/structure/storage/class/%storage_class_menu/delete'] = array(
+    'title' => "Delete",
     'access arguments' => array('administer storage'),
     'type' => MENU_LOCAL_TASK,
     'page callback' => 'drupal_get_form',
@@ -191,15 +106,78 @@ function storage_menu() {
     'weight' => 2,
     'file' => 'class.admin.inc',
   );
-  
-  $items['admin/structure/storage/classes/%storage_class_menu/add'] = array(
-    'title' => 'Add container',
+
+  $items['admin/structure/storage/class/%storage_class_menu/add'] = array(
+    'title' => "Add container",
     'access arguments' => array('administer storage'),
     'type' => MENU_LOCAL_ACTION,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('storage_class_add_container_form', 4),
     'weight' => 2,
     'file' => 'class.admin.inc',
+  );
+
+  $items['admin/structure/storage/create-container'] = array(
+    'title' => "Create container",
+    'access arguments' => array('administer storage'),
+    'type' => MENU_LOCAL_ACTION,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('storage_create_container_form'),
+    'weight' => 1,
+    'file' => 'container.admin.inc',
+  );
+
+  $items['admin/structure/storage/container/%storage_container_menu'] = array(
+    'title callback' => 'storage_container_title',
+    'title arguments' => array(4),
+    'access arguments' => array('administer storage'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('storage_container_form', 4),
+    'file' => 'container.admin.inc',
+  );
+
+  $items['admin/structure/storage/container/%storage_container_menu/view'] = array(
+    'title' => "View",
+    'access arguments' => array('administer storage'),
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => 0,
+    'file' => 'container.admin.inc',
+  );
+
+  $items['admin/structure/storage/container/%storage_container_menu/edit'] = array(
+    'title' => "Edit",
+    'access arguments' => array('administer storage'),
+    'type' => MENU_LOCAL_TASK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('storage_container_edit_form', 4),
+    'weight' => 2,
+    'file' => 'container.admin.inc',
+  );
+
+  $items['admin/structure/storage/container/%storage_container_menu/destroy'] = array(
+    'title' => "Destroy",
+    'access arguments' => array('administer storage'),
+    'type' => MENU_LOCAL_TASK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('storage_container_destroy_form', 4),
+    'weight' => 3,
+    'file' => 'container.admin.inc',
+  );
+
+  $items['admin/structure/storage/container/%storage_container_menu/suspend'] = array(
+    'access arguments' => array('administer storage'),
+    'type' => MENU_CALLBACK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('storage_container_suspend_form', 4),
+    'file' => 'container.admin.inc',
+  );
+
+  $items['admin/structure/storage/container/%storage_container_menu/unsuspend'] = array(
+    'access arguments' => array('administer storage'),
+    'type' => MENU_CALLBACK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('storage_container_unsuspend_form', 4),
+    'file' => 'container.admin.inc',
   );
 
   return $items;

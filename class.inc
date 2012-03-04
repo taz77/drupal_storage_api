@@ -44,13 +44,36 @@ class StorageClass {
   }
 
   public function path() {
-    return 'admin/structure/storage/classes/' . $this->class_id;
+    return 'admin/structure/storage/class/' . $this->class_id;
   }
   
   public function link() {
     return l($this->name, $this->path());
   }
   
+  public function count() {
+    $query = db_select('storage_selector');
+    $query->join('storage', NULL, 'storage_selector.selector_id = storage.selector_id');
+
+    return $query->condition('storage_selector.class_id', $this->class_id)
+      ->countQuery()
+      ->execute()
+      ->fetchField();
+  }
+
+  public function size($format = FALSE) {
+    $query = db_select('storage_selector');
+    $query->join('storage', NULL, 'storage_selector.selector_id = storage.selector_id');
+    $query->join('storage_file', NULL, 'storage.file_id = storage_file.file_id');
+    $query->addExpression('SUM(storage_file.size)');
+
+    $size = (int) $query->condition('storage_selector.class_id', $this->class_id)
+      ->execute()
+      ->fetchField();
+
+    return $format ? storage_format_byte_count($size) : $size;
+  }
+
   public function selectorIds() {
 
     return db_select('storage_selector')

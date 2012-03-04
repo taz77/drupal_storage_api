@@ -1,5 +1,5 @@
-name = Statistic
-description = "Records statistics of storage servings."
-package = Storage API
+name = "Statistic"
+description = "Records statistics of file servings."
+package = "Storage API"
 dependencies[] = storage
 core = 7.x

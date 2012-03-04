@@ -1,40 +1,6 @@
 <?php
 
 
-function storage_containers() {
-
-  $header = array(t('Container'), t('Access control'), t('Status'), t('Files'), t('Size'));
-
-  $result = $query = db_select('storage_container', NULL, array('fetch' => PDO::FETCH_ASSOC))
-    ->fields('storage_container')
-    ->orderBy('name')
-    ->orderBy('container_id')
-    ->execute();
-
-  foreach ($result as $container) {
-    $container = storage_container_new($container);
-
-    $rows[] = array(
-      $container->link(),
-      $container->access_control ? t('Yes') : t('No'),
-      $container->status(),
-      $container->count(),
-      $container->size(TRUE),
-    );
-  }
-
-  if (empty($rows)) {
-    $rows[] = array(array('data' => t('No containers exist.'), 'colspan' => 6, 'class' => 'message'));
-  }
-
-  return theme('table', array(
-    'header' => $header, 
-    'rows' => $rows,
-    'attributes' => array('style' => 'width: auto;'),
-  ));
-}
-
-
 /**
  * FAPI definition for the create container form.
  *
@@ -447,7 +413,7 @@ function storage_container_destroy_form_submit(array $form, array &$form_state) 
     $container->destroy();
   }
 
-  $form_state['redirect'] = 'admin/structure/storage/containers';
+  $form_state['redirect'] = 'admin/structure/storage';
 }
 
 

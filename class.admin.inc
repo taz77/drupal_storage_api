@@ -1,58 +1,5 @@
 <?php
 
-
-function _storage_classes_query() {
-
-  $query = db_select('storage_class', NULL, array('fetch' => PDO::FETCH_ASSOC));
-  $query->leftJoin('storage_selector', NULL, 'storage_class.class_id = storage_selector.class_id');
-  $query->leftJoin('storage', NULL, 'storage_selector.selector_id = storage.selector_id');
-  $query->leftJoin('storage_file', NULL, 'storage.file_id = storage_file.file_id');
-  
-  $query->fields('storage_class')
-    ->groupBy('storage_class.class_id');
-    
-  $query->addExpression('COUNT(storage.storage_id)', 'files');
-  $query->addExpression('SUM(storage_file.size)', 'size');
-  
-  return $query;
-}
-
-
-function storage_classes_list() {
-
-  drupal_set_title(t('Storage classes'));
-
-  $result = _storage_classes_query()
-    ->orderBy('storage_class.name')
-    ->orderBy('storage_class.class_id')
-    ->execute();
-
-  $header = array(
-    t('Name'), t('Files'), t('Size')
-  );
-
-  foreach ($result as $class) {
-    unset($row);
-    
-    $row[] = l($class['name'], 'admin/structure/storage/classes/' . $class['class_id']);
-    $row[] = $class['files'];
-    $row[] = storage_format_byte_count($class['size']);
-    
-    $rows[] = $row;
-  }
-
-  if (empty($rows)) {
-    $rows[] = array(array('data' => t('No classes configured.'), 'colspan' => 3, 'class' => 'message'));
-  }
-
-  return theme('table', array(
-    'header' => $header, 
-    'rows' => $rows,
-    'attributes' => array('style' => 'width: auto;'),
-  ));
-}
-
-
 /**
  * FAPI definition for the create class form.
  *
@@ -145,14 +92,9 @@ function _storage_class_selectors(StorageClass $class) {
 
 function storage_class(StorageClass $class) {
 
-  $class_info = _storage_classes_query()
-    ->havingCondition('storage_class.class_id', $class->class_id)
-    ->execute()
-    ->fetchAssoc();
-  
   $info = array(
-    t('Files') => $class_info['files'],
-    t('Size') => storage_format_byte_count($class_info['size']),
+    t('Files') => $class->count(),
+    t('Size') => $class->size(TRUE),
     t('Serve by redirection') => $class->options['redirect'] ? t('Yes') : t('No'),
     t('Serve source') => $class->options['serve_source_uri'] ? t('Yes') : t('No'),
     t('Serve as data URI') => $class->options['data_uri'] ? t('Yes') : t('No'),
@@ -476,7 +418,7 @@ function storage_class_delete_form_submit(array $form, array &$form_state) {
   }
   else {
     $class->delete();
-    $form_state['redirect'] = 'admin/structure/storage/classes';
+    $form_state['redirect'] = 'admin/structure/storage';
   }
 }
 
