@@ -743,8 +743,13 @@ function storage_lock($name) {
 class StorageTempURI {
   private $uri;
 
+  /**
+   * @throws StorageException
+   */
   public function __construct() {
-    $this->uri = drupal_tempnam('temporary://', 'storage-');
+    if (!$this->uri = drupal_tempnam('temporary://', 'storage-')) {
+      throw new StorageException();
+    }
   }
 
   public function __destruct() {
