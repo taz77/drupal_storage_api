@@ -508,7 +508,7 @@ class Storage {
       if ($this->file_id != $file_id) {    // the file has changed
 
         _storage_delete_file_if_unrequired($file_id);
-        unlink($uri);
+        drupal_unlink($uri);
         $uri = FALSE;
       }
       else {

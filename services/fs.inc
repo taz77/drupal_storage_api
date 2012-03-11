@@ -172,7 +172,7 @@ class StorageFS extends StorageContainer implements StorageContainerInterface {
   
   public function serviceInstanceDestroy($reference) {
       
-    @unlink($this->instancePath($reference));
+    @drupal_unlink($this->instancePath($reference));
     
     $dirs = explode('/', $reference);
     array_pop($dirs);

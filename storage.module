@@ -741,7 +741,7 @@ class StorageTempURI {
   }
 
   public function __destruct() {
-    unlink($this->uri);
+    drupal_unlink($this->uri);
   }
 
   public function __toString() {
