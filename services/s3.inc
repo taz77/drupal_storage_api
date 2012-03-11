@@ -96,7 +96,7 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
         
       case 'GET':
         if ($object_name) {
-          $result['temp_uri'] = storage_temp_uri();
+          $result['temp_uri'] = new StorageTempURI();
           $fp = fopen($result['temp_uri'], 'w');
           $curl_options[CURLOPT_FILE] = $fp;
         }

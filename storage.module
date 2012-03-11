@@ -573,7 +573,7 @@ function _storage_file_id($uri, $filename = NULL, &$new_file = NULL) {
 
 function _storage_acquire_from_url($url) {
 
-  $temp_uri = storage_temp_uri();
+  $temp_uri = new StorageTempURI();
   $fp = fopen($temp_uri, "w");
 
   $options = array(
@@ -728,18 +728,6 @@ class StorageLock {
   }
 }
 
-
-/**
- * Creates a lock.
- *
- * @return
- *   A lock.
- */
-function storage_lock($name) {
-
-  return new StorageLock($name);
-}
-
 class StorageTempURI {
   private $uri;
 
@@ -759,18 +747,6 @@ class StorageTempURI {
   public function __toString() {
     return $this->uri;
   }
-}
-
-
-/**
- * Creates a temporary URI.
- *
- * @return
- *   A temporary URI.
- */
-function storage_temp_uri() {
-
-  return new StorageTempURI();
 }
 
 function storage_new_local_storage_path() {

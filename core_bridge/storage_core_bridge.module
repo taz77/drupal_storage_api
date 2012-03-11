@@ -431,7 +431,7 @@ function storage_core_bridge_storage_generate(Storage $storage) {
   }
 
   $source = $storage->parent()->getUri();
-  $destination = storage_temp_uri();
+  $destination = new StorageTempURI();
 
   if (!image_style_create_derivative($style, $source, $destination)) {
     throw new StorageException();
@@ -490,7 +490,7 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
     try {
       switch ($this->mode) {
         case 'w':
-          $this->temp_uri = storage_temp_uri();
+          $this->temp_uri = new StorageTempURI();
 
           if (!$this->fp = fopen($this->temp_uri, 'wb')) {
             throw new StorageException();

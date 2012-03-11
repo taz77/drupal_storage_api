@@ -83,7 +83,7 @@ abstract class StorageContainer {
       $lines[] = '</IfModule>';
     }
 
-    $temp_uri = storage_temp_uri();
+    $temp_uri = new StorageTempURI();
     file_put_contents($temp_uri, implode("\n", $lines) . "\n");
 
     $storage = new Storage(array('filename' => '.htaccess'));
@@ -591,7 +591,7 @@ abstract class StorageContainer {
 
   public function serviceInstanceGetUri($reference) {
 
-    $temp_uri = storage_temp_uri();
+    $temp_uri = new StorageTempURI();
     $success = file_put_contents($temp_uri, $this->serviceInstanceGetContents($reference));
 
     if (!$success) {

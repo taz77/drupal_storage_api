@@ -225,7 +225,7 @@ class Storage {
    */
   private function generate() {
     // Get the lock.
-    $lock = storage_lock('generate:' . $this->storage_id);
+    $lock = new StorageLock('generate:' . $this->storage_id);
 
     // Check if the storage is still ungenerated.
     try {

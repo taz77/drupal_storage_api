@@ -260,7 +260,7 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
   
   public function serviceInstanceGetUri($reference) {
     $cf_container = $this->cf_container();
-    $temp_uri = storage_temp_uri();
+    $temp_uri = new StorageTempURI();
     
     try {
       $object = $cf_container->get_object($reference);
