@@ -165,7 +165,7 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
   private function url($s3_object) {
     $query = array();
 
-    if ($this->settings['cloudfront'] && $this->settings['cloudfront_status'] == 'Deployed') {
+    if (!$this->access_control && $this->settings['cloudfront'] && $this->settings['cloudfront_status'] == 'Deployed') {
       $path = 'http://' . $this->settings['cloudfront_domain'] . '/' . $s3_object;
     }
     else {
@@ -180,9 +180,10 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
           '',
           '',
           $query['Expires'],
-          '/' . $this->settings['bucket'] . '/' . $s3_object,
+          // This field has very unusual encoding requirements.
+          '/' . $this->settings['bucket'] . '/' . str_replace(' ', '%20', $s3_object),
         );
-        
+
         $query['Signature'] = $this->signature(implode("\n", $components));
       }
     }
@@ -670,7 +671,7 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
   }
 
   public function servicePostCreate() {
-
+    // CloudFront items are missing if container has access control.
     if ($this->access_control) {
       return FALSE;
     }
@@ -689,6 +690,10 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
   }
 
   public function serviceUpdate() {
+    // CloudFront items are missing if container has access control.
+    if ($this->access_control) {
+      return;
+    }
 
     if ($this->settings['cloudfront'] && !isset($this->settings['cloudfront_id'])) {
       $this->distributionCreate();
@@ -757,6 +762,11 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
   }
 
   public function serviceDestroy() {
+    // CloudFront items are missing if container has access control.
+    if ($this->access_control) {
+      return;
+    }
+
     $failed = FALSE;
 
     if (isset($this->settings['cloudfront_id'])) {
@@ -784,6 +794,10 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
   }
   
   public function serviceMaintenance() {
+    // CloudFront items are missing if container has access control.
+    if ($this->access_control) {
+      return;
+    }
 
     if ($this->settings['cloudfront'] && $this->settings['cloudfront_status'] != 'Deployed') {
       $this->distributionDeploy();
