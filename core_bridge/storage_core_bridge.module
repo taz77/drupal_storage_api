@@ -80,7 +80,8 @@ function storage_core_bridge_field_delete_field(array $field) {
  * Implements hook_stream_wrappers().
  */
 function storage_core_bridge_stream_wrappers() {
-  $fields = variable_get('storage_core_bridge_fields');
+  // Default specified to prevent warning during testing (unknown reason).
+  $fields = variable_get('storage_core_bridge_fields', array());
   $wrappers = array();
 
   // Work out which selector stream wrapper should be visible.
