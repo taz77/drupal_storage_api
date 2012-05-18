@@ -671,6 +671,10 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
 
   public function servicePostCreate() {
 
+    if ($this->access_control) {
+      return FALSE;
+    }
+
     if ($this->settings['cloudfront']) {
       $this->distributionCreate();
       $update = TRUE;
