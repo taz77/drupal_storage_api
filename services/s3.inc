@@ -166,10 +166,10 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
     $query = array();
 
     if (!$this->access_control && $this->settings['cloudfront'] && $this->settings['cloudfront_status'] == 'Deployed') {
-      $path = 'http://' . $this->settings['cloudfront_domain'] . '/' . $s3_object;
+      $path = 'http://' . $this->settings['cloudfront_domain'] . '/' . drupal_encode_path($s3_object);
     }
     else {
-      $path = 'http://' . $this->settings['bucket'] . '.s3.amazonaws.com/' . $s3_object;
+      $path = 'http://' . $this->settings['bucket'] . '.s3.amazonaws.com/' . drupal_encode_path($s3_object);
 
       if ($this->access_control) {
         $query['AWSAccessKeyId'] = $this->settings['access_key_id'];
@@ -180,8 +180,7 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
           '',
           '',
           $query['Expires'],
-          // This field has very unusual encoding requirements.
-          '/' . $this->settings['bucket'] . '/' . str_replace(' ', '%20', $s3_object),
+          '/' . $this->settings['bucket'] . '/' . drupal_encode_path($s3_object),
         );
 
         $query['Signature'] = $this->signature(implode("\n", $components));
