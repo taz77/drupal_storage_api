@@ -1,6 +1,5 @@
 <?php
 
-
 class StorageRackspace extends StorageContainer implements StorageContainerInterface {
   private $conn;
 
@@ -28,7 +27,15 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
       throw new StorageException();
     }
 
-    $auth = new CF_Authentication($this->settings['username'], $this->settings['api_key']);
+    // Use the UK host if necessary.
+    if (isset($this->settings['locality']) && $this->settings['locality'] == 'uk') {
+      $auth_host = UK_AUTHURL;
+    }
+    else {
+      $auth_host = US_AUTHURL;
+    }
+
+    $auth = new CF_Authentication($this->settings['username'], $this->settings['api_key'], NULL, $auth_host);
     $auth->ssl_use_cabundle();
 
     try {
@@ -38,7 +45,7 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
       $this->log_exception($e, FALSE);
       
       if (user_access('administer storage')) {
-        drupal_set_message(t('Invalid username or access key.'), 'error');
+        drupal_set_message(t("Invalid locality, username or access key."), 'error');
       }
         
       throw new StorageException();
@@ -77,6 +84,7 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
   public function serviceSettingsForm($already_exists) {
     // Add defaults.
     $this->settings += array(
+      'locality' => 'us',
       'username' => '',
       'cf_container' => '',
     );
@@ -85,6 +93,17 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
       '#markup' => t('Get your credentials !link.', array('!link' => l(t('here'), 
         'http://www.rackspace.com/cloud/cloud_hosting_products/files/', 
         array('attributes' => array('target' => '_blank')))))
+    );
+
+    $items['locality'] = array(
+      '#type' => 'select',
+      '#title' => t("Locality"),
+      '#description' => t("The locality of the Rackspace Cloud website the account was created on."),
+      '#options' => array(
+        'us' => t("United States"),
+        'uk' => t("United Kingdom"),
+      ),
+      '#default_value' => $this->settings['locality'],
     );
 
     $items['username'] = array(
@@ -135,6 +154,7 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
     }
     catch (StorageException $e) {
       form_set_error('settings');
+      return;
     }
 
     try {
@@ -180,7 +200,15 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
   }
 
   public function serviceInfo() {
+    if (isset($this->settings['locality']) && $this->settings['locality'] == 'uk') {
+      $locality = t("United Kingdom");
+    }
+    else {
+      $locality = t("United States");
+    }
+
     $info = array(
+      t('Locality') => $locality,
       t('Username') => $this->settings['username'],
       t('Container') => $this->settings['cf_container'],
     );
@@ -248,7 +276,7 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
 
   public function serviceInstanceDestroy($reference) {
     $cf_container = $this->cf_container();
-      
+
     try {
       $cf_container->delete_object($reference);
     }
