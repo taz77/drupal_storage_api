@@ -436,10 +436,12 @@ function storage_storage_service_check_rackspace() {
     }
   }
   else {
-    $items[] = t("Enable Libraries API 7.x-2.x");
+    $items[] = t("Enable <a href=\"!url\">Libraries API</a> 7.x-2.x", 
+      array('!url' => 'http://drupal.org/project/libraries')
+    );
   }
 
-  $message = t("Download <a href=\"!download_url\" target=\"_blank\">php-cloudfiles</a>, decompress it, rename the directory to <em>php-cloudfiles</em> and put it in <em>sites/all/libraries</em>.<br />Alternatively you can use <a href=\"http://git-scm.com/\" target=\"_blank\">Git</a>:", array('!download_url' => $library['download url']));
+  $message = t("Download <a href=\"!download_url\" target=\"_blank\">php-cloudfiles</a>, decompress it, rename the directory to <em>php-cloudfiles</em> and put it in <em>sites/all/libraries</em>.<br />Alternatively you can use <a href=\"http://git-scm.com/\" target=\"_blank\">Git</a>:", array('!download_url' => 'https://github.com/rackspace/php-cloudfiles/downloads'));
   $message .= '<br /><code>git clone git://github.com/rackspace/php-cloudfiles.git</code>';
 
   $items[] = $message;
