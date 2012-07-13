@@ -227,7 +227,19 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
       throw new StorageException();
     }
   }
-  
+
+  public function serviceListReferences() {
+    $cf_container = $this->cf_container();
+
+    try {
+      return $cf_container->list_objects();
+    }
+    catch(Exception $e) {
+      $this->log_exception($e);
+      throw new StorageException();
+    }
+  }
+
   public function serviceInstanceCreate(Storage $storage, $uri) {
     $reference = $this->uniqueFilename($storage->filename);
 
@@ -302,4 +314,3 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
     return $temp_uri;
   }
 }
-
