@@ -87,7 +87,6 @@ function _storage_destroy_containers() {
 
 
 function _storage_cron() {
-
   _storage_remove_containers();
   _storage_check_files();
   _storage_check_migrations();

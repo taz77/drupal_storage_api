@@ -1,8 +1,6 @@
 <?php
 
-
 abstract class StorageContainer {
-
   public $container_id;
   public $service_id;
   public $name;
@@ -11,17 +9,15 @@ abstract class StorageContainer {
   public $status;
   public $settings;
 
-  public function __construct(array $fields, $unserialize = TRUE) {
-  
-    if ($unserialize && isset($container['settings'])) {
-      $container['settings'] = unserialize($container['settings']);
-    }
-    
+  public function __construct(array $fields) {
+
     foreach ($fields as $key => $value) {
       $this->$key = $value;
     }
+
+    $this->settings += $this->serviceSettingsDefault();
   }
-  
+
   public function service() {
     return storage_service_load($this->service_id);
   }
@@ -644,6 +640,9 @@ abstract class StorageContainer {
    * Optional implementations.
    */
 
+  public function serviceSettingsDefault() {
+    return array();
+  }
   public function servicePostCreate() {}
   public function serviceUpdate() {}
   public function serviceMaintenance() {}
@@ -656,7 +655,7 @@ abstract class StorageContainer {
 
 interface StorageContainerInterface {
 
-  public function __construct(array $fields, $unserialize = TRUE);
+  public function __construct(array $fields);
   public function service();
   public function count();
   public function size($format = FALSE);

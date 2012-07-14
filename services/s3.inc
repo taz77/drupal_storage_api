@@ -165,7 +165,7 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
   private function url($s3_object) {
     $query = array();
 
-    if (!$this->access_control && $this->settings['cloudfront'] && $this->settings['cloudfront_status'] == 'Deployed') {
+    if ($this->settings['cloudfront'] && $this->settings['cloudfront_status'] == 'Deployed') {
       $path = 'http://' . $this->settings['cloudfront_domain'] . '/' . drupal_encode_path($s3_object);
     }
     else {
@@ -519,16 +519,19 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
     throw new StorageException();
   }
 
-  public function serviceSettingsForm($already_exists) {
-    // Add defaults.
-    $this->settings += array(
+  public function serviceSettingsDefault() {
+    return array(
       'access_key_id' => '',
       'bucket' => '',
       'location' => '',
       'reduced_redundancy' => FALSE,
       'url_lifetime' => 60 * 60,
+      'cloudfront' => FALSE,
+      'cloudfront_streaming' => FALSE,
     );
+  }
 
+  public function serviceSettingsForm($already_exists) {
     $items['credentials_info'] = array(
       '#markup' => t('Get your credentials !link.', array('!link' => l(t('here'), 
         'http://aws-portal.amazon.com/gp/aws/developer/account/index.html?action=access-key', 
@@ -576,7 +579,6 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
     );
 
     if ($this->access_control) {
-    
       $description = t('(seconds)<br />This container will produce cryptographically signed URLs that will cease to function once their lifetime is over.');
     
       $items['url_lifetime'] = array(
@@ -597,14 +599,14 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
       $items['cloudfront'] = array(
         '#type' => 'checkbox',
         '#title' => t('Serve with CloudFront'),
-        '#default_value' => isset($this->settings['cloudfront']) ? $this->settings['cloudfront'] : NULL,
+        '#default_value' => $this->settings['cloudfront'],
   //      '#description' => $description,
       );
 
       $items['cloudfront_streaming'] = array(
         '#type' => 'checkbox',
         '#title' => t('Stream with CloudFront'),
-        '#default_value' => isset($this->settings['cloudfront_streaming']) ? $this->settings['cloudfront_streaming'] : NULL,
+        '#default_value' => $this->settings['cloudfront_streaming'],
   //      '#description' => $description,
       );
     }
@@ -670,11 +672,6 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
   }
 
   public function servicePostCreate() {
-    // CloudFront items are missing if container has access control.
-    if ($this->access_control) {
-      return FALSE;
-    }
-
     if ($this->settings['cloudfront']) {
       $this->distributionCreate();
       $update = TRUE;
@@ -689,11 +686,6 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
   }
 
   public function serviceUpdate() {
-    // CloudFront items are missing if container has access control.
-    if ($this->access_control) {
-      return;
-    }
-
     if ($this->settings['cloudfront'] && !isset($this->settings['cloudfront_id'])) {
       $this->distributionCreate();
     }
@@ -704,7 +696,6 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
   }
 
   public function serviceInfo() {
-
     $locations = $this->locations();
 
     $info = array(
@@ -717,7 +708,6 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
       $info[t('URL lifetime')] = format_interval($this->settings['url_lifetime']);
     }
     else {
-
       if ($this->settings['cloudfront']) {
       
         if ($this->settings['cloudfront_status'] == 'Deployed')
@@ -761,11 +751,6 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
   }
 
   public function serviceDestroy() {
-    // CloudFront items are missing if container has access control.
-    if ($this->access_control) {
-      return;
-    }
-
     $failed = FALSE;
 
     if (isset($this->settings['cloudfront_id'])) {
@@ -793,11 +778,6 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
   }
   
   public function serviceMaintenance() {
-    // CloudFront items are missing if container has access control.
-    if ($this->access_control) {
-      return;
-    }
-
     if ($this->settings['cloudfront'] && $this->settings['cloudfront_status'] != 'Deployed') {
       $this->distributionDeploy();
     }

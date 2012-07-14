@@ -1,15 +1,17 @@
 <?php
 
-
 class StorageFS extends StorageContainer implements StorageContainerInterface {
 
+  public function serviceSettingsDefault() {
+    return array(
+      'path' => '',
+      'base_url' => '',
+    );
+  }
+
   public function serviceSettingsForm($already_exists) {
-    // Add defaults.
-    if (!isset($this->settings['path'])) {
-      $this->settings['path'] = $already_exists ? '' : storage_new_local_storage_path();
-    }
-    if (!isset($this->settings['base_url'])) {
-      $this->settings['base_url'] = $this->settings['path'];
+    if (!$this->settings['path']) {
+      $this->settings['path'] = storage_new_local_storage_path();
     }
 
     $items['path'] = array(
@@ -29,6 +31,10 @@ class StorageFS extends StorageContainer implements StorageContainerInterface {
     if (!$this->access_control) {
       $description  = "The URL path of the directory path specified above (typically exactly the same).<br/>";
       $description .= "Can be absolute or relative.";
+
+      if (!$this->settings['base_url']) {
+        $this->settings['base_url'] = $this->settings['path'];
+      }
 
       $items['base_url'] = array(
         '#type' => 'textfield',
@@ -67,7 +73,6 @@ class StorageFS extends StorageContainer implements StorageContainerInterface {
   }
   
   public function serviceInfo() {
-
     $info['Free space'] = storage_format_byte_count(@disk_free_space($this->settings['path']));
     $info['Directory'] = realpath($this->settings['path']);
 

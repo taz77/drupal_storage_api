@@ -28,13 +28,7 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
     }
 
     // Use the UK host if necessary.
-    if (isset($this->settings['locality']) && $this->settings['locality'] == 'uk') {
-      $auth_host = UK_AUTHURL;
-    }
-    else {
-      $auth_host = US_AUTHURL;
-    }
-
+    $auth_host = ($this->settings['locality'] == 'us') ? US_AUTHURL : UK_AUTHURL;
     $auth = new CF_Authentication($this->settings['username'], $this->settings['api_key'], NULL, $auth_host);
     $auth->ssl_use_cabundle();
 
@@ -47,7 +41,7 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
       if (user_access('administer storage')) {
         drupal_set_message(t("Invalid locality, username or access key."), 'error');
       }
-        
+
       throw new StorageException();
     }
     catch (Exception $e) {
@@ -81,14 +75,22 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
     return $cf_container;
   }
 
-  public function serviceSettingsForm($already_exists) {
-    // Add defaults.
-    $this->settings += array(
+  public function serviceSettingsDefault() {
+    return array(
       'locality' => 'us',
       'username' => '',
       'cf_container' => '',
     );
+  }
 
+  private function localities() {
+    return array(
+      'us' => t("United States"),
+      'uk' => t("United Kingdom"),
+    );
+  }
+
+  public function serviceSettingsForm($already_exists) {
     $items['credentials_info'] = array(
       '#markup' => t('Get your credentials !link.', array('!link' => l(t('here'), 
         'http://www.rackspace.com/cloud/cloud_hosting_products/files/', 
@@ -99,10 +101,7 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
       '#type' => 'select',
       '#title' => t("Locality"),
       '#description' => t("The locality of the Rackspace Cloud website the account was created on."),
-      '#options' => array(
-        'us' => t("United States"),
-        'uk' => t("United Kingdom"),
-      ),
+      '#options' => $this->localities(),
       '#default_value' => $this->settings['locality'],
     );
 
@@ -200,15 +199,10 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
   }
 
   public function serviceInfo() {
-    if (isset($this->settings['locality']) && $this->settings['locality'] == 'uk') {
-      $locality = t("United Kingdom");
-    }
-    else {
-      $locality = t("United States");
-    }
+    $localities = $this->localities();
 
     $info = array(
-      t('Locality') => $locality,
+      t('Locality') => $localities[$this->settings['locality']],
       t('Username') => $this->settings['username'],
       t('Container') => $this->settings['cf_container'],
     );

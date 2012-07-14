@@ -1,6 +1,5 @@
 <?php
 
-
 class StorageDB extends StorageContainer implements StorageContainerInterface {
 
   private function setActiveDB() {
@@ -9,13 +8,15 @@ class StorageDB extends StorageContainer implements StorageContainerInterface {
     return new StorageDBActive();
   }
 
+  public function serviceSettingsDefault() {
+    return array(
+      'db' => 'default',
+      'table' => 'storage_contents',
+    );
+  }
+
   public function serviceSettingsForm($already_exists) {
     global $databases;
-    // Add defaults.
-    $this->settings += array(
-      'db' => 'default',
-      'table' => $already_exists ? '' : 'storage_contents',
-    );
 
     foreach ($databases as $key => $database) {
       $options[$key] = $key;
@@ -88,7 +89,7 @@ class StorageDB extends StorageContainer implements StorageContainerInterface {
 
     db_drop_table($this->settings['table']);
   }
-  
+
   public function serviceInstanceCreate(Storage $storage, $uri) {
     $active = $this->setActiveDB();
     

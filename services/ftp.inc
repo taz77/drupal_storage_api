@@ -86,6 +86,17 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
     }
   }
 
+  public function serviceSettingsDefault() {
+    return array(
+      'host' => '',
+      'port' => '21',
+      'username' => '',
+      'directory' => '',
+      'mode' => '',
+      'base_url' => '',
+    );
+  }
+
   public function serviceSettingsForm($already_exists) {
 
     $items['host'] = array(
@@ -94,16 +105,18 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
       '#description' => t('The FTP server address. This parameter shouldn\'t have any trailing slashes and shouldn\'t be prefixed with ftp:// .'),
       '#required' => TRUE,
       '#validated' => TRUE,
-      '#default_value' => isset($this->settings['host']) ? $this->settings['host'] : NULL,
+      '#default_value' => $this->settings['host'],
     );
-    
+
     $items['port'] = array(
       '#type' => 'textfield',
       '#title' => t('Port'),
-      '#description' => t('If omitted, the default FTP port (21) will be used.'),
+      '#description' => t("The standard port is 21."),
+      '#required' => TRUE,
+      '#validated' => TRUE,
       '#maxlength' => 5,
       '#size' => 5,
-      '#default_value' => isset($this->settings['port']) ? $this->settings['port'] : NULL,
+      '#default_value' => $this->settings['port'],
     );
     
     $items['username'] = array(
@@ -112,7 +125,7 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
       '#description' => t(''),
       '#required' => TRUE,
       '#validated' => TRUE,
-      '#default_value' => isset($this->settings['username']) ? $this->settings['username'] : NULL,
+      '#default_value' => $this->settings['username'],
     );
 
     $items['password'] = array(
@@ -126,7 +139,7 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
       '#description' => t('The directory to be created on the FTP server.'),
       '#required' => TRUE,
       '#validated' => TRUE,
-      '#default_value' => isset($this->settings['directory']) ? $this->settings['directory'] : NULL,
+      '#default_value' => $this->settings['directory'],
     );
     
     $items['mode'] = array(
@@ -135,14 +148,14 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
       '#description' => t('Octal format, e.g. 644.<br />For serving, ensure the files are readable by the web server.<br />If omitted, the FTP server\'s default permissions will be used.'),
       '#maxlength' => 4,
       '#size' => 5,
-      '#default_value' => isset($this->settings['mode']) ? $this->settings['mode'] : NULL,
+      '#default_value' => $this->settings['mode'],
     );
     
     $items['base_url'] = array(
       '#type' => 'textfield',
       '#title' => t('Base URL'),
       '#description' => t('The URL of the directory specified above.'),
-      '#default_value' => isset($this->settings['base_url']) ? $this->settings['base_url'] : NULL,
+      '#default_value' => $this->settings['base_url'],
     );
 
     return $items;
@@ -152,6 +165,10 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
 
     if (!$this->settings['host']) {
       form_set_error('settings][host', t('Host field is required.'));
+    }
+
+    if (!$this->settings['port']) {
+      form_set_error('settings][port', t('Port field is required.'));
     }
 
     if (!$this->settings['username']) {
