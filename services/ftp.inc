@@ -150,13 +150,17 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
       '#size' => 5,
       '#default_value' => $this->settings['mode'],
     );
-    
-    $items['base_url'] = array(
-      '#type' => 'textfield',
-      '#title' => t('Base URL'),
-      '#description' => t('The URL of the directory specified above.'),
-      '#default_value' => $this->settings['base_url'],
-    );
+
+    if (!$this->access_control) {
+      $items['base_url'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Base URL'),
+        '#description' => t('The URL of the directory specified above.'),
+        '#required' => TRUE,
+        '#validated' => TRUE,
+        '#default_value' => $this->settings['base_url'],
+      );
+    }
 
     return $items;
   }
@@ -174,11 +178,15 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
     if (!$this->settings['username']) {
       form_set_error('settings][username', t('Username field is required.'));
     }
-    
+
     if (!$this->settings['directory']) {
       form_set_error('settings][directory', t('Directory field is required.'));
     }
-    
+
+    if (!$this->access_control && !$this->settings['base_url']) {
+      form_set_error('settings][base_url', t('Base URL field is required.'));
+    }
+
     if (form_get_errors()) {
       return;
     }

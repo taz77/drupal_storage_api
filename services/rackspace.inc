@@ -189,12 +189,20 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
       }
       else {
         $cf_container->make_public(60 * 60 * 24 * 3);    // 3 days is the maximum ttl that can be set in the api
-        $this->settings['base_url'] = $cf_container->cdn_uri;
       }
     }
     catch (Exception $e) {
       $this->log_exception($e);
       throw new StorageException();
+    }
+  }
+
+  public function servicePostCreate() {
+    if (!$this->access_control) {
+      // Store base_url. This happens in this function so it will be stored for
+      // containers that already exist at creation time.
+      $this->settings['base_url'] = $this->cf_container()->cdn_uri;
+      return TRUE;
     }
   }
 

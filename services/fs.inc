@@ -29,7 +29,7 @@ class StorageFS extends StorageContainer implements StorageContainerInterface {
     }
 
     if (!$this->access_control) {
-      $description  = "The URL path of the directory path specified above (typically exactly the same).<br/>";
+      $description  = "The URL of the directory path specified above (typically exactly the same).<br/>";
       $description .= "Can be absolute or relative.";
 
       if (!$this->settings['base_url']) {
@@ -38,8 +38,10 @@ class StorageFS extends StorageContainer implements StorageContainerInterface {
 
       $items['base_url'] = array(
         '#type' => 'textfield',
-        '#title' => t('Base URL path'),
+        '#title' => t('Base URL'),
         '#description' => t($description),
+        '#required' => TRUE,
+        '#validated' => TRUE,
         '#default_value' => $this->settings['base_url'],
       );
     }
@@ -61,6 +63,10 @@ class StorageFS extends StorageContainer implements StorageContainerInterface {
     if ($already_exists && !file_prepare_directory($this->settings['path'], 0)) {
       form_set_error('settings][path', t("Directory does not exist."));
     }
+
+    if (!$this->access_control && !$this->settings['base_url']) {
+      form_set_error('settings][base_url', t('Base URL field is required.'));
+    }
   }
 
   public function serviceCreate() {
@@ -75,11 +81,6 @@ class StorageFS extends StorageContainer implements StorageContainerInterface {
   public function serviceInfo() {
     $info['Free space'] = storage_format_byte_count(@disk_free_space($this->settings['path']));
     $info['Directory'] = realpath($this->settings['path']);
-
-    if (!$this->access_control) {
-      $info['Base URL'] = url($this->settings['base_url'], array('absolute' => TRUE));
-    }
-
     return $info;
   }
   

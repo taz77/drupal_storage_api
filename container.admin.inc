@@ -229,6 +229,10 @@ function storage_container_form(array $form, array &$form_state, StorageContaine
 
   $info += $container->serviceInfo();
 
+  if (!$container->access_control && isset($container->settings['base_url'])) {
+    $info[t("Base URL")] = url($container->settings['base_url'], array('absolute' => TRUE));
+  }
+
   $form['status'] = array(
     '#markup' => theme('storage_info_table', array('info' => $info))
   );
