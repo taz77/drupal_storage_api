@@ -80,50 +80,17 @@ function storage_core_bridge_field_delete_field(array $field) {
  * Implements hook_stream_wrappers().
  */
 function storage_core_bridge_stream_wrappers() {
-  // Default specified to prevent warning during testing (unknown reason).
   $fields = variable_get('storage_core_bridge_fields', array());
   $wrappers = array();
 
-  // Work out which selector stream wrapper should be visible.
-  if (strpos($_GET['q'], 'admin/structure/types/manage/') === 0 && arg(5) == 'fields') {
-    $active_field = arg(6);
-  }
-  elseif (strpos($_GET['q'], 'admin/config/people/accounts/fields/') === 0 ||
-    ((strpos($_GET['q'], 'admin/structure/taxonomy/') === 0 ||
-    strpos($_GET['q'], 'admin/structure/field-collections/') === 0) &&
-    arg(4) == 'fields'))
-  {
-    $active_field = arg(5);
-  }
-  // If a default image is being uploaded via AJAX then make all selector
-  // streamwrappers visible so the form doesn't break.
-  elseif (strpos($_GET['q'], 'file/ajax/field/settings/default_image') === 0) {
-    $active_field = NULL;
-  } else {
-    $active_field = FALSE;
-  }
-
-  // The Media module erroneously lists hidden schemes, so only declare the
-  // active one on field admin pages.
-  if ($active_field) {
-    if (in_array($active_field, $fields)) {
-      $wrappers['storage-' . str_replace('_', '-', $active_field)] = array(
-        'name' => t("Storage class (select below)"),
-        'class' => 'DrupalStorageStreamWrapper',
-        'description' => t("Files managed by Storage API."),
-        'type' => STREAM_WRAPPERS_NORMAL,
-      );
-    }
-  }
-  else {
-    foreach ($fields as $field) {
-      $wrappers['storage-' . str_replace('_', '-', $field)] = array(
-        'name' => t("Storage class (select below)"),
-        'class' => 'DrupalStorageStreamWrapper',
-        'description' => t("Files managed by Storage API."),
-        'type' => is_null($active_field) ? STREAM_WRAPPERS_NORMAL : STREAM_WRAPPERS_HIDDEN,
-      );
-    }
+  // Declare hidden scheme for each field that is handled by Core Bridge.
+  foreach ($fields as $field) {
+    $wrappers[storage_core_bridge_field_scheme($field)] = array(
+      'name' => t("Storage API selector"),
+      'class' => 'DrupalStorageStreamWrapper',
+      'description' => '',
+      'type' => STREAM_WRAPPERS_HIDDEN,
+    );
   }
 
   return $wrappers;
@@ -174,6 +141,11 @@ function storage_core_bridge_form_field_ui_field_settings_form_alter(array &$for
     return;
   }
 
+  // Add the option to use Storage API.
+  $scheme = storage_core_bridge_field_scheme($form['field']['field_name']['#value']);
+  $form['field']['settings']['uri_scheme']['#options'][$scheme] = t("Storage class (select below)");
+
+  // Add the class selector widget.
   $form['field']['settings']['storage_class'] =
     storage_core_bridge_field_selector($form['field']['field_name']['#value'])->formItem();
 
@@ -200,6 +172,11 @@ function storage_core_bridge_form_field_ui_field_edit_form_alter(array &$form, a
     return;
   }
 
+  // Add the option to use Storage API.
+  $scheme = storage_core_bridge_field_scheme($form['#field']['field_name']);
+  $form['field']['settings']['uri_scheme']['#options'][$scheme] = t("Storage class (select below)");
+
+  // Add the class selector widget.
   $form['field']['settings']['storage_class'] =
     storage_core_bridge_field_selector($form['#field']['field_name'])->formItem();
 
@@ -298,9 +275,11 @@ function storage_core_bridge_load($uri) {
   return storage_load($storage_id);
 }
 
+function storage_core_bridge_field_scheme($field_name) {
+  return 'storage-' . str_replace('_', '-', $field_name);
+}
 
 function storage_core_bridge_uri_field_name($uri) {
-
   return str_replace('-', '_', substr(file_uri_scheme($uri), 8));
 }
 
