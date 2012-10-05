@@ -360,6 +360,9 @@ function storage_unserialize_class_options(&$options) {
   );
 }
 
+/**
+ * Creates an object for a class selector.
+ */
 function storage_selector($arg0, $arg1 = NULL) {
 
   return new StorageSelector($arg0, $arg1);

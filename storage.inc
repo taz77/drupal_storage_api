@@ -236,7 +236,8 @@ class Storage {
     $container = storage_container_load($this->initial_container_id);
     $uri = $this->getUri();
 
-    // If the storage's file is already in the system, then the instance might already exist.
+    // If the storage's file is already in the system, then the instance might
+    // already exist.
     if (empty($new_file)) {
       $reference = $container->instanceExists($this);
     }

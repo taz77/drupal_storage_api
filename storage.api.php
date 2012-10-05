@@ -30,6 +30,7 @@ function hook_storage_generate(Storage $storage) {
  *   Whether access is permitted or not.
  *   - TRUE for permitted.
  *   - FALSE for denied.
+ *   - NULL to inherit the parent's access.
  */
 function hook_storage_access(Storage $storage) {
 }

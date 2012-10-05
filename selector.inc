@@ -58,14 +58,14 @@ class StorageSelector {
   }
 
   public function module() {
-
     return strtok($this->selector_id, ':');
   }
 
   /**
    * Generates a FAPI select element for a class selector.
    *
-   * After form submission, pass the form value for the element to storage_selector_submit() .
+   * After form submission, pass the form value for the element to
+   * storage_selector_submit().
    *
    * @param $title
    *   The title of the select element.
@@ -125,13 +125,13 @@ class StorageSelector {
   /**
    * Processes a class selector FAPI element.
    *
-   * The element's class selector is updated to point at the class selected. Migration of files to the new class is initiated.
+   * The element's class selector is updated to point at the class selected.
+   * Migration of files to the new class is initiated.
    *
    * @param $form_item
    *   The form value of a submitted class selector FAPI element.
    */
   public function submit(array $form_item) {
-
     // Has the class been changed?
     if ($form_item['current_class_id'] == $form_item['class_id']) {
       return;
@@ -197,7 +197,6 @@ class StorageSelector {
   }
   
   public function checkMigration() {
-  
     // Is the selector fully migrated?
     $migrated = !db_select('storage')
       ->condition('selector_id', $this->selector_id)
