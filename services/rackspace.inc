@@ -245,8 +245,17 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
   
   public function serviceDestroy() {
     $this->init();
-    
+
     try {
+      // Check if the container actually exists.
+      try {
+        $this->conn->get_container($this->settings['cf_container']);
+      }
+      catch (NoSuchContainerException $e) {
+        return;
+      }
+
+      // Delete the container.
       $this->conn->delete_container($this->settings['cf_container']);
     }
     catch (Exception $e) {
