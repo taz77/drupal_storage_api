@@ -80,6 +80,7 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
       'locality' => 'us',
       'username' => '',
       'cf_container' => '',
+      'base_url' => '',
     );
   }
 
@@ -127,6 +128,22 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
       '#validated' => TRUE,
       '#default_value' => $this->settings['cf_container'],
     );
+
+    if (!$this->access_control) {
+      $replacements = array(
+        '!link' => l(t('CNAME'), 'http://en.wikipedia.org/wiki/CNAME_record', array(
+          'attributes' => array('target' => '_blank')
+        ))
+      );
+      $description = t("Points to the Rackspace domain name for the container (leave blank to obtain automatically), or a !link alias of it.", $replacements);
+
+      $items['base_url'] = array(
+        '#type' => 'textfield',
+        '#title' => t("Base URL"),
+        '#description' => $description,
+        '#default_value' => $this->settings['base_url'],
+      );
+    }
 
     return $items;
   }
@@ -198,11 +215,19 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
   }
 
   public function servicePostCreate() {
-    if (!$this->access_control) {
-      // Store base_url. This happens in this function so it will be stored for
+    // Get the base URL from Rackspace if necessary.
+    if (!$this->access_control && !$this->settings['base_url']) {
+      // Store base_url. This happens in this method so it will be stored for
       // containers that already exist at creation time.
       $this->settings['base_url'] = $this->cf_container()->cdn_uri;
       return TRUE;
+    }
+  }
+
+  public function serviceUpdate() {
+    // Get the base URL from Rackspace if necessary.
+    if (!$this->access_control && !$this->settings['base_url']) {
+      $this->settings['base_url'] = $this->cf_container()->cdn_uri;
     }
   }
 
