@@ -160,7 +160,7 @@ abstract class StorageContainer {
 
   public function instanceCreate(Storage $storage, $uri) {
 
-    if ($this->status != STORAGE_CONTAINER_STATUS_ACTIVE || $this->external) {
+    if ($this->status == STORAGE_CONTAINER_STATUS_SUSPENDED || $this->external) {
       throw new StorageException();
     }
 
@@ -188,7 +188,7 @@ abstract class StorageContainer {
 
   public function instanceCopy(Storage $storage, StorageContainerInterface $source_container) {
 
-    if ($this->status != STORAGE_CONTAINER_STATUS_ACTIVE || $this->external) {
+    if ($this->status == STORAGE_CONTAINER_STATUS_SUSPENDED || $this->external) {
       throw new StorageException();
     }
 
@@ -258,16 +258,12 @@ abstract class StorageContainer {
    *   When it isn't possible to ensure that the instance exists.
    */
   public function ensureInstanceExists(Storage $storage) {
-    $check = FALSE;
-
-    if ($this->status != STORAGE_CONTAINER_STATUS_ACTIVE) {
-      throw new StorageException();
-    }
-    
+    // Do we have a file_id for the storage yet?
     if ($storage->file_id) {
       if ($this->instanceExists($storage)) {
         return;
       }
+      $check = FALSE;
     }
     else {
       // We don't have a file_id yet, so we might check for an instance once we do.
@@ -290,14 +286,7 @@ abstract class StorageContainer {
     }
     
     if (!$exists) {
-      try {
-        $this->instanceCreate($storage, $uri);
-      }
-      catch (StorageException $e) {}
-    }
-
-    if (isset($e)) {
-      throw $e;
+      $this->instanceCreate($storage, $uri);
     }
   }
 
@@ -383,7 +372,7 @@ abstract class StorageContainer {
    */
   public function instanceDestroy(Storage $storage, $reference) {
 
-    if ($this->status != STORAGE_CONTAINER_STATUS_ACTIVE) {
+    if ($this->status == STORAGE_CONTAINER_STATUS_SUSPENDED) {
       throw new StorageException();
     }
 
