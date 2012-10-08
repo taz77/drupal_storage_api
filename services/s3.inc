@@ -169,7 +169,13 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
       $path = 'http://' . $this->settings['cloudfront_domain'] . '/' . drupal_encode_path($s3_object);
     }
     else {
-      $path = 'http://' . $this->settings['bucket'] . '.s3.amazonaws.com/' . drupal_encode_path($s3_object);
+      $path = 'http://' . $this->settings['bucket'];
+
+      if (!$this->settings['cname']) {
+        $path .= '.s3.amazonaws.com';
+      }
+
+      $path .= '/' . drupal_encode_path($s3_object);
 
       if ($this->access_control) {
         $query['AWSAccessKeyId'] = $this->settings['access_key_id'];
@@ -523,6 +529,7 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
     return array(
       'access_key_id' => '',
       'bucket' => '',
+      'cname' => FALSE,
       'location' => '',
       'reduced_redundancy' => FALSE,
       'url_lifetime' => 60 * 60,
@@ -561,6 +568,20 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
       '#default_value' => $this->settings['bucket'],
       '#maxlength' => 63,
       '#description' => t('The bucket namespace is shared by all users of Amazon S3.'),
+    );
+
+    $replacements = array(
+      '!link' => l(t('Customizing Amazon S3 URLs with CNAMEs'), 'http://docs.amazonwebservices.com/AmazonS3/latest/dev/VirtualHosting.html', array(
+        'attributes' => array('target' => '_blank')
+      ))
+    );
+    $description = t("See !link. Currently ignored for CloudFront.", $replacements);
+
+    $items['cname'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Bucket name is CNAME alias'),
+      '#description' => $description,
+      '#default_value' => $this->settings['cname'],
     );
 
     if (!$already_exists) {
@@ -700,6 +721,7 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
 
     $info = array(
       t('Bucket') => $this->settings['bucket'],
+      t('Bucket is CNAME alias') => $this->settings['cname'] ? t('Yes') : t('No'),
       t('Location') => isset($this->settings['location']) ? $locations[$this->settings['location']] : t("Unknown"),
       t('Reduced redundancy') => $this->settings['reduced_redundancy'] ? t('Yes') : t('No'),
     );
