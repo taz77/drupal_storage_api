@@ -307,7 +307,10 @@ class Storage {
         $this->serveSecure($container);
       }
       else {
-        $url = $container->serviceInstanceServe($container->reference);
+        // The URL redirected to should have the same scheme as the current
+        // request.
+        $https = storage_is_request_https();
+        $url = $container->serviceInstanceServe($container->reference, $https);
       }
     }
     elseif ($this->options['serve_source_uri'] && $this->source_uri) {
@@ -344,12 +347,19 @@ class Storage {
    * on your site. Otherwise, Storage API will determine which container to
    * serve from and generate a direct URL.
    *
-   * @param $absolute
-   *   Whether the generated URL should be absolute.
+   * @param bool $absolute
+   *   Whether the generated URL should be absolute. Defaults to FALSE.
+   * @param bool|null $https
+   *   Whether the URL should use the HTTPS scheme. If NULL it is inherited from
+   *   the request currently being handled. Defaults to NULL.
+   *
    * @return
    *   The generated URL.
    */
-  public function serveURL($absolute = FALSE) {
+  public function serveURL($absolute = FALSE, $https = NULL) {
+    if (is_null($https)) {
+      $https = storage_is_request_https();
+    }
 
     if ($this->options['redirect'] || ($this->serving_container === FALSE)  // FALSE means there is no container.
       || !$this->access())
@@ -371,7 +381,6 @@ class Storage {
     }
 
     if (isset($container)) {
-
       if ($container->service()->serve &&
         (!$container->access_control || $container->service()->serve_secure))
       {
@@ -379,7 +388,7 @@ class Storage {
           $url = $this->dataUri($container);
         }
         else {
-          $url = $container->serviceInstanceServe($container->reference);
+          $url = $container->serviceInstanceServe($container->reference, $https);
         }
       }
     }
@@ -392,7 +401,10 @@ class Storage {
       $url = $this->path();
     }
 
-    return url($url, array('absolute' => $absolute));
+    return url($url, array(
+      'absolute' => $absolute,
+      'https' => $https,
+    ));
   }
 
 

@@ -161,40 +161,6 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
     
     return $result;
   }
-  
-  private function url($s3_object) {
-    $query = array();
-
-    if ($this->settings['cloudfront'] && $this->settings['cloudfront_status'] == 'Deployed') {
-      $path = 'http://' . $this->settings['cloudfront_domain'] . '/' . drupal_encode_path($s3_object);
-    }
-    else {
-      $path = 'http://' . $this->settings['bucket'];
-
-      if (!$this->settings['cname']) {
-        $path .= '.s3.amazonaws.com';
-      }
-
-      $path .= '/' . drupal_encode_path($s3_object);
-
-      if ($this->access_control) {
-        $query['AWSAccessKeyId'] = $this->settings['access_key_id'];
-        $query['Expires'] = REQUEST_TIME + $this->settings['url_lifetime'];
-        
-        $components = array(
-          'GET',
-          '',
-          '',
-          $query['Expires'],
-          '/' . $this->settings['bucket'] . '/' . drupal_encode_path($s3_object),
-        );
-
-        $query['Signature'] = $this->signature(implode("\n", $components));
-      }
-    }
-
-    return url($path, array('query' => $query));
-  }
 
   private function rtmp($s3_object) {
 
@@ -567,7 +533,7 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
       '#validated' => TRUE,
       '#default_value' => $this->settings['bucket'],
       '#maxlength' => 63,
-      '#description' => t('The bucket namespace is shared by all users of Amazon S3.'),
+      '#description' => t("The bucket namespace is shared by all users of Amazon S3.<br />If it contains any dots (e.g. it is a CNAME alias) it is not possible to serve as HTTPS as only a single level of subdomain matching is supported by a wildcard certificate."),
     );
 
     $replacements = array(
@@ -905,9 +871,40 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
     }
   }
   
-  public function serviceInstanceServe($reference) {
+  public function serviceInstanceServe($reference, $https) {
+    $s3_object = '/' . drupal_encode_path($reference);
+    $base_url = 'http' . ($https ? 's' : '') . '://';
+    $query = array();
 
-    return $this->url($reference);
+    if ($this->settings['cloudfront'] && $this->settings['cloudfront_status'] == 'Deployed') {
+      $base_url .= $this->settings['cloudfront_domain'];
+    }
+    else {
+      $base_url .= $this->settings['bucket'];
+      // If the bucket is a CNAME alias, the full domain name is not required.
+      // There is no point in disabling this for HTTPS as it cannot work either
+      // way. Only a single level of subdomain matching is supported by a
+      // wildcard certificate.
+      if (!$this->settings['cname']) {
+        $base_url .= '.s3.amazonaws.com';
+      }
+
+      if ($this->access_control) {
+        $query['AWSAccessKeyId'] = $this->settings['access_key_id'];
+        $query['Expires'] = time() + $this->settings['url_lifetime'];
+
+        $components = array(
+          'GET',
+          '',
+          '',
+          $query['Expires'],
+          '/' . $this->settings['bucket'] . $s3_object,
+        );
+
+        $query['Signature'] = $this->signature(implode("\n", $components));
+      }
+    }
+
+    return url($base_url . $s3_object, array('query' => $query));
   }
 }
-

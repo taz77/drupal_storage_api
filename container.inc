@@ -612,8 +612,7 @@ abstract class StorageContainer {
     return $info;
   }
 
-  public function serviceInstanceServe($reference) {
-
+  public function serviceInstanceServe($reference, $https) {
     return $this->settings['base_url'] . '/' . $reference;
   }
 
@@ -686,6 +685,6 @@ interface StorageContainerInterface {
   public function serviceInstanceGetContents($reference);
   public function serviceInstanceGetUri($reference);
   public function serviceInstanceCheck($reference);
-  public function serviceInstanceServe($reference);
+  public function serviceInstanceServe($reference, $https);
   public function serviceInstanceOutput($reference);
 }

@@ -771,6 +771,10 @@ function storage_data_uri_doc_link() {
     array('attributes' => array('target' => '_blank')));
 }
 
+function storage_is_request_https() {
+  return (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on');
+}
+
 /**
  * Implements hook_cron().
  */
