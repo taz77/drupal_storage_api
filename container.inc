@@ -397,7 +397,7 @@ abstract class StorageContainer {
   public function instanceLink($reference) {
 
     if ($this->service()->serve) {
-      return l($reference, $this->serviceInstanceServe($reference));
+      return l($reference, $this->serviceInstanceServe($reference, FALSE));
     }
     else {
       return $reference;
