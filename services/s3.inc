@@ -282,8 +282,9 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
       'us-west-1' => t('US West (Northern California)'),
       'us-west-2' => t('US West (Oregon)'),
       'eu-west-1' => t('EU (Ireland)'),
-      'ap-southeast-1' => t('Asia Pacific (Singapore)'),
       'ap-northeast-1' => t('Asia Pacific (Tokyo)'),
+      'ap-southeast-1' => t('Asia Pacific (Singapore)'),
+      'ap-southeast-2' => t('Asia Pacific (Sydney)'),
       'sa-east-1' => t('South America (Sao Paulo)'),
     );
   }
