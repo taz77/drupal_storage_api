@@ -412,8 +412,8 @@ function storage_libraries_info() {
 
   $libraries['php-cloudfiles'] = array(
     'name' => 'php-cloudfiles',
-    'vendor url' => 'https://github.com/rackspace/php-cloudfiles',
-    'download url' => 'https://github.com/rackspace/php-cloudfiles/downloads',
+    'vendor url' => 'https://github.com/rackerlabs/php-cloudfiles',
+    'download url' => 'https://github.com/rackerlabs/php-cloudfiles/releases',
     'version' => 'whatever',
     'files' => array(
       'php' => array(
@@ -444,8 +444,8 @@ function storage_storage_service_check_rackspace() {
     );
   }
 
-  $message = t("Download <a href=\"!download_url\" target=\"_blank\">php-cloudfiles</a>, decompress it, rename the directory to <em>php-cloudfiles</em> and put it in <em>sites/all/libraries</em>.<br />Alternatively you can use <a href=\"http://git-scm.com/\" target=\"_blank\">Git</a>:", array('!download_url' => 'https://github.com/rackspace/php-cloudfiles/downloads'));
-  $message .= '<br /><code>git clone git://github.com/rackspace/php-cloudfiles.git</code>';
+  $message = t("Download <a href=\"!download_url\" target=\"_blank\">php-cloudfiles</a>, decompress it, rename the directory to <em>php-cloudfiles</em> and put it in <em>sites/all/libraries</em>.<br />Alternatively you can use <a href=\"http://git-scm.com/\" target=\"_blank\">Git</a>:", array('!download_url' => 'https://github.com/rackerlabs/php-cloudfiles/releases'));
+  $message .= '<br /><code>git clone git://github.com/rackerlabs/php-cloudfiles.git</code>';
 
   $items[] = $message;
 
