@@ -574,14 +574,7 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
       return array('mode' => 0040777);
     }
     
-    $scheme = file_uri_scheme($uri);
-    $target = file_uri_target($uri);
-
-    if (!isset($storage_core_bridge_filename[$scheme]) || $storage_core_bridge_filename[$scheme] == '' ||
-      (count(explode('/', $target)) > count(explode('/', $storage_core_bridge_filename[$scheme]))))
-    {
-      $storage_core_bridge_filename[$scheme] = $target;
-    }
+    $storage_core_bridge_filename[file_uri_scheme($uri)] = file_uri_target($uri);
 
     try {
       $storage = storage_core_bridge_load($uri);
