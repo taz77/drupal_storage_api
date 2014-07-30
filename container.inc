@@ -62,25 +62,25 @@ abstract class StorageContainer {
     }
   }
 
-  private function htaccessCreate() {
+  public function htaccessCreate() {
 
-    $lines = array(
-      'SetHandler Drupal_Security_Do_Not_Remove_See_SA_2006_006',
-      'Options None',
-      'Options +FollowSymLinks',
-    );
-    
-    if ($this->access_control) {
-      $lines[] = 'Deny from all';
+    if (!function_exists('file_htaccess_lines')) {
+      $msg = "Unable to create .htaccess file before updating to latest Drupal Core";
+      watchdog('storage', $msg, array(), WATCHDOG_ERROR);
+      throw new StorageException(t($msg));
     }
-    else {
-      $lines[] = '<IfModule mod_headers.c>';
-      $lines[] = '  Header set Content-Disposition "attachment"';
-      $lines[] = '</IfModule>';
+    $lines = file_htaccess_lines($this->access_control);
+    if (!$this->access_control) {
+      $lines .= <<<EOF
+
+<IfModule mod_headers.c>
+  Header set Content-Disposition "attachment"
+</IfModule>
+EOF;
     }
 
     $temp_uri = new StorageTempURI();
-    file_put_contents($temp_uri, implode("\n", $lines) . "\n");
+    file_put_contents($temp_uri, $lines);
 
     $storage = new Storage(array('filename' => '.htaccess'));
 

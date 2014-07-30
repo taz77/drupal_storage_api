@@ -265,3 +265,21 @@ function storage_install() {
   $class->addContainer($container);
 }
 
+/**
+ * Update .htaccess files.
+ */
+function storage_update_7100(array &$sandbox) {
+
+  $result = db_select('storage_container', NULL, array('fetch' => PDO::FETCH_ASSOC))
+    ->fields('storage_container')
+    ->execute();
+
+  foreach ($result as $container) {
+    $container = storage_container_new($container);
+    if(!$container->service()->htaccess) {
+      continue;
+    }
+    $container->serviceInstanceDestroy('.htaccess');
+    $container->htaccessCreate();
+  }
+}
