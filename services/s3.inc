@@ -1,5 +1,9 @@
 <?php
 
+/**
+ * @file
+ * Amazon S3 Storage class files for Storage API.
+ */
 class StorageS3 extends StorageContainer implements StorageContainerInterface {
 
   private function signature($source, $cf = false) {

@@ -1,5 +1,9 @@
 <?php
 
+/**
+ * @file
+ * FS Storage class files for Storage API.
+ */
 class StorageFS extends StorageContainer implements StorageContainerInterface {
 
   public function serviceSettingsDefault() {
@@ -24,12 +28,12 @@ class StorageFS extends StorageContainer implements StorageContainerInterface {
     );
 
     if ($already_exists) {
-      $items['path']['#description'] .= '<br />' . 
+      $items['path']['#description'] .= '<br />' .
         t('If this setting is changed, the directory must be moved manually to the new path.');
     }
 
     if (!$this->access_control) {
-      $description  = "The URL of the directory path specified above (typically exactly the same).<br/>";
+      $description = "The URL of the directory path specified above (typically exactly the same).<br/>";
       $description .= "Can be absolute or relative.";
 
       if (!$this->settings['base_url']) {
@@ -48,14 +52,14 @@ class StorageFS extends StorageContainer implements StorageContainerInterface {
 
     return $items;
   }
-  
+
   public function serviceSettingsValidate($already_exists) {
 
     if (!$this->settings['path']) {
       form_set_error('settings][path', t('Directory path field is required.'));
       return;
     }
-    
+
     if (!$already_exists && file_prepare_directory($this->settings['path'], 0)) {
       form_set_error('settings][path', t("Directory already exists."));
     }
@@ -71,49 +75,47 @@ class StorageFS extends StorageContainer implements StorageContainerInterface {
 
   public function serviceCreate() {
     if (!file_prepare_directory($this->settings['path'], FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS)) {
-      form_set_error('settings][path', t('The directory %directory could not be created. Please check permissions.',
-        array('%directory' => $this->settings['path'])));
+      form_set_error('settings][path', t('The directory %directory could not be created. Please check permissions.', array('%directory' => $this->settings['path'])));
 
       throw new StorageException();
     }
   }
-  
+
   public function serviceInfo() {
     $info['Free space'] = storage_format_byte_count(@disk_free_space($this->settings['path']));
     $info['Directory'] = realpath($this->settings['path']);
     return $info;
   }
-  
+
   public function serviceDestroy() {
     return @rmdir($this->settings['path']);
   }
-  
+
   private function instancePath($reference) {
     return $this->settings['path'] . '/' . $reference;
   }
-  
+
   private function ensureDirectoryPathExists($reference) {
     $dirs = explode('/', $reference);
     $basename = array_pop($dirs);
     $path = '';
-    
+
     foreach ($dirs as $dir) {
       $count = 0;
       $test_path = $path . $dir;
 
       while (!is_dir($this->instancePath($test_path)) &&
-        !@mkdir($this->instancePath($test_path)))
-      {
+      !@mkdir($this->instancePath($test_path))) {
         $count++;
         $test_path = $path . $dir . '_' . $count;
       }
-      
+
       $path = $test_path . '/';
     }
-    
+
     return $path . $basename;
   }
-  
+
   public function serviceInstanceCreate(Storage $storage, $uri) {
 
     $reference = $this->uniqueFilename($this->ensureDirectoryPathExists($storage->filename));
@@ -128,25 +130,25 @@ class StorageFS extends StorageContainer implements StorageContainerInterface {
       throw new StorageException();
     }
   }
-  
+
   private function scanDirectory($dir) {
     $files = array();
     $handle = opendir($dir);
-    
+
     if (!$handle) {
       throw new StorageException();
     }
-    
+
     while (($filename = readdir($handle)) !== FALSE) {
 
       if ($filename == '.' || $filename == '..') {
         continue;
       }
-    
+
       $filepath = $dir . '/' . $filename;
-      
+
       if (is_dir($filepath)) {
-      
+
         foreach ($this->scanDirectory($filepath) as $subfilename) {
           $files[] = $filename . '/' . $subfilename;
         }
@@ -157,17 +159,17 @@ class StorageFS extends StorageContainer implements StorageContainerInterface {
     }
 
     closedir($handle);
-    
+
     return $files;
   }
-  
+
   public function serviceListReferences() {
-  
+
     return $this->scanDirectory($this->settings['path']);
   }
 
   public function serviceInstanceExists($reference) {
-    
+
     return @stat($this->instancePath($reference)) !== FALSE;
   }
 
@@ -175,16 +177,16 @@ class StorageFS extends StorageContainer implements StorageContainerInterface {
 
     return $this->instancePath($reference);
   }
-  
+
   public function serviceInstanceDestroy($reference) {
-      
+
     @drupal_unlink($this->instancePath($reference));
-    
+
     $dirs = explode('/', $reference);
     array_pop($dirs);
-    
+
     while (count($dirs)) {
-    
+
       if (!@rmdir($this->instancePath(implode('/', $dirs)))) {
         break;
       }
@@ -192,5 +194,5 @@ class StorageFS extends StorageContainer implements StorageContainerInterface {
       array_pop($dirs);
     }
   }
-}
 
+}

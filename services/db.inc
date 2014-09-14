@@ -1,5 +1,10 @@
 <?php
 
+/**
+ * @file
+ * DB Storage class files for Storage API.
+ */
+
 class StorageDB extends StorageContainer implements StorageContainerInterface {
 
   private function setActiveDB() {
@@ -50,7 +55,7 @@ class StorageDB extends StorageContainer implements StorageContainerInterface {
       form_set_error('settings][table', t('Database table field is required.'));
       return;
     }
-    
+
     if (!$already_exists && db_table_exists($this->settings['table'])) {
       form_set_error('settings][table', t("Database table already exists."));
     }
@@ -62,7 +67,7 @@ class StorageDB extends StorageContainer implements StorageContainerInterface {
 
   public function serviceCreate() {
     $active = $this->setActiveDB();
-    
+
     $spec = array(
       'fields' => array(
         'file_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
@@ -92,34 +97,34 @@ class StorageDB extends StorageContainer implements StorageContainerInterface {
 
   public function serviceInstanceCreate(Storage $storage, $uri) {
     $active = $this->setActiveDB();
-    
+
     db_insert($this->settings['table'])
       ->fields(array(
         'file_id' => $storage->file_id,
         'contents' => file_get_contents($uri),
-        ))
+      ))
       ->execute();
 
     return $storage->file_id;
   }
-  
+
   public function serviceListReferences() {
     $active = $this->setActiveDB();
-  
+
     return db_select($this->settings['table'])
-      ->fields($this->settings['table'], array('file_id'))
-      ->execute()
-      ->fetchCol();
+        ->fields($this->settings['table'], array('file_id'))
+        ->execute()
+        ->fetchCol();
   }
 
   public function serviceInstanceExists($reference) {
     $active = $this->setActiveDB();
 
     return db_select($this->settings['table'])
-      ->condition('file_id', $reference)
-      ->countQuery()
-      ->execute()
-      ->fetchField();
+        ->condition('file_id', $reference)
+        ->countQuery()
+        ->execute()
+        ->fetchField();
   }
 
   public function serviceInstanceGetContents($reference) {
@@ -150,13 +155,13 @@ class StorageDB extends StorageContainer implements StorageContainerInterface {
 
     echo $this->serviceInstanceGetContents($reference);
   }
-}
 
+}
 
 class StorageDBActive {
 
   public function __destruct() {
     db_set_active();
   }
-}
 
+}

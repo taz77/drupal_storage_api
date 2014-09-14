@@ -1,6 +1,11 @@
 <?php
 
 /**
+ * @file
+ * Install file for Audit submodule of Storage API
+ */
+
+/**
  * Implement hook_install().
  */
 function storage_audit_install() {

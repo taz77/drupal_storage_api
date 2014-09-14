@@ -1,14 +1,13 @@
 <?php
 
 /**
-* @file
-* Hooks provided by Storage Audit.
-*/
-
+ * @file
+ * Hooks provided by Storage Audit.
+ */
 /**
-* @addtogroup hooks
-* @{
-*/
+ * @addtogroup hooks
+ * @{
+ */
 
 /**
  * Determine if extra files in this container should be imported.
@@ -19,6 +18,7 @@
  *   ID of selector extra files should become owned by.
  */
 function hook_storage_audit_import_container(StorageContainer $container) {
+  
 }
 
 /**
@@ -28,4 +28,5 @@ function hook_storage_audit_import_container(StorageContainer $container) {
  *   Storage of the imported file.
  */
 function hook_storage_audit_import(Storage $storage) {
+  
 }

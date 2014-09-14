@@ -1,5 +1,10 @@
 <?php
 
+/**
+ * @file
+ * Install file for Storage Core Bridge apart of Storage API.
+ */
+
 
 /**
  * Implements hook_schema().

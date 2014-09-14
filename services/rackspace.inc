@@ -1,11 +1,16 @@
 <?php
 
+/**
+ * @file
+ * Rackspace Storage class files for Storage API.
+ */
 class StorageRackspace extends StorageContainer implements StorageContainerInterface {
+
   private $conn;
 
   private function log_exception(Exception $e, $dsm = TRUE) {
     watchdog('storage_rackspace', 'php-cloudfiles exception: @msg', array('@msg' => $e->getMessage()), WATCHDOG_ERROR);
-    
+
     if ($dsm && user_access('administer storage')) {
       drupal_set_message(t('php-cloudfiles exception: @msg', array('@msg' => $e->getMessage())), 'error');
     }
@@ -18,12 +23,11 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
 
     if (!isset($library) || $library['loaded'] == FALSE) {
       watchdog('storage_rackspace', 'php-cloudfiles not found', array(), WATCHDOG_ERROR);
-      
+
       if (user_access('administer storage')) {
-        drupal_set_message(t('php-cloudfiles not found. Check the <a href="!path">status report</a>.', 
-          array('!path' => url('admin/reports/status'))), 'error');
+        drupal_set_message(t('php-cloudfiles not found. Check the <a href="!path">status report</a>.', array('!path' => url('admin/reports/status'))), 'error');
       }
-      
+
       throw new StorageException();
     }
 
@@ -37,7 +41,7 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
     }
     catch (AuthenticationException $e) {
       $this->log_exception($e, FALSE);
-      
+
       if (user_access('administer storage')) {
         drupal_set_message(t("Invalid locality, username or access key."), 'error');
       }
@@ -55,13 +59,13 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
 
   private function cf_container() {
     $cf_containers = &drupal_static(__FUNCTION__, array());
-    
+
     if (isset($cf_containers[$this->container_id])) {
       return $cf_containers[$this->container_id];
     }
 
     $this->init();
-    
+
     try {
       $cf_container = $this->conn->get_container($this->settings['cf_container']);
     }
@@ -93,9 +97,7 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
 
   public function serviceSettingsForm($already_exists) {
     $items['credentials_info'] = array(
-      '#markup' => t('Get your credentials !link.', array('!link' => l(t('here'), 
-        'http://www.rackspace.com/cloud/cloud_hosting_products/files/', 
-        array('attributes' => array('target' => '_blank')))))
+      '#markup' => t('Get your credentials !link.', array('!link' => l(t('here'), 'http://www.rackspace.com/cloud/cloud_hosting_products/files/', array('attributes' => array('target' => '_blank')))))
     );
 
     $items['locality'] = array(
@@ -156,15 +158,15 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
     if (!$this->settings['api_key']) {
       form_set_error('settings][api_key', t('API key field is required.'));
     }
-    
+
     if (!$this->settings['cf_container']) {
       form_set_error('settings][cf_container', t('Cloud Files container name field is required.'));
     }
-    
+
     if (form_get_errors()) {
       return;
     }
-    
+
     try {
       $this->init();
     }
@@ -178,8 +180,7 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
     }
     catch (NoSuchContainerException $e) {
       if ($already_exists) {
-        form_set_error('settings][cf_container', t("Cloud Files container %name does not exist.",
-          array('%name' => $this->settings['cf_container'])));
+        form_set_error('settings][cf_container', t("Cloud Files container %name does not exist.", array('%name' => $this->settings['cf_container'])));
       }
       return;
     }
@@ -190,17 +191,16 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
     }
 
     if (!$already_exists) {
-      form_set_error('settings][cf_container', t("Cloud Files container %name already exists.",
-        array('%name' => $this->settings['cf_container'])));
+      form_set_error('settings][cf_container', t("Cloud Files container %name already exists.", array('%name' => $this->settings['cf_container'])));
     }
   }
 
   public function serviceCreate() {
     $this->init();
-    
+
     try {
       $cf_container = $this->conn->create_container($this->settings['cf_container']);
-    
+
       if ($this->access_control) {
         $cf_container->make_private();    // strangely, this has to be done explicity, or it might be public
       }
@@ -242,7 +242,7 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
 
     return $info;
   }
-  
+
   public function serviceDestroy() {
     $this->init();
 
@@ -270,7 +270,7 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
     try {
       return $cf_container->list_objects();
     }
-    catch(Exception $e) {
+    catch (Exception $e) {
       $this->log_exception($e);
       throw new StorageException();
     }
@@ -295,27 +295,29 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
 
       $object->sync_metadata();
     }
-    catch(Exception $e) {
+    catch (Exception $e) {
       log_exception($e);
 
       try {
         $cf_container->delete_object($reference);
       }
-      catch(Exception $e) {}
+      catch (Exception $e) {
+        
+      }
 
       throw new StorageException();
     }
 
     return $reference;
   }
-  
+
   public function serviceInstanceExists($reference) {
     $cf_container = $this->cf_container();
 
     try {
       $object = $cf_container->get_object($reference);
     }
-    catch(Exception $e) {
+    catch (Exception $e) {
       return FALSE;
     }
 
@@ -328,25 +330,26 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
     try {
       $cf_container->delete_object($reference);
     }
-    catch(Exception $e) {
+    catch (Exception $e) {
       $this->log_exception($e);
       throw new StorageException();
     }
   }
-  
+
   public function serviceInstanceGetUri($reference) {
     $cf_container = $this->cf_container();
     $temp_uri = new StorageTempURI();
-    
+
     try {
       $object = $cf_container->get_object($reference);
       $object->save_to_filename($temp_uri);
     }
-    catch(Exception $e) {
+    catch (Exception $e) {
       $this->log_exception($e);
       throw new StorageException();
     }
 
     return $temp_uri;
   }
+
 }

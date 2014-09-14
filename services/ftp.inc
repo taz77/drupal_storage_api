@@ -1,29 +1,32 @@
 <?php
 
-
+/**
+ * @file
+ * FTP Storage class files for Storage API.
+ */
 class StorageFTP extends StorageContainer implements StorageContainerInterface {
 
   private $ftpStream;
 
   private function login($change_directory = TRUE) {
-  
+
     if (isset($this->ftpStream)) {
       return;
     }
 
     $this->ftpStream = ftp_connect($this->settings['host'], $this->settings['port'] ? $this->settings['port'] : NULL);
-    
+
     if (!$this->ftpStream) {
       throw new StorageException();
     }
-    
+
     if (!@ftp_login($this->ftpStream, $this->settings['username'], $this->settings['password'])) {
       ftp_close($this->ftpStream);
       throw new StorageException();
     }
-    
+
     ftp_pasv($this->ftpStream, TRUE);
-    
+
     if ($change_directory) {
       try {
         $this->changeDirectory($this->settings['directory']);
@@ -36,12 +39,12 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
   }
 
   public function __destruct() {
-  
+
     if ($this->ftpStream != NULL) {
       ftp_close($this->ftpStream);
     }
   }
-  
+
   private function createDirectory($directory) {
 
     if (!ftp_mkdir($this->ftpStream, $directory)) {
@@ -64,23 +67,23 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
 
     $this->changeDirectory($original_dir);
   }
-  
+
   private function removeDirectory($directory) {
-        
+
     if (!@ftp_rmdir($this->ftpStream, $directory)) {
       throw new StorageException();
     }
   }
 
   private function changeDirectory($directory) {
-      
+
     if (!@ftp_chdir($this->ftpStream, $directory)) {
       throw new StorageException();
     }
   }
-  
+
   private function setMode($filename, $mode) {
-    
+
     if (!ftp_chmod($this->ftpStream, octdec(str_pad($mode, 4, '0', STR_PAD_LEFT)), $filename)) {
       throw new StorageException();
     }
@@ -118,7 +121,7 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
       '#size' => 5,
       '#default_value' => $this->settings['port'],
     );
-    
+
     $items['username'] = array(
       '#type' => 'textfield',
       '#title' => t('Username'),
@@ -141,7 +144,7 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
       '#validated' => TRUE,
       '#default_value' => $this->settings['directory'],
     );
-    
+
     $items['mode'] = array(
       '#type' => 'textfield',
       '#title' => t('File mode'),
@@ -164,7 +167,7 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
 
     return $items;
   }
-  
+
   public function serviceSettingsValidate($already_exists) {
 
     if (!$this->settings['host']) {
@@ -234,7 +237,7 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
       t('Username') => $this->settings['username'],
       t('Directory') => $this->settings['directory'],
     );
-    
+
     if ($this->settings['mode']) {
       $info[t('File mode')] = $this->settings['mode'];
     }
@@ -245,28 +248,30 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
 
     return $info;
   }
-  
+
   public function serviceDestroy() {
     $this->login(FALSE);
-  
+
     try {
       $this->removeDirectory($this->settings['directory']);
     }
-    catch (StorageException $e) {}
+    catch (StorageException $e) {
+      
+    }
   }
-  
+
   private function enterFileDirectory($filename) {
     $components = explode('/', $filename);
     $basename = array_pop($components);
     $path = '';
-    
+
     foreach ($components as &$directory) {
       $exists = FALSE;
       $count = 0;
-      
+
       do {
         $potential = (!$count) ? $directory : ($directory . '_' . $count++);
-        
+
         try {
           try {
             $this->changeDirectory($potential);
@@ -280,30 +285,30 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
           $count++;
           continue;
         }
-        
+
         break;
       }
       while (TRUE);
 
-      $directory = $potential;      
+      $directory = $potential;
     }
-    
+
     $components[] = $basename;
-    
+
     return implode('/', $components);
   }
- 
+
   public function serviceInstanceCreate(Storage $storage, $uri) {
     $this->login();
     $original_dir = ftp_pwd($this->ftpStream);
-        
+
     $reference = $this->uniqueFilename($this->enterFileDirectory($storage->filename));
-    
+
     $components = explode('/', $reference);
 
     $result = ftp_put($this->ftpStream, array_pop($components), $uri, FTP_BINARY);
     $this->changeDirectory($original_dir);
-    
+
     if (!$result) {
       throw new StorageException();
     }
@@ -314,25 +319,25 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
 
     return $reference;
   }
-  
+
   private function listItems($dir) {
     $files = array();
-    
+
     $items = ftp_rawlist($this->ftpStream, $dir);
-    
+
     foreach ($items as $item) {
-    
+
       $mode = strtok($item, ' ');
-      
+
       $i = 7;
       while ($i--) {
         strtok(' ');
       }
-      
+
       $filename = strtok('');
-      
+
       switch ($mode[0]) {
-      
+
         case 'd':
           foreach ($this->listItems($dir . '/' . $filename) as $subfilename) {
             $files[] = $filename . '/' . $subfilename;
@@ -347,29 +352,29 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
 
     return $files;
   }
-  
+
   public function serviceListReferences() {
     $this->login();
-    
+
     return $this->listItems('.');
   }
 
   public function serviceInstanceExists($reference) {
     $this->login();
-    
+
     return ftp_size($this->ftpStream, $reference) != -1;
   }
-  
+
   public function serviceInstanceDestroy($reference) {
     $this->login();
-          
+
     ftp_delete($this->ftpStream, $reference);
 
     $dirs = explode('/', $reference);
     array_pop($dirs);
-    
+
     while (count($dirs)) {
-    
+
       try {
         $this->removeDirectory(implode('/', $dirs));
       }
@@ -380,18 +385,18 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
       array_pop($dirs);
     }
   }
-  
+
   public function serviceInstanceGetUri($reference) {
     $this->login();
 
     $temp_uri = new StorageTempURI();
     $result = ftp_get($this->ftpStream, $temp_uri, $reference, FTP_BINARY);
-    
+
     if (!$result) {
       throw new StorageException();
     }
 
     return $temp_uri;
   }
-}
 
+}

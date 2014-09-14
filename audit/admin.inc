@@ -1,5 +1,10 @@
 <?php
 
+/**
+ * @file
+ * Admin UI functions for Audit submodule of Storage API
+ */
+
 function _storage_audit_read(StorageContainerInterface $container) {
   $missing = $invalid = $extra = array();
 
