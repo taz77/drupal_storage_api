@@ -1,6 +1,11 @@
 <?php
 
 /**
+ * @file
+ * Main module file for Storage API.
+ */
+
+/**
  * The storage is idle.
  */
 define('STORAGE_STATUS_IDLE', 0);
@@ -25,7 +30,9 @@ define('STORAGE_CONTAINER_STATUS_SUSPENDED', 1);
  */
 define('STORAGE_CONTAINER_STATUS_DESTROY', 2);
 
-class StorageException extends Exception {}
+class StorageException extends Exception {
+  
+}
 
 /**
  * Implements hook_permission().
@@ -33,11 +40,10 @@ class StorageException extends Exception {}
 function storage_permission() {
 
   return array('administer storage' => array(
-    'title' => t('Administer storage'),
+      'title' => t('Administer storage'),
 //    'description' => t(''),
   ));
 }
-
 
 /**
  * Implements hook_menu().
@@ -183,7 +189,6 @@ function storage_menu() {
   return $items;
 }
 
-
 /**
  * Loads a storage.
  *
@@ -200,7 +205,6 @@ function storage_load($storage_id) {
 
   return new Storage($storage_id);
 }
-
 
 /**
  * Loads a storage for the menu system.
@@ -235,12 +239,10 @@ function storage_service_load($service_id) {
   return new StorageService($service_id);
 }
 
-
 function storage_service_title(StorageService $service) {
 
   return check_plain($service->name);
 }
-
 
 /**
  * Loads a storage container.
@@ -269,7 +271,6 @@ function storage_container_load($container_id) {
   return storage_container_new($fields);
 }
 
-
 /**
  * Loads a storage container for the menu system.
  *
@@ -289,23 +290,20 @@ function storage_container_menu_load($container_id) {
   }
 }
 
-
 function storage_container_new(array $fields, $unserialize = TRUE) {
 
   if ($unserialize) {
     $fields['settings'] = unserialize($fields['settings']);
   }
-  
+
   $class = storage_container_class($fields['service_id']);
   return new $class($fields);
 }
-
 
 function storage_container_title(StorageContainerInterface $container) {
 
   return check_plain($container->name());
 }
-
 
 /**
  * Loads a storage class.
@@ -323,7 +321,6 @@ function storage_class_load($class_id) {
 
   return new StorageClass($class_id);
 }
-
 
 /**
  * Loads a storage class for the menu system.
@@ -343,7 +340,6 @@ function storage_class_menu_load($class_id) {
     return FALSE;
   }
 }
-
 
 function storage_class_title(StorageClass $class) {
 
@@ -439,8 +435,7 @@ function storage_storage_service_check_rackspace() {
     }
   }
   else {
-    $items[] = t("Enable <a href=\"!url\">Libraries API</a> 7.x-2.x", 
-      array('!url' => 'http://drupal.org/project/libraries')
+    $items[] = t("Enable <a href=\"!url\">Libraries API</a> 7.x-2.x", array('!url' => 'http://drupal.org/project/libraries')
     );
   }
 
@@ -455,7 +450,7 @@ function storage_storage_service_check_rackspace() {
 function storage_service_info() {
   $services = array();
 
-  foreach (module_implements('storage_services') as $module) { 
+  foreach (module_implements('storage_services') as $module) {
     foreach (module_invoke($module, 'storage_services') as $name => $info) {
       // Add defaults.
       $info += array(
@@ -472,17 +467,14 @@ function storage_service_info() {
   return $services;
 }
 
-
 function storage_container_class($service_id) {
   $service = storage_service_load($service_id);
   return $service->class;
 }
 
-
 function storage_serve(Storage $storage) {
   $storage->serve();
 }
-
 
 /**
  * Determine whether the user has access to a storage.
@@ -496,11 +488,9 @@ function storage_access(Storage $storage) {
   return $storage->access();
 }
 
-
 function _storage_service_unavailable() {
   drupal_deliver_page(MENU_SITE_OFFLINE);
 }
-
 
 function storage_mime_detect($uri, $filename) {
   $filepath = drupal_realpath($uri);
@@ -575,7 +565,6 @@ function _storage_file_id($uri, $filename = NULL, &$new_file = NULL) {
   return $file_id;
 }
 
-
 function _storage_acquire_from_url($url) {
 
   $temp_uri = new StorageTempURI();
@@ -593,42 +582,39 @@ function _storage_acquire_from_url($url) {
   $ch = curl_init(str_replace(' ', '+', $url));   // this seems to keep everyone happy
   curl_setopt_array($ch, $options);
   $result = curl_exec($ch);
-  fclose ($fp);
+  fclose($fp);
   $info = curl_getinfo($ch);
   curl_close($ch);
-  
-  switch ((int)($info['http_code'] / 100)) {
-  
+
+  switch ((int) ($info['http_code'] / 100)) {
+
     case 2:
       return $temp_uri;
-      
+
     case 4:
       return FALSE;         // hard failure
-      
+
     default:
       return NULL;          // soft failure
   }
 }
 
-
 function _storage_delete_file_if_unrequired($file_id) {
   $txn = db_transaction();
-  
+
   // Do any storages use this file?
   if (db_select('storage')
-    ->condition('file_id', $file_id)
-    ->countQuery()
-    ->execute()
-    ->fetchField())
-  {
+      ->condition('file_id', $file_id)
+      ->countQuery()
+      ->execute()
+      ->fetchField()) {
     return;
   }
-  
+
   db_delete('storage_file')
     ->condition('file_id', $file_id)
     ->execute();
 }
-
 
 function _storage_get_service_names() {
   $names = array();
@@ -682,7 +668,6 @@ function storage_theme($existing, $type, $theme, $path) {
   );
 }
 
-
 function theme_storage_info_table(array $variables) {
   $rows = array();
 
@@ -699,15 +684,15 @@ function theme_storage_info_table(array $variables) {
       $value,
     );
   }
-  
+
   return theme('table', array(
-    'rows' => $rows, 
+    'rows' => $rows,
     'attributes' => array('style' => 'width: auto;')
   ));
 }
 
-
 class StorageLock {
+
   public $name;
   private $id;
 
@@ -731,9 +716,11 @@ class StorageLock {
   public function __toString() {
     return $this->name;
   }
+
 }
 
 class StorageTempURI {
+
   private $uri;
 
   /**
@@ -752,6 +739,7 @@ class StorageTempURI {
   public function __toString() {
     return $this->uri;
   }
+
 }
 
 function storage_new_local_storage_path() {
@@ -767,8 +755,7 @@ function storage_test_theme_image_data_uri() {
 
 function storage_data_uri_doc_link() {
   $data_uri_doc_url = 'http://drupal.org/node/1405018';
-  return l($data_uri_doc_url, $data_uri_doc_url,
-    array('attributes' => array('target' => '_blank')));
+  return l($data_uri_doc_url, $data_uri_doc_url, array('attributes' => array('target' => '_blank')));
 }
 
 function storage_is_request_https() {
@@ -785,7 +772,6 @@ function storage_cron() {
 
   _storage_cron();
 }
-
 
 /**
  * Implements hook_modules_uninstalled().
@@ -808,4 +794,3 @@ function storage_modules_uninstalled($modules) {
     }
   }
 }
-
