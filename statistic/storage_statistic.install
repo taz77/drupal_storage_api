@@ -1,8 +1,12 @@
 <?php
 
+/**
+ * @file
+ * Install file for Storage API Statistics.
+ */
 
 /**
- * Implements hook_schema()
+ * Implements hook_schema().
  */
 function storage_statistic_schema() {
 

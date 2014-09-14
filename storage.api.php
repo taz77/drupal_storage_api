@@ -1,14 +1,13 @@
 <?php
 
 /**
-* @file
-* Hooks provided by Storage.
-*/
-
+ * @file
+ * Hooks provided by Storage.
+ */
 /**
-* @addtogroup hooks
-* @{
-*/
+ * @addtogroup hooks
+ * @{
+ */
 
 /**
  * Generate a file.
@@ -19,6 +18,7 @@
  *   Filepath to the generated file.
  */
 function hook_storage_generate(Storage $storage) {
+  
 }
 
 /**
@@ -33,6 +33,7 @@ function hook_storage_generate(Storage $storage) {
  *   - NULL to inherit the parent's access.
  */
 function hook_storage_access(Storage $storage) {
+  
 }
 
 /**
@@ -47,6 +48,7 @@ function hook_storage_access(Storage $storage) {
  *   - NULL for don't alter.
  */
 function hook_storage_access_alter(Storage $storage) {
+  
 }
 
 /**
@@ -63,4 +65,5 @@ function hook_storage_access_alter(Storage $storage) {
  *     - 'serve_secure'
  */
 function hook_storage_service_info() {
+  
 }

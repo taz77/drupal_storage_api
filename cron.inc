@@ -1,5 +1,9 @@
 <?php
 
+/**
+ * @file
+ * Cron functions for Storage API.
+ */
 
 function _storage_remove_containers() {
 
@@ -15,10 +19,11 @@ function _storage_remove_containers() {
     try {
       $class->removeContainer($container);
     }
-    catch (StorageException $e) {}
+    catch (StorageException $e) {
+      
+    }
   }
 }
-
 
 function _storage_check_files() {
 
@@ -33,10 +38,11 @@ function _storage_check_files() {
     try {
       storage_load($storage_id)->check();
     }
-    catch (StorageException $e) {}
+    catch (StorageException $e) {
+      
+    }
   }
 }
-
 
 function _storage_check_migrations() {
 
@@ -54,7 +60,6 @@ function _storage_check_migrations() {
   }
 }
 
-
 function _storage_container_maintenance() {
 
   $result = db_select('storage_container', NULL, array('fetch' => PDO::FETCH_ASSOC))
@@ -66,7 +71,6 @@ function _storage_container_maintenance() {
     storage_container_new($container)->serviceMaintenance();
   }
 }
-
 
 function _storage_destroy_containers() {
 
@@ -81,10 +85,11 @@ function _storage_destroy_containers() {
       $container->serviceDestroy();
       $container->delete();
     }
-    catch (StorageException $e) {}
+    catch (StorageException $e) {
+      
+    }
   }
 }
-
 
 function _storage_cron() {
   _storage_remove_containers();
@@ -93,4 +98,3 @@ function _storage_cron() {
   _storage_container_maintenance();
   _storage_destroy_containers();
 }
-

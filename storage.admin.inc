@@ -1,5 +1,9 @@
 <?php
 
+/**
+ * @file
+ * Admin UI functions for Storage API.
+ */
 function storage_admin_classes() {
   $header = array(t("Class"), t("Files"), t("Size"));
   $rows = array();
@@ -68,4 +72,3 @@ function storage_admin_containers() {
 function storage_admin() {
   return storage_admin_classes() . storage_admin_containers();
 }
-

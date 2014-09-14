@@ -1,12 +1,16 @@
 <?php
 
+/**
+ * @file
+ * Storage Selector Class file for Storage API.
+ */
 
 class StorageSelector {
 
   public $selector_id;
 
   public function __construct($arg0, $arg1 = NULL) {
-    
+
     if (!is_null($arg1)) {
       $this->selector_id = $arg0 . ':' . $arg1;
     }
@@ -14,7 +18,7 @@ class StorageSelector {
       $this->selector_id = $arg0;
     }
   }
-  
+
   /**
    * Creates a new class selector.
    */
@@ -37,7 +41,7 @@ class StorageSelector {
       ))
       ->execute();
   }
-  
+
   /**
    * Deletes a class selector.
    */
@@ -84,7 +88,7 @@ class StorageSelector {
       ->orderBy('name')
       ->orderBy('class_id')
       ->execute();
-    
+
     $classes = array();
 
     foreach ($result as $class) {
@@ -121,7 +125,7 @@ class StorageSelector {
 
     return $selector;
   }
-  
+
   /**
    * Processes a class selector FAPI element.
    *
@@ -144,7 +148,7 @@ class StorageSelector {
       ))
       ->fields(array('migrating' => 0))
       ->execute();
-    
+
     // Are there any files to migrate?
     $num_files = db_select('storage')
       ->condition('selector_id', $this->selector_id)
@@ -168,17 +172,17 @@ class StorageSelector {
         ->expression('serving_container', 'NULL')
         ->condition('selector_id', $this->selector_id)
         ->execute();
-      
+
       $new_class = storage_class_load($form_item['class_id']);
-      
+
       $message = 'Migrating ' . $num_files . ' ' . format_plural($num_files, 'file', 'files');
       $message .= ' to storage class <i>' . check_plain($new_class->name) . '</i>.';
-      
+
       drupal_set_message($message);
       watchdog('storage', $message, NULL);
     }
     else {
-    
+
       db_delete('storage_selector')
         ->condition('selector_id', $this->selector_id)
         ->condition('class_id', $form_item['current_class_id'])
@@ -189,21 +193,21 @@ class StorageSelector {
   public function storageClass() {
 
     return storage_class_load(db_select('storage_selector')
-      ->fields('storage_selector', array('class_id'))
-      ->condition('selector_id', $this->selector_id)
-      ->condition('migrating', 0)
-      ->execute()
-      ->fetchField());
+        ->fields('storage_selector', array('class_id'))
+        ->condition('selector_id', $this->selector_id)
+        ->condition('migrating', 0)
+        ->execute()
+        ->fetchField());
   }
-  
+
   public function checkMigration() {
     // Is the selector fully migrated?
     $migrated = !db_select('storage')
-      ->condition('selector_id', $this->selector_id)
-      ->condition('status', STORAGE_STATUS_PROCESS_CRON)
-      ->countQuery()
-      ->execute()
-      ->fetchField();
+        ->condition('selector_id', $this->selector_id)
+        ->condition('status', STORAGE_STATUS_PROCESS_CRON)
+        ->countQuery()
+        ->execute()
+        ->fetchField();
 
     if ($migrated) {
       // Remove the classes it was migrating from.
@@ -211,10 +215,10 @@ class StorageSelector {
         ->condition('selector_id', $this->selector_id)
         ->condition('migrating', '1')
         ->execute();
-        
+
       $message = 'Storage selector ' . check_plain($this->selector_id);
       $message .= ' has been fully migrated to class <i>' . check_plain($this->storageClass()->name) . '</i>.';
-      
+
       watchdog('storage', $message, NULL);
     }
   }
@@ -322,4 +326,5 @@ class StorageSelector {
 
     return $storage;
   }
+
 }

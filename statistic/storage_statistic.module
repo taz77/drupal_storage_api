@@ -1,8 +1,12 @@
 <?php
 
+/**
+ * @file
+ * Main module file for Storage API Statistics.
+ */
 
 /**
- * Implements hook_storage_serving()
+ * Implements hook_storage_serving().
  */
 function storage_statistic_storage_serving(Storage $storage, StorageContainerInterface $container = NULL) {
   global $user;
@@ -24,9 +28,8 @@ function storage_statistic_storage_serving(Storage $storage, StorageContainerInt
   drupal_write_record('storage_statistic', $statistic);
 }
 
-
 /**
- * Implements hook_cron()
+ * Implements hook_cron().
  */
 function storage_statistic_cron() {
 

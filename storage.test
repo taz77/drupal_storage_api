@@ -1,6 +1,11 @@
 <?php
 
+/**
+ * @file
+ * Test file for Storage API.
+ */
 class StorageAPITestCase extends DrupalWebTestCase {
+
   protected $profile = 'testing';
 
   public static function getInfo() {
@@ -19,11 +24,11 @@ class StorageAPITestCase extends DrupalWebTestCase {
   }
 
   function testStorage() {
-    
+
     $class = storage_class_load(1);
     $this->assertNotNull($class, t('Everything class created.'));
     $this->assertEqual($class->options['initial_container_id'], 1, t('Initial container set.'));
-    
+
     $path = storage_new_local_storage_path();
 
     $container = array(
@@ -41,10 +46,10 @@ class StorageAPITestCase extends DrupalWebTestCase {
     drupal_write_record('storage_class', $class, 'class_id');
     $class = storage_class_load(1);
     $this->assertEqual($class->options['initial_container_id'], $container->container_id, t('Initial container changed.'));
-    
+
     $selector = storage_selector('storage', 'test');
     $selector->create();
-    
+
     $options = array(
       'source_uri' => 'modules/simpletest/files/html-1.txt',
       'get_filename' => TRUE,
@@ -52,7 +57,7 @@ class StorageAPITestCase extends DrupalWebTestCase {
 
     $storage = $selector->storageAdd($options);
     $this->assertNotNull($storage, t('Store file.'));
-    
+
     $exists = db_select('storage_instance')
       ->condition('file_id', $storage->file_id)
       ->condition('container_id', $container->container_id)
@@ -61,7 +66,7 @@ class StorageAPITestCase extends DrupalWebTestCase {
       ->fetchField();
 
     $this->assertTrue($exists, t('Intial instance exists.'));
-    
+
     $this->cronRun();
 
     $exists = db_select('storage_instance')
@@ -70,7 +75,7 @@ class StorageAPITestCase extends DrupalWebTestCase {
       ->countQuery()
       ->execute()
       ->fetchField();
-      
+
     $this->assertTrue($exists, t('Final instance exists.'));
 
     $exists = db_select('storage_instance')
@@ -109,4 +114,5 @@ class StorageAPITestCase extends DrupalWebTestCase {
       $this->assertEqual($output, $expected, t('Correct data URI created.'));
     }
   }
+
 }

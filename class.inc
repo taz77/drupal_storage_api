@@ -1,6 +1,9 @@
 <?php
 
-
+/**
+ * @file
+ * Storage class file for Storage API.
+ */
 class StorageClass {
 
   public $name;
@@ -11,13 +14,13 @@ class StorageClass {
    *   When $class is not an array and the class cannot be found.
    */
   public function __construct($class = NULL) {
-  
+
     if (!isset($class)) {
       return;
     }
-  
+
     if (!is_array($class)) {
-    
+
       $class = db_select('storage_class')
         ->fields('storage_class')
         ->condition('class_id', $class)
@@ -30,35 +33,37 @@ class StorageClass {
 
       storage_unserialize_class_options($class['options']);
     }
-    
+
     foreach ($class as $key => $value) {
       $this->$key = $value;
     }
-      
+
     try {
       if (isset($this->options['initial_container_id'])) {
         $this->initial_container = storage_container_load($this->options['initial_container_id']);
       }
     }
-    catch (StorageException $e) {}
+    catch (StorageException $e) {
+      
+    }
   }
 
   public function path() {
     return 'admin/structure/storage/class/' . $this->class_id;
   }
-  
+
   public function link() {
     return l($this->name, $this->path());
   }
-  
+
   public function count() {
     $query = db_select('storage_selector');
     $query->join('storage', NULL, 'storage_selector.selector_id = storage.selector_id');
 
     return $query->condition('storage_selector.class_id', $this->class_id)
-      ->countQuery()
-      ->execute()
-      ->fetchField();
+        ->countQuery()
+        ->execute()
+        ->fetchField();
   }
 
   public function size($format = FALSE) {
@@ -68,8 +73,8 @@ class StorageClass {
     $query->addExpression('SUM(storage_file.size)');
 
     $size = (int) $query->condition('storage_selector.class_id', $this->class_id)
-      ->execute()
-      ->fetchField();
+        ->execute()
+        ->fetchField();
 
     return $format ? storage_format_byte_count($size) : $size;
   }
@@ -77,10 +82,10 @@ class StorageClass {
   public function selectorIds() {
 
     return db_select('storage_selector')
-      ->fields('storage_selector', array('selector_id'))
-      ->condition('class_id', $this->class_id)
-      ->execute()
-      ->fetchCol();
+        ->fields('storage_selector', array('selector_id'))
+        ->condition('class_id', $this->class_id)
+        ->execute()
+        ->fetchCol();
   }
 
   public function processStorages() {
@@ -99,14 +104,14 @@ class StorageClass {
   }
 
   public function addContainer(StorageContainerInterface $container) {
-  
+
     db_insert('storage_class_container')
       ->fields(array(
         'class_id' => $this->class_id,
         'container_id' => $container->container_id,
       ))
       ->execute();
-    
+
     if (empty($this->initial_container)) {
       $this->options['initial_container_id'] = $container->container_id;
       $this->update();
@@ -116,10 +121,10 @@ class StorageClass {
 
     $msg = 'Storage container !container has been added to class !class.';
     $args = array(
-      '!container' => $container->link(), 
+      '!container' => $container->link(),
       '!class' => $this->link(),
     );
-    
+
     drupal_set_message(t($msg, $args));
     watchdog('storage', $msg, $args, WATCHDOG_NOTICE, l(t('view'), $this->path()));
   }
@@ -199,7 +204,7 @@ class StorageClass {
     drupal_set_message(t($message, $replacements));
     watchdog('storage', $message, $replacements, WATCHDOG_NOTICE, l(t('view'), $this->path()));
   }
-  
+
   public function insert() {
     drupal_write_record('storage_class', $this);
   }
@@ -207,10 +212,10 @@ class StorageClass {
   public function update() {
     drupal_write_record('storage_class', $this, 'class_id');
   }
-  
+
   public function create() {
     $this->insert();
-    
+
     $message = "Storage class !class has been created.";
     $replacements = array('!class' => $this->link());
 
@@ -242,7 +247,7 @@ class StorageClass {
       '#required' => TRUE,
       '#default_value' => $this->name,
     );
-    
+
     $form['options'] = array(
       '#tree' => TRUE,
       'redirect' => array(
@@ -279,10 +284,10 @@ class StorageClass {
   public function selectorCount() {
 
     return db_select('storage_selector')
-      ->condition('class_id', $this->class_id)
-      ->countQuery()
-      ->execute()
-      ->fetchField();
+        ->condition('class_id', $this->class_id)
+        ->countQuery()
+        ->execute()
+        ->fetchField();
   }
-}
 
+}

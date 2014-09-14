@@ -1,6 +1,11 @@
 <?php
 
 /**
+ * @file
+ * Class adming UI functions for Storage API.
+ */
+
+/**
  * FAPI definition for the create class form.
  *
  * @ingroup forms
@@ -9,9 +14,9 @@
 function storage_create_class_form(array $form, array &$form_state) {
 
   drupal_set_title(t('Create class'));
-  
-  $class = new StorageClass(); 
-  
+
+  $class = new StorageClass();
+
   $form = $class->formElements();
 
   $result = db_select('storage_container', NULL, array('fetch' => PDO::FETCH_ASSOC))
@@ -19,9 +24,9 @@ function storage_create_class_form(array $form, array &$form_state) {
     ->orderBy('name')
     ->orderBy('container_id')
     ->execute();
-    
+
   $containers = array();
- 
+
   foreach ($result as $fields) {
     $container = storage_container_new($fields);
     $containers[$container->container_id] = check_plain($container->name());
@@ -38,10 +43,9 @@ function storage_create_class_form(array $form, array &$form_state) {
     '#type' => 'submit',
     '#value' => t('Create class'),
   );
-  
+
   return $form;
 }
-
 
 /**
  * Submit handler for the create class form.
@@ -53,10 +57,9 @@ function storage_create_class_form_submit(array $form, array &$form_state) {
   $class = new StorageClass($form_state['values']);
   $class->options['initial_container_id'] = $form_state['values']['initial_container_id'];
   $class->create();
-  
+
   $form_state['redirect'] = $class->path() . '/add';
 }
-
 
 function _storage_class_selectors(StorageClass $class) {
 
@@ -74,7 +77,7 @@ function _storage_class_selectors(StorageClass $class) {
     $rows[] = $row;
   }
 
-  if(empty($rows)) {
+  if (empty($rows)) {
     $rows[] = array(array('data' => t('No selectors are using this class.'), 'colspan' => 2, 'class' => 'message'));
   }
 
@@ -89,7 +92,6 @@ function _storage_class_selectors(StorageClass $class) {
   return $output;
 }
 
-
 function storage_class(StorageClass $class) {
 
   $info = array(
@@ -100,29 +102,29 @@ function storage_class(StorageClass $class) {
     t('Serve as data URI') => $class->options['data_uri'] ? t('Yes') : t('No'),
     t('Initial container') => (isset($class->initial_container) && $class->initial_container) ? $class->initial_container->link() : t('n/a'),
   );
-  
+
   $output = theme('storage_info_table', array('info' => $info));
 
   $subquery = db_select('storage_selector');
   $subquery->join('storage', NULL, 'storage_selector.selector_id = storage.selector_id');
   $subquery->join('storage_file', NULL, 'storage.file_id = storage_file.file_id');
   $subquery->join('storage_instance', NULL, 'storage.file_id = storage_instance.file_id');
-  
+
   $subquery->fields('storage_instance', array('container_id'));
   $subquery->addExpression('COUNT(storage.storage_id)', 'count');
   $subquery->addExpression('SUM(storage_file.size)', 'size');
-    
+
   $subquery->condition('storage_selector.class_id', $class->class_id)
     ->groupBy('storage_instance.container_id');
-    
-    
+
+
   $query = db_select('storage_class_container', NULL, array('fetch' => PDO::FETCH_ASSOC));
   $query->join('storage_container', NULL, 'storage_class_container.container_id = storage_container.container_id');
   $query->leftJoin($subquery, 'files', 'storage_container.container_id = files.container_id');
 
   $query->fields('storage_container')
     ->fields('storage_class_container');
-    
+
   $query->addField('files', 'count', 'count');
   $query->addField('files', 'size', 'size');
 
@@ -133,27 +135,27 @@ function storage_class(StorageClass $class) {
 
   foreach ($result as $container_info) {
     unset($row);
-    
+
     $container = storage_container_load($container_info['container_id']);
-    
+
     $row[] = $container->link();
     $row[] = $container_info['propagate'] ? t('Yes') : t('No');
     $row[] = $container_info['serving'] ? t('Yes') : t('No');
     $row[] = $container_info['remove'] ? t('Yes') : t('No');
-    $row[] = (int)$container_info['count'];
+    $row[] = (int) $container_info['count'];
     $row[] = storage_format_byte_count($container_info['size']);
-    
+
     $rows[] = $row;
   }
 
-  if(empty($rows)) {
+  if (empty($rows)) {
     $rows[] = array(array('data' => t('There are no containers in this class.'), 'colspan' => 7, 'class' => 'message'));
   }
 
   $header = array(t('Container'), t('Propagate'), t('Serving'), t('Remove'), t('Files'), t('Size'));
-  
+
   $output .= theme('table', array(
-    'header' => $header, 
+    'header' => $header,
     'rows' => $rows,
     'attributes' => array('style' => 'width: auto;'),
   ));
@@ -162,7 +164,6 @@ function storage_class(StorageClass $class) {
 
   return $output;
 }
-
 
 /**
  * FAPI definition for the class edit form.
@@ -173,7 +174,7 @@ function storage_class(StorageClass $class) {
 function storage_class_edit_form(array $form, array &$form_state, StorageClass $class) {
   $form = $class->formElements();
   $form['#class'] = $class;
-  
+
   $query = db_select('storage_class_container', NULL, array('fetch' => PDO::FETCH_ASSOC));
   $query->join('storage_container', NULL, 'storage_class_container.container_id = storage_container.container_id');
 
@@ -186,11 +187,11 @@ function storage_class_edit_form(array $form, array &$form_state, StorageClass $
 
   $form['#container_ids'] = array();
   $form['#tree'] = TRUE;
-  
+
   foreach ($result as $container_info) {
-  
+
     $container = storage_container_load($container_info['container_id']);
-  
+
     $form['#container_ids'][] = $container->container_id;
 
     $form['names'][$container->container_id] = array(
@@ -202,7 +203,7 @@ function storage_class_edit_form(array $form, array &$form_state, StorageClass $
     );
 
     $form['weights'][$container->container_id] = array(
-      '#type' => 'weight', 
+      '#type' => 'weight',
       '#default_value' => $container_info['weight'],
       '#attributes' => array('class' => array('container-weight')),
     );
@@ -233,9 +234,9 @@ function storage_class_edit_form(array $form, array &$form_state, StorageClass $
     ->orderBy('name')
     ->orderBy('container_id')
     ->execute();
-    
+
   $containers = array();
- 
+
   foreach ($result as $fields) {
     $container = storage_container_new($fields);
     $containers[$container->container_id] = check_plain($container->name());
@@ -257,7 +258,6 @@ function storage_class_edit_form(array $form, array &$form_state, StorageClass $
   return $form;
 }
 
-
 /**
  * Themes the class edit form.
  *
@@ -265,20 +265,20 @@ function storage_class_edit_form(array $form, array &$form_state, StorageClass $
  * @see storage_class_edit_form()
  */
 function theme_storage_class_edit_form(array $elements) {
-  
+
   $form = $elements['form'];
 
   $output = drupal_render($form['name']);
   $output .= drupal_render($form['options']);
 
   if (count($form['#container_ids'])) {
-  
+
     $header = array(t('Container'), t('Service'), t('Weight'), t('Propagate'), t('Serving'), t('Remove'));
     $rows = array();
 
     foreach ($form['#container_ids'] as $container_id) {
       unset($row);
-      
+
       $row[] = drupal_render($form['names'][$container_id]);
       $row[] = drupal_render($form['services'][$container_id]);
       $row[] = drupal_render($form['weights'][$container_id]);
@@ -306,8 +306,8 @@ function theme_storage_class_edit_form(array $elements) {
 
     $form['containers']['table'] = array(
       '#markup' => theme('table', array(
-        'header' => $header, 
-        'rows' => $rows, 
+        'header' => $header,
+        'rows' => $rows,
         'attributes' => array('id' => 'class-containers-table', 'style' => 'width: auto;')
     )));
 
@@ -323,7 +323,6 @@ function theme_storage_class_edit_form(array $elements) {
   $output .= drupal_render_children($form);
   return $output;
 }
-
 
 /**
  * Submit handler for the class edit form.
@@ -351,7 +350,7 @@ function storage_class_edit_form_submit(array $form, array &$form_state) {
 
     drupal_write_record('storage_class_container', $update, array('class_id', 'container_id'));
   }
-  
+
   $selector_subquery = db_select('storage_selector')
     ->fields('storage_selector', array('selector_id'))
     ->condition('class_id', $class->class_id);
@@ -361,9 +360,9 @@ function storage_class_edit_form_submit(array $form, array &$form_state) {
     ->expression('serving_container', 'NULL')
     ->condition('selector_id', $selector_subquery, 'IN')
     ->execute();
-  
+
   cache_clear_all();
-  
+
   $message = "Storage class %name has been updated.";
   $replacements = array('%name' => $class->name);
 
@@ -372,7 +371,6 @@ function storage_class_edit_form_submit(array $form, array &$form_state) {
 
   $form_state['redirect'] = $class->path();
 }
-
 
 /**
  * FAPI definition for the class delete form.
@@ -387,7 +385,7 @@ function storage_class_delete_form(array $form, array &$form_state, StorageClass
 
     $form[] = array(
       '#markup' => t("<p>It is not possible to delete this class at the moment, as it is in-use:</p>") .
-        _storage_class_selectors($class),
+      _storage_class_selectors($class),
     );
   }
   else {
@@ -403,7 +401,6 @@ function storage_class_delete_form(array $form, array &$form_state, StorageClass
 
   return $form;
 }
-
 
 /**
  * Submit handler for the class delete form.
@@ -422,7 +419,6 @@ function storage_class_delete_form_submit(array $form, array &$form_state) {
   }
 }
 
-
 /**
  * FAPI definition for the class add container form.
  *
@@ -431,7 +427,7 @@ function storage_class_delete_form_submit(array $form, array &$form_state) {
  */
 function storage_class_add_container_form(array $form, array &$form_state, StorageClass $class) {
   $form['#class'] = $class;
-  
+
 
   $selector_subquery = db_select('storage_class_container')
     ->fields('storage_class_container', array('container_id'))
@@ -443,20 +439,20 @@ function storage_class_add_container_form(array $form, array &$form_state, Stora
     ->orderBy('name')
     ->orderBy('container_id')
     ->execute();
-    
+
   $containers = array();
- 
+
   foreach ($result as $fields) {
     $container = storage_container_new($fields);
     $containers[$container->container_id] = check_plain($container->name());
   }
-  
-  if(count($containers) == 0) {
-  
+
+  if (count($containers) == 0) {
+
     $form[] = array(
       '#markup' => '<p>There are no containers left to add to the class.</p>'
     );
-    
+
     return $form;
   }
 
@@ -467,7 +463,7 @@ function storage_class_add_container_form(array $form, array &$form_state, Stora
     '#options' => $containers,
     '#default_value' => 0,
   );
-  
+
   $form['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Add')
@@ -475,7 +471,6 @@ function storage_class_add_container_form(array $form, array &$form_state, Stora
 
   return $form;
 }
-
 
 /**
  * Submit handler for the class add container form.
@@ -485,8 +480,7 @@ function storage_class_add_container_form(array $form, array &$form_state, Stora
 function storage_class_add_container_form_submit(array $form, array &$form_state) {
   $class = $form['#class'];
   $container = storage_container_load($form_state['values']['container_id']);
-  
+
   $class->addContainer($container);
   $form_state['redirect'] = $class->path();
 }
-

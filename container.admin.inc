@@ -1,5 +1,9 @@
 <?php
 
+/**
+ * @file
+ * Admin UI functions for Container Admin for Storage API.
+ */
 
 /**
  * FAPI definition for the create container form.
@@ -28,7 +32,7 @@ function storage_create_container_form(array $form, array &$form_state) {
     }
     else {
       $step = $form_state['values']['step'];
-      
+
       if (!form_get_errors()) {
         $step++;
       }
@@ -51,7 +55,7 @@ function storage_create_container_form(array $form, array &$form_state) {
         '#options' => $services,
         '#default_value' => $form_state['storage']['service_id'],
       );
-      
+
       $form['name'] = array(
         '#title' => t('Name'),
         '#type' => 'textfield',
@@ -78,7 +82,7 @@ function storage_create_container_form(array $form, array &$form_state) {
       );
 
       break;
-      
+
     case 2:
       $container = storage_container_new($form_state['storage'], FALSE);
       $service_name = check_plain($container->service()->name);
@@ -99,14 +103,14 @@ function storage_create_container_form(array $form, array &$form_state) {
         '#title' => $service_name . t(' settings'),
         '#tree' => TRUE
       );
-      
+
       $form['settings'] += $container->serviceSettingsForm($form_state['storage']['already_exists']);
-      
+
       $form['back'] = array(
         '#type' => 'submit',
         '#value' => t('Back')
       );
-      
+
       $form['create'] = array(
         '#type' => 'submit',
         '#value' => t('Create')
@@ -114,10 +118,9 @@ function storage_create_container_form(array $form, array &$form_state) {
 
       break;
   }
-  
+
   return $form;
 }
-
 
 /**
  * Validate handler for the create container form.
@@ -128,7 +131,7 @@ function storage_create_container_form(array $form, array &$form_state) {
 function storage_create_container_form_validate(array $form, array &$form_state) {
 
   switch ($form_state['values']['step']) {
-  
+
     case 1:
       $form_state['storage']['name'] = $form_state['values']['name'];
       $form_state['storage']['service_id'] = $form_state['values']['service_id'];
@@ -148,7 +151,7 @@ function storage_create_container_form_validate(array $form, array &$form_state)
       }
 
       break;
-      
+
     case 2:
       $form_state['storage']['settings'] = $form_state['values']['settings'];
 
@@ -168,11 +171,10 @@ function storage_create_container_form_validate(array $form, array &$form_state)
           form_set_error('settings', $e->getMessage());
         }
       }
-      
+
       break;
   }
 }
-
 
 /**
  * Submit handler for the create container form.
@@ -186,14 +188,13 @@ function storage_create_container_form_submit(array $form, array &$form_state) {
     $form_state['rebuild'] = TRUE;
     return;
   }
-  
+
   $container = $form_state['storage'];
-  
+
   $form_state['rebuild'] = FALSE;
   $form_state['redirect'] = $container->path();
   unset($form_state['storage']);
 }
-
 
 function _storage_container_render_classes(array $classes) {
   $links = array();
@@ -204,7 +205,6 @@ function _storage_container_render_classes(array $classes) {
 
   return count($links) ? implode(', ', $links) : t('None');
 }
-
 
 /**
  * FAPI definition for the container form.
@@ -236,7 +236,7 @@ function storage_container_form(array $form, array &$form_state, StorageContaine
   $form['status'] = array(
     '#markup' => theme('storage_info_table', array('info' => $info))
   );
-  
+
   switch ($container->status) {
 
     case STORAGE_CONTAINER_STATUS_ACTIVE:
@@ -261,7 +261,6 @@ function storage_container_form(array $form, array &$form_state, StorageContaine
   return $form;
 }
 
-
 /**
  * Submit handler (suspend) for the container form.
  *
@@ -273,7 +272,6 @@ function storage_container_form_suspend(array $form, array &$form_state) {
 
   $form_state['redirect'] = $container->path() . '/suspend';
 }
-
 
 /**
  * Submit handler (unsuspend) for the container form.
@@ -287,7 +285,6 @@ function storage_container_form_unsuspend(array $form, array &$form_state) {
   $form_state['redirect'] = $container->path() . '/unsuspend';
 }
 
-
 /**
  * FAPI definition for the container suspend form.
  *
@@ -297,10 +294,8 @@ function storage_container_form_unsuspend(array $form, array &$form_state) {
 function storage_container_suspend_form(array $form, array &$form_state, StorageContainerInterface $container) {
   $form['#container'] = $container;
 
-  return confirm_form($form, 'Are you sure you want to suspend storage container <i>' . check_plain($container->name()) . '</i> ?', 
-    $container->path(), t(''));
+  return confirm_form($form, 'Are you sure you want to suspend storage container <i>' . check_plain($container->name()) . '</i> ?', $container->path(), t(''));
 }
-
 
 /**
  * Submit handler for the container suspend form.
@@ -309,7 +304,7 @@ function storage_container_suspend_form(array $form, array &$form_state, Storage
  */
 function storage_container_suspend_form_submit(array $form, array &$form_state) {
   $container = $form['#container'];
-  
+
   $container->status = STORAGE_CONTAINER_STATUS_SUSPENDED;
   $container->update();
   $container->flushServingContainer();
@@ -322,7 +317,6 @@ function storage_container_suspend_form_submit(array $form, array &$form_state) 
   $form_state['redirect'] = $container->path();
 }
 
-
 /**
  * FAPI definition for the container unsuspend form.
  *
@@ -332,10 +326,9 @@ function storage_container_suspend_form_submit(array $form, array &$form_state) 
 function storage_container_unsuspend_form(array $form, array &$form_state, StorageContainerInterface $container) {
   $form['#container'] = $container;
 
-  return confirm_form($form, 'Are you sure you want to unsuspend storage container <i>' . 
+  return confirm_form($form, 'Are you sure you want to unsuspend storage container <i>' .
     check_plain($container->name()) . '</i> ?', $container->path(), t(''));
 }
-
 
 /**
  * Submit handler for the container unsuspend form.
@@ -353,10 +346,9 @@ function storage_container_unsuspend_form_submit(array $form, array &$form_state
 
   drupal_set_message($message);
   watchdog('storage', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $container->path()));
-  
+
   $form_state['redirect'] = $container->path();
 }
-
 
 /**
  * FAPI definition for the container destroy form.
@@ -369,7 +361,7 @@ function storage_container_destroy_form(array $form, array &$form_state, Storage
 
   $classes = $container->classes();
   $count = count($classes);
-  
+
   if ($count > 0) {
     $output = t('This container is present in ');
     $output .= format_plural($count, 'class', 'classes') . ' ';
@@ -384,7 +376,7 @@ function storage_container_destroy_form(array $form, array &$form_state, Storage
   $form[] = array(
     '#markup' => t("<p>Are you sure you want to destroy this storage container?</p>")
   );
-  
+
   $form['just_delete'] = array(
     '#type' => 'checkbox',
     '#title' => t('Just delete database records.'),
@@ -400,7 +392,6 @@ function storage_container_destroy_form(array $form, array &$form_state, Storage
 
   return $form;
 }
-
 
 /**
  * Submit handler for the container destroy form.
@@ -419,7 +410,6 @@ function storage_container_destroy_form_submit(array $form, array &$form_state) 
 
   $form_state['redirect'] = 'admin/structure/storage';
 }
-
 
 /**
  * FAPI definition for the container edit form.
@@ -443,7 +433,7 @@ function storage_container_edit_form(array $form, array &$form_state, StorageCon
     '#title' => check_plain($container->service()->name) . t(' settings'),
     '#tree' => TRUE,
   );
-  
+
   $form['settings'] += $container->serviceSettingsForm(TRUE);
 
   $form['external'] = array(
@@ -465,10 +455,9 @@ function storage_container_edit_form(array $form, array &$form_state, StorageCon
     '#type' => 'submit',
     '#value' => 'Save',
   );
-  
+
   return $form;
 }
-
 
 /**
  * Validate handler for the container edit form.
@@ -478,11 +467,10 @@ function storage_container_edit_form(array $form, array &$form_state, StorageCon
  */
 function storage_container_edit_form_validate(array $form, array &$form_state) {
   $container = $form['#container'];
-  
+
   $container->settings = $form_state['values']['settings'] + $container->settings;
   $container->serviceSettingsValidate(TRUE);
 }
-
 
 /**
  * Submit handler for the container edit form.
@@ -508,4 +496,3 @@ function storage_container_edit_form_submit(array $form, array &$form_state) {
 
   $form_state['redirect'] = $container->path();
 }
-

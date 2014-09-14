@@ -1,7 +1,11 @@
 <?php
 
-
+/**
+ * @file
+ * Service class file for Storage API.
+ */
 class StorageService {
+
   public $service_id;
   public $name;
   public $class;
@@ -14,7 +18,7 @@ class StorageService {
     $this->service_id = $service_id;
 
     $services = storage_service_info();
-    foreach($services[$this->service_id] as $key => $value) {
+    foreach ($services[$this->service_id] as $key => $value) {
       $this->$key = $value;
     }
   }
@@ -29,10 +33,10 @@ class StorageService {
     $selector_subquery = db_select('storage_container');
     $selector_subquery->join('storage_class_container', NULL, 'storage_container.container_id = storage_class_container.container_id');
     $selector_subquery->join('storage_selector', NULL, 'storage_class_container.class_id = storage_selector.class_id');
-    
+
     $selector_subquery->fields('storage_selector', array('selector_id'))
       ->condition('storage_container.service_id', $this->service_id);
-      
+
     db_update('storage')
       ->expression('serving_container', 'NULL')
       ->condition('selector_id', $selector_subquery, 'IN')
@@ -40,4 +44,5 @@ class StorageService {
 
     cache_clear_all();
   }
+
 }
