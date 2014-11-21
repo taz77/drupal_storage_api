@@ -427,7 +427,7 @@ public function serveURL($absolute = FALSE, $https = NULL) {
 }
 
 public function path() {
-  return 'system/storage/serve/' . $this->storage_id . ($this->filename ? ('/' . basename($this->filename)) : '');
+  return 'system/storage/serve/' . $this->storage_id . ($this->filename ? ('/' . drupal_basename($this->filename)) : '');
 }
 
 public function logInfo() {
@@ -495,7 +495,7 @@ public function HTTPHeaders() {
   $headers[] = 'Content-Length: ' . $this->size;
   $headers[] = 'Content-MD5: ' . base64_encode($this->md5);
   $headers[] = 'Last-Modified: ' . date(DATE_RFC1123, $this->created);
-  $headers[] = 'Content-Disposition: attachment; filename="' . basename($this->filename) . '"';
+  $headers[] = 'Content-Disposition: attachment; filename="' . drupal_basename($this->filename) . '"';
 
   return $headers;
 }

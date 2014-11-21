@@ -537,7 +537,7 @@ function _storage_file_id($uri, $filename = NULL, &$new_file = NULL) {
 
   $whirlpool = hash_file('whirlpool', $uri, TRUE);
   if (!$filename) {
-    $filename = basename(file_uri_target($uri));
+    $filename = drupal_basename(file_uri_target($uri));
   }
 
   $transaction = db_transaction();
