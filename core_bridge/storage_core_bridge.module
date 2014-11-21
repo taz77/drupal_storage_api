@@ -388,7 +388,7 @@ function storage_core_bridge_storage_generate(Storage $storage) {
     ->fetchField();
 
   if (!$style = image_style_load($style_name)) {
-    throw new StorageException();
+    throw new BadImageStyleStorageException();
   }
 
   $source = $storage->parent()->getUri();

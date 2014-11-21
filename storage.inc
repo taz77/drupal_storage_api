@@ -291,6 +291,23 @@ public function serve() {
       try {
         $container = $this->selectContainerInstance(TRUE);
       }
+      catch (BadImageStyleStorageException $e) {
+        // Requested an image style url that doesn't exist. Remove from db so we
+        // don't fail at this over and over again.
+        // This storage can now be deleted.
+        if (!empty($this->storage_id)) {
+          watchdog(
+            'storage_api',
+            'Image style requested does not exist. (!storage_id). Removing storage record',
+            array(
+              '!storage_id' => $this->storage_id,
+            ),
+            WATCHDOG_ERROR
+          );
+          $this->remove();
+        }
+        $failure = TRUE;
+      }
       catch (StorageException $e) {
         $container = $this->generate();
       }

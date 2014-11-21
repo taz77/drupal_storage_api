@@ -25,6 +25,8 @@ define('STORAGE_CONTAINER_STATUS_ACTIVE', 0);
  */
 define('STORAGE_CONTAINER_STATUS_SUSPENDED', 1);
 
+class BadImageStyleStorageException extends StorageException {}
+
 /**
  * The storage container is being destroyed.
  */
