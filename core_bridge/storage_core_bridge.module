@@ -85,9 +85,9 @@ function storage_core_bridge_stream_wrappers() {
   // Declare hidden scheme for each field that is handled by Core Bridge.
   foreach ($fields as $field) {
     $wrappers[storage_core_bridge_field_scheme($field)] = array(
-      'name' => t("Storage API selector"),
+      'name' => t('Storage API selector'),
       'class' => 'DrupalStorageStreamWrapper',
-      'description' => '',
+      'description' => t('Storage API field: !fieldname', array('!fieldname' => $field)),
       'type' => STREAM_WRAPPERS_HIDDEN,
     );
   }
