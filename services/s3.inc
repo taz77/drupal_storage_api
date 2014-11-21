@@ -929,16 +929,18 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
         $query['Key-Pair-Id'] = $this->settings['cf_key_id'];
       }
     }
-    else {
-      $base_url .= $this->settings['bucket'];
-      // If the bucket is a CNAME alias, the full domain name is not required.
-      // There is no point in disabling this for HTTPS as it cannot work either
-      // way. Only a single level of subdomain matching is supported by a
-      // wildcard certificate.
-      if (!$this->settings['cname']) {
-        $base_url .= '.s3.amazonaws.com';
+ else {
+      if (https && strpos($this->settings['bucket'], '.') !== false) {
+        $base_url .= 's3.amazonaws.com/' . $this->settings['bucket'];
       }
-
+      else {
+        $base_url .= $this->settings['bucket'];
+        // If the bucket is a CNAME alias, the full domain name is not required unless we are
+        // serving over https.
+        if (!$this->settings['cname'] || $https) {
+          $base_url .= '.s3.amazonaws.com';
+        }
+      }
       if ($this->access_control) {
         $query['AWSAccessKeyId'] = $this->settings['access_key_id'];
         $query['Expires'] = time() + $this->settings['url_lifetime'];
