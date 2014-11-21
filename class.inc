@@ -267,12 +267,12 @@ class StorageClass {
     $description = '';
 
     if (!storage_test_theme_image_data_uri()) {
-      $description = t("Not supported by this installation of Drupal.") . '<br />';
+      $description = t('Not supported by this installation of Drupal.') . '<br />';
     }
-    $description .= t("See !link.", array('!link' => storage_data_uri_doc_link()));
+    $description .= t('See') . ' ' . storage_data_uri_doc_link();
 
     $form['options']['data_uri'] = array(
-      '#title' => t("Serve as data URI"),
+      '#title' => t('Serve as data URI'),
       '#type' => 'checkbox',
       '#default_value' => $this->options['data_uri'],
       '#description' => $description,

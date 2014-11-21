@@ -60,14 +60,14 @@ function storage_create_container_form(array $form, array &$form_state) {
         '#title' => t('Name'),
         '#type' => 'textfield',
         '#default_value' => $form_state['storage']['name'],
-        '#description' => t("Optional"),
+        '#description' => t('Optional'),
       );
 
       $form['access_control'] = array(
         '#type' => 'checkbox',
         '#title' => t('Access control'),
         '#default_value' => $form_state['storage']['access_control'],
-        '#description' => t("Prevents files being served to users who are not authorised.<br />Depending on the service, this can have significant performance implications.<br />Even without this enabled, URLs will only be generated for files that the user has permission to access."),
+        '#description' => t('Prevents files being served to users who are not authorised.<br />Depending on the service, this can have significant performance implications.<br />Even without this enabled, URLs will only be generated for files that the user has permission to access.'),
       );
 
       $form['already_exists'] = array(
@@ -88,10 +88,10 @@ function storage_create_container_form(array $form, array &$form_state) {
       $service_name = check_plain($container->service()->name);
 
       $info = array(
-        t("Service") => $service_name,
-        t("Name") => check_plain($container->name),
-        t("Access control") => $container->access_control ? t("Yes") : t("No"),
-        t("Already exists") => $container->already_exists ? t("Yes") : t("No"),
+        t('Service') => $service_name,
+        t('Name') => check_plain($container->name),
+        t('Access control') => $container->access_control ? t('Yes') : t('No'),
+        t('Already exists') => $container->already_exists ? t('Yes') : t('No'),
       );
 
       $form['info'] = array(
@@ -230,7 +230,7 @@ function storage_container_form(array $form, array &$form_state, StorageContaine
   $info += $container->serviceInfo();
 
   if (!$container->access_control && isset($container->settings['base_url'])) {
-    $info[t("Base URL")] = url($container->settings['base_url'], array('absolute' => TRUE));
+    $info[t('Base URL')] = url($container->settings['base_url'], array('absolute' => TRUE));
   }
 
   $form['status'] = array(
@@ -374,7 +374,9 @@ function storage_container_destroy_form(array $form, array &$form_state, Storage
   }
 
   $form[] = array(
-    '#markup' => t("<p>Are you sure you want to destroy this storage container?</p>")
+    '#prefix' => '<p>',
+    '#markup' => t('Are you sure you want to destroy this storage container?'),
+    '#suffix' => '</p>',
   );
 
   $form['just_delete'] = array(
@@ -425,7 +427,7 @@ function storage_container_edit_form(array $form, array &$form_state, StorageCon
     '#title' => 'Name',
     '#type' => 'textfield',
     '#default_value' => $container->name,
-    '#description' => t("Optional"),
+    '#description' => t('Optional'),
   );
 
   $form['settings'] = array(
@@ -441,14 +443,14 @@ function storage_container_edit_form(array $form, array &$form_state, StorageCon
     '#type' => 'fieldset',
     '#collapsible' => !$container->external,
     '#collapsed' => TRUE,
-    '#description' => t("It is important that two sites don't try to control the same container, otherwise data loss can occur. Any duplicate site must have it's remote containers marked as external."),
+    '#description' => t('It is important that two sites don\'t try to control the same container, otherwise data loss can occur. Any duplicate site must have it\'s remote containers marked as external.'),
   );
 
   $form['external']['external'] = array(
     '#title' => t('This container is controlled by another site'),
     '#type' => 'checkbox',
     '#default_value' => $container->external,
-    '#description' => t("<ul><li>files will not be propagated to this container</li><li>files will not be deleted from this container, but their database records will</li><li>files can still be served and retrieved from this container</li></ul>"),
+    '#description' => t('<ul><li>files will not be propagated to this container</li><li>files will not be deleted from this container, but their database records will</li><li>files can still be served and retrieved from this container</li></ul>'),
   );
 
   $form['submit'] = array(

@@ -140,9 +140,9 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
 
     $curl_options[CURLOPT_HTTPHEADER] = $headers;
 
-    if ($bucket)
+    if ($bucket) {
       $bucket .= '.';
-
+    }
     $ch = curl_init(url('http://' . $bucket . 's3.amazonaws.com' . drupal_encode_path($object_name), array('query' => $query)));
     curl_setopt_array($ch, $curl_options);
     $transfer = curl_exec($ch);
@@ -567,7 +567,7 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
         'attributes' => array('target' => '_blank')
       ))
     );
-    $description = t("See !link. Currently ignored for CloudFront.", $replacements);
+    $description = t('See !link. Currently ignored for CloudFront.', $replacements);
 
     $items['cname'] = array(
       '#type' => 'checkbox',
@@ -608,7 +608,7 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
       '#title' => t('Cloudfront CNAME'),
       '#default_value' => (!empty($this->settings['cname_cf'])) ? $this->settings['cname_cf'] : '',
       '#maxlength' => 63,
-      '#description' => t("Use CNAME for Cloudfront distribution."),
+      '#description' => t('Use CNAME for Cloudfront distribution.'),
     );
 
     if ($this->access_control) {
@@ -734,7 +734,7 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
     $info = array(
       t('Bucket') => $this->settings['bucket'],
       t('Bucket is CNAME alias') => $this->settings['cname'] ? t('Yes') : t('No'),
-      t('Location') => isset($this->settings['location']) ? $locations[$this->settings['location']] : t("Unknown"),
+      t('Location') => isset($this->settings['location']) ? $locations[$this->settings['location']] : t('Unknown'),
       t('Reduced redundancy') => $this->settings['reduced_redundancy'] ? t('Yes') : t('No'),
     );
 
@@ -930,7 +930,7 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
         $query['Key-Pair-Id'] = $this->settings['cf_key_id'];
       }
     }
- else {
+    else {
       if (https && strpos($this->settings['bucket'], '.') !== false) {
         $base_url .= 's3.amazonaws.com/' . $this->settings['bucket'];
       }

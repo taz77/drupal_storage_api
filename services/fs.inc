@@ -21,7 +21,7 @@ class StorageFS extends StorageContainer implements StorageContainerInterface {
     $items['path'] = array(
       '#type' => 'textfield',
       '#title' => t('Directory path'),
-      '#description' => t("Can be absolute or relative."),
+      '#description' => t('Can be absolute or relative.'),
       '#default_value' => $this->settings['path'],
       '#required' => TRUE,
       '#validated' => TRUE,
@@ -33,8 +33,8 @@ class StorageFS extends StorageContainer implements StorageContainerInterface {
     }
 
     if (!$this->access_control) {
-      $description = "The URL of the directory path specified above (typically exactly the same).<br/>";
-      $description .= "Can be absolute or relative.";
+      $description = 'The URL of the directory path specified above (typically exactly the same).' . ' ';
+      $description .= 'Can be absolute or relative.';
 
       if (!$this->settings['base_url']) {
         $this->settings['base_url'] = $this->settings['path'];
@@ -61,11 +61,11 @@ class StorageFS extends StorageContainer implements StorageContainerInterface {
     }
 
     if (!$already_exists && file_prepare_directory($this->settings['path'], 0)) {
-      form_set_error('settings][path', t("Directory already exists."));
+      form_set_error('settings][path', t('Directory already exists.'));
     }
 
     if ($already_exists && !file_prepare_directory($this->settings['path'], 0)) {
-      form_set_error('settings][path', t("Directory does not exist."));
+      form_set_error('settings][path', t('Directory does not exist.'));
     }
 
     if (!$this->access_control && !$this->settings['base_url']) {

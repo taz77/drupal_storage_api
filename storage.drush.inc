@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @file
  * Storage API drush commands.
@@ -227,7 +228,6 @@ function drush_storage_list_container_classes() {
   foreach ($results as $object) {
     drush_print("{$object->storage_container_name}\t{$object->storage_class_name}\t{$object->propagate}\t{$object->serving}\t{$object->weight}");
   }
-
 }
 
 /**
@@ -407,7 +407,7 @@ function drush_storage_destroy_container($service_id, $name) {
   }
 
   // Ensure the container exists to be modified.
-  if (!($container =_drush_storage_load_container($service_id, $name))) {
+  if (!($container = _drush_storage_load_container($service_id, $name))) {
     return;
   }
 
@@ -442,7 +442,7 @@ function drush_storage_container_class($service_id, $name) {
   }
 
   // Ensure the container exists to be modified.
-  if (!($container =_drush_storage_load_container($service_id, $name))) {
+  if (!($container = _drush_storage_load_container($service_id, $name))) {
     return;
   }
 

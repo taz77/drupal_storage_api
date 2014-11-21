@@ -4,7 +4,6 @@
  * @file
  * Class file for Storage API.
  */
-
 class Storage {
 
   /**
@@ -97,6 +96,7 @@ class Storage {
   public function parent() {
 
   return storage_load($this->parent_id);
+
 
   }
 
@@ -297,12 +297,9 @@ public function serve() {
         // This storage can now be deleted.
         if (!empty($this->storage_id)) {
           watchdog(
-            'storage_api',
-            'Image style requested does not exist. (!storage_id). Removing storage record',
-            array(
-              '!storage_id' => $this->storage_id,
-            ),
-            WATCHDOG_ERROR
+            'storage_api', 'Image style requested does not exist. (!storage_id). Removing storage record', array(
+            '!storage_id' => $this->storage_id,
+            ), WATCHDOG_ERROR
           );
           $this->remove();
         }

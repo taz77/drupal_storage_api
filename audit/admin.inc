@@ -4,7 +4,6 @@
  * @file
  * Admin UI functions for Audit submodule of Storage API
  */
-
 function _storage_audit_read(StorageContainerInterface $container) {
   $missing = $invalid = $extra = array();
 
@@ -49,14 +48,16 @@ function storage_audit_form(array $form, array &$form_state, StorageContainerInt
 
 
   $form['info'] = array(
-    '#markup' => t("<p>It's important that the record of which files have instances in which containers is accurate. If instances have been lost, then the database needs to be updated to reflect this.</p>"),
+    '#prefix' => '<p>',
+    '#markup' => t('It is important that the record of which files have instances in which containers is accurate. If instances have been lost, then the database needs to be updated to reflect this.'),
+    '#suffix' => '</p>',
   );
 
   $info = array(
-    t("Service") => check_plain($container->service()->name),
-    t("Files") => $container->count(),
-    t("Size") => $container->size(TRUE),
-    t("Audited") => isset($audited) ? format_date($audited) : t("No"),
+    t('Service') => check_plain($container->service()->name),
+    t('Files') => $container->count(),
+    t('Size') => $container->size(TRUE),
+    t('Audited') => isset($audited) ? format_date($audited) : t('No'),
   );
 
   $form['status'] = array(
@@ -65,7 +66,7 @@ function storage_audit_form(array $form, array &$form_state, StorageContainerInt
 
   $form['audit'] = array(
     '#type' => 'submit',
-    '#value' => t("Audit"),
+    '#value' => t('Audit'),
     '#weight' => 1,
   );
 
@@ -96,7 +97,7 @@ function storage_audit_form(array $form, array &$form_state, StorageContainerInt
     if ((count($results['missing']) + count($results['invalid']) + count($results['extra'])) > 0) {
       $form['repair'] = array(
         '#type' => 'submit',
-        '#value' => t("Repair"),
+        '#value' => t('Repair'),
         '#weight' => 2,
       );
     }
@@ -120,7 +121,7 @@ function storage_audit_form_submit(array $form, array &$form_state) {
         'operations' => array(
           array('storage_audit_batch', array($container)),
         ),
-        'title' => t("Auditing storage container %name", array('%name' => $container->name())),
+        'title' => t('Auditing storage container %name', array('%name' => $container->name())),
       );
       break;
 
@@ -129,7 +130,7 @@ function storage_audit_form_submit(array $form, array &$form_state) {
         'operations' => array(
           array('storage_audit_repair_batch', array($container)),
         ),
-        'title' => t("Repairing storage container %name", array('%name' => $container->name())),
+        'title' => t('Repairing storage container %name', array('%name' => $container->name())),
       );
       break;
   }

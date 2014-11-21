@@ -363,7 +363,7 @@ function storage_class_edit_form_submit(array $form, array &$form_state) {
 
   cache_clear_all();
 
-  $message = "Storage class %name has been updated.";
+  $message = 'Storage class %name has been updated.';
   $replacements = array('%name' => $class->name);
 
   drupal_set_message(t($message, $replacements));
@@ -384,18 +384,21 @@ function storage_class_delete_form(array $form, array &$form_state, StorageClass
   if ($class->selectorCount() > 0) {
 
     $form[] = array(
-      '#markup' => t("<p>It is not possible to delete this class at the moment, as it is in-use:</p>") .
-      _storage_class_selectors($class),
+      '#prefix' => '<p>',
+      '#suffix' => '</p>',
+      '#markup' => t('It is not possible to delete this class at the moment, as it is in-use:') . '<br />' . _storage_class_selectors($class),
     );
   }
   else {
     $form[] = array(
-      '#markup' => t("<p>Are you sure you want to delete this storage class?</p>")
+      '#prefix' => '<p>',
+      '#suffix' => '</p>',
+      '#markup' => t('Are you sure you want to delete this storage class?'),
     );
 
     $form['submit'] = array(
       '#type' => 'submit',
-      '#value' => t('Delete')
+      '#value' => t('Delete'),
     );
   }
 

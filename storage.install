@@ -32,7 +32,7 @@ function storage_requirements($phase) {
       $finfo = @finfo_open(FILEINFO_MIME);
 
       if ($finfo !== FALSE) {
-        $value = t("Fileinfo PHP extension");
+        $value = t('Fileinfo PHP extension');
       }
     }
 
@@ -43,7 +43,7 @@ function storage_requirements($phase) {
         $value = t("Unix 'file' command");
       }
       else {
-        $value = t("Filename extension mapping");
+        $value = t('Filename extension mapping');
       }
     }
 
@@ -57,7 +57,7 @@ function storage_requirements($phase) {
 
     $requirements['storage_data_uri'] = array(
       'title' => t('Storage - data URIs'),
-      'value' => $data_uri_enabled ? t("Supported") : t("Unsupported") . ' ' . t("(see !link)", array('!link' => storage_data_uri_doc_link())),
+      'value' => $data_uri_enabled ? t('Supported') : t('Unsupported') . ' (' . t('see') . ' ' . storage_data_uri_doc_link() . ')',
       'severity' => $data_uri_enabled ? REQUIREMENT_OK : REQUIREMENT_WARNING,
     );
 
@@ -96,11 +96,7 @@ function storage_requirements($phase) {
  */
 function storage_schema() {
   $schema = array();
-
-  /*
-   * Configuration.
-   */
-
+  // Configuration.
   $schema['storage_container'] = array(
     'fields' => array(
       'container_id' => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
@@ -155,12 +151,7 @@ function storage_schema() {
     ),
     'primary key' => array('selector_id', 'class_id'),
   );
-
-
-  /*
-   * Content.
-   */
-
+  // Content.
   $schema['storage_file'] = array(
     'fields' => array(
       'file_id' => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),

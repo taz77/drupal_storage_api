@@ -4,7 +4,6 @@
  * @file
  * Main module file for Storage API.
  */
-
 /**
  * The storage is idle.
  */
@@ -25,7 +24,9 @@ define('STORAGE_CONTAINER_STATUS_ACTIVE', 0);
  */
 define('STORAGE_CONTAINER_STATUS_SUSPENDED', 1);
 
-class BadImageStyleStorageException extends StorageException {}
+class BadImageStyleStorageException extends StorageException {
+  
+}
 
 /**
  * The storage container is being destroyed.
@@ -392,7 +393,7 @@ function storage_storage_services() {
       'class' => 'StorageRackspace',
     ),
     's3' => array(
-      'name' => t("Amazon S3"),
+      'name' => t('Amazon S3'),
       'class' => 'StorageS3',
       'copy' => TRUE,
       'serve_secure' => TRUE,
@@ -437,11 +438,10 @@ function storage_storage_service_check_rackspace() {
     }
   }
   else {
-    $items[] = t("Enable <a href=\"!url\">Libraries API</a> 7.x-2.x", array('!url' => 'http://drupal.org/project/libraries')
-    );
+    $items[] = t('Enable') . ' ' . link('Libraries API 7.x-2.x', 'https://www.drupal.org/project/libraries', array('attributes' => array('target' => '_blank')));
   }
 
-  $message = t("Download <a href=\"!download_url\" target=\"_blank\">php-cloudfiles</a>, decompress it, rename the directory to <em>php-cloudfiles</em> and put it in <em>sites/all/libraries</em>.<br />Alternatively you can use <a href=\"http://git-scm.com/\" target=\"_blank\">Git</a>:", array('!download_url' => 'https://github.com/rackerlabs/php-cloudfiles/releases'));
+  $message = t('Download <a href="!download_url" target="_blank">php-cloudfiles</a>, decompress it, rename the directory to <em>php-cloudfiles</em> and put it in <em>sites/all/libraries</em>.<br />Alternatively you can use <a href="http://git-scm.com/" target="_blank">Git</a>:', array('!download_url' => 'https://github.com/rackerlabs/php-cloudfiles/releases'));
   $message .= '<br /><code>git clone git://github.com/rackerlabs/php-cloudfiles.git</code>';
 
   $items[] = $message;
@@ -756,7 +756,7 @@ function storage_test_theme_image_data_uri() {
 }
 
 function storage_data_uri_doc_link() {
-  $data_uri_doc_url = 'http://drupal.org/node/1405018';
+  $data_uri_doc_url = 'https://www.drupal.org/node/1405018';
   return l($data_uri_doc_url, $data_uri_doc_url, array('attributes' => array('target' => '_blank')));
 }
 

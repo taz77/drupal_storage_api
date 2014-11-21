@@ -4,7 +4,6 @@
  * @file
  * Container class file for Storage API.
  */
-
 abstract class StorageContainer {
 
   public $container_id;

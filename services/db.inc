@@ -4,7 +4,6 @@
  * @file
  * DB Storage class files for Storage API.
  */
-
 class StorageDB extends StorageContainer implements StorageContainerInterface {
 
   private function setActiveDB() {
@@ -57,11 +56,11 @@ class StorageDB extends StorageContainer implements StorageContainerInterface {
     }
 
     if (!$already_exists && db_table_exists($this->settings['table'])) {
-      form_set_error('settings][table', t("Database table already exists."));
+      form_set_error('settings][table', t('Database table already exists.'));
     }
 
     if ($already_exists && !db_table_exists($this->settings['table'])) {
-      form_set_error('settings][table', t("Database table does not exist."));
+      form_set_error('settings][table', t('Database table does not exist.'));
     }
   }
 

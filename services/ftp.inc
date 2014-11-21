@@ -114,7 +114,7 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
     $items['port'] = array(
       '#type' => 'textfield',
       '#title' => t('Port'),
-      '#description' => t("The standard port is 21."),
+      '#description' => t('The standard port is 21.'),
       '#required' => TRUE,
       '#validated' => TRUE,
       '#maxlength' => 5,
@@ -209,14 +209,14 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
       catch (StorageException $e) {
         return;
       }
-      form_set_error('settings][directory', t("Directory already exists."));
+      form_set_error('settings][directory', t('Directory already exists.'));
     }
     else {
       try {
         $this->changeDirectory($this->settings['directory']);
       }
       catch (StorageException $e) {
-        form_set_error('settings][directory', t("Directory does not exist."));
+        form_set_error('settings][directory', t('Directory does not exist.'));
       }
     }
   }

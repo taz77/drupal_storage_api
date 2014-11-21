@@ -43,7 +43,7 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
       $this->log_exception($e, FALSE);
 
       if (user_access('administer storage')) {
-        drupal_set_message(t("Invalid locality, username or access key."), 'error');
+        drupal_set_message(t('Invalid locality, username or access key.'), 'error');
       }
 
       throw new StorageException();
@@ -90,8 +90,8 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
 
   private function localities() {
     return array(
-      'us' => t("United States"),
-      'uk' => t("United Kingdom"),
+      'us' => t('United States'),
+      'uk' => t('United Kingdom'),
     );
   }
 
@@ -102,8 +102,8 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
 
     $items['locality'] = array(
       '#type' => 'select',
-      '#title' => t("Locality"),
-      '#description' => t("The locality of the Rackspace Cloud website the account was created on."),
+      '#title' => t('Locality'),
+      '#description' => t('The locality of the Rackspace Cloud website the account was created on.'),
       '#options' => $this->localities(),
       '#default_value' => $this->settings['locality'],
     );
@@ -137,11 +137,11 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
           'attributes' => array('target' => '_blank')
         ))
       );
-      $description = t("Points to the Rackspace domain name for the container (leave blank to obtain automatically), or a !link alias of it.", $replacements);
+      $description = t('Points to the Rackspace domain name for the container (leave blank to obtain automatically), or a !link alias of it.', $replacements);
 
       $items['base_url'] = array(
         '#type' => 'textfield',
-        '#title' => t("Base URL"),
+        '#title' => t('Base URL'),
         '#description' => $description,
         '#default_value' => $this->settings['base_url'],
       );
@@ -180,7 +180,7 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
     }
     catch (NoSuchContainerException $e) {
       if ($already_exists) {
-        form_set_error('settings][cf_container', t("Cloud Files container %name does not exist.", array('%name' => $this->settings['cf_container'])));
+        form_set_error('settings][cf_container', t('Cloud Files container %name does not exist.', array('%name' => $this->settings['cf_container'])));
       }
       return;
     }
@@ -191,7 +191,7 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
     }
 
     if (!$already_exists) {
-      form_set_error('settings][cf_container', t("Cloud Files container %name already exists.", array('%name' => $this->settings['cf_container'])));
+      form_set_error('settings][cf_container', t('Cloud Files container %name already exists.', array('%name' => $this->settings['cf_container'])));
     }
   }
 

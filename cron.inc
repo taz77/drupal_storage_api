@@ -4,7 +4,6 @@
  * @file
  * Cron functions for Storage API.
  */
-
 function _storage_remove_containers() {
 
   $result = db_select('storage_class_container', NULL, array('fetch' => PDO::FETCH_ASSOC))
