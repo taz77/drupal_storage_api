@@ -137,7 +137,7 @@ function storage_core_bridge_form_field_ui_field_settings_form_alter(array &$for
 
   // Add the option to use Storage API.
   $scheme = storage_core_bridge_field_scheme($form['field']['field_name']['#value']);
-  $form['field']['settings']['uri_scheme']['#options'][$scheme] = t("Storage class (select below)");
+  $form['field']['settings']['uri_scheme']['#options'][$scheme] = t('Storage class (select below)');
 
   // Add the class selector widget.
   $form['field']['settings']['storage_class'] = storage_core_bridge_field_selector($form['field']['field_name']['#value'])->formItem();
@@ -165,7 +165,7 @@ function storage_core_bridge_form_field_ui_field_edit_form_alter(array &$form, a
 
   // Add the option to use Storage API.
   $scheme = storage_core_bridge_field_scheme($form['#field']['field_name']);
-  $form['field']['settings']['uri_scheme']['#options'][$scheme] = t("Storage class (select below)");
+  $form['field']['settings']['uri_scheme']['#options'][$scheme] = t('Storage class (select below)');
 
   // Add the class selector widget.
   $form['field']['settings']['storage_class'] = storage_core_bridge_field_selector($form['#field']['field_name'])->formItem();
@@ -186,22 +186,22 @@ function storage_core_bridge_form_image_style_form_alter(array &$form, array &$f
 
   $form['storage_api'] = array(
     '#type' => 'fieldset',
-    '#title' => t("Storage API"),
+    '#title' => t('Storage API'),
   );
 
   if ($form_state['image_style']['storage'] & IMAGE_STORAGE_EDITABLE) {
-    $form['storage_api']['#description'] = t("These settings only apply to styled images which are derived from images managed by Storage API.");
-    $form['storage_api']['storage_class'] = storage_core_bridge_image_style_selector($form_state['image_style']['isid'])->formItem("Storage class for styled images");
+    $form['storage_api']['#description'] = t('These settings only apply to styled images which are derived from images managed by Storage API.');
+    $form['storage_api']['storage_class'] = storage_core_bridge_image_style_selector($form_state['image_style']['isid'])->formItem('Storage class for styled images');
 
     $form['storage_api']['default_images'] = array(
-      '#title' => t("Default images"),
+      '#title' => t('Default images'),
       '#type' => 'fieldset',
       '#collapsible' => TRUE,
       '#collapsed' => TRUE,
     );
 
     $form['storage_api']['default_images']['separate_storage_class'] = array(
-      '#title' => t("Separate class for styled default images (select below)"),
+      '#title' => t('Separate class for styled default images (select below)'),
       '#type' => 'checkbox',
     );
 
@@ -217,7 +217,7 @@ function storage_core_bridge_form_image_style_form_alter(array &$form, array &$f
     $form['#submit'][] = 'storage_core_bridge_image_style_form_submit';
   }
   else {
-    $form['storage_api']['#description'] = t("As this image style is being provided by a module, the storage class of the parent image will also be used for its derived images.");
+    $form['storage_api']['#description'] = t('As this image style is being provided by a module, the storage class of the parent image will also be used for its derived images.');
   }
 }
 
