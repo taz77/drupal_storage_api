@@ -29,7 +29,9 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
       return str_replace(array('+', '=', '/'), array('-', '_', '~'), base64_encode($signed_source));
     }
   }
-
+  /**
+   * Parse a header into an array.
+   */
   private function parseHeaders($source) {
     $headers = array();
 
@@ -43,7 +45,17 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
 
     return $headers;
   }
-
+  /**
+   * Function to perform a request against S3.
+   * 
+   * @param string $op
+   * @param string $bucket
+   * @param string $object_name
+   * @param Storage $storage
+   * @param string $uri
+   * @param array $query
+   * @return array
+   */
   private function request($op, $bucket = NULL, $object_name = NULL, Storage $storage = NULL, $uri = NULL, array $query = array()) {
     $result = array();
     $date = date(DATE_RFC1123, time());
@@ -56,7 +68,7 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
       CURLOPT_RETURNTRANSFER => TRUE,
       CURLOPT_AUTOREFERER => TRUE,
       CURLOPT_FOLLOWLOCATION => TRUE,
-      CURLOPT_USERAGENT => 'Storage API (http://drupal.org/project/storage_api)',
+      CURLOPT_USERAGENT => 'Storage API (https://www.drupal.org/project/storage_api)',
     );
 
     switch ($op) {
@@ -130,9 +142,9 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
         break;
     }
 
-    if ($bucket)
+    if ($bucket) {
       $object_name = '/' . $object_name;
-
+    }
     $components[] = '/' . $bucket . drupal_encode_path($object_name);
 
     $signature = $this->signature(implode("\n", $components));
