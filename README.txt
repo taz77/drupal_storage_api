@@ -12,7 +12,9 @@ Rackspace Cloudfiles Provider:
 This service requires an accout with the external service provider.
 
 Amazon S3 Provider:
-This service requires an accout with the external service provider.
+This service requires an accout with the external service provider. Please refer
+to the online documentation for additional help:
+https://www.drupal.org/node/656716
 
 Amazon S3 is a redundant storage service.
 Directly serving web content from an S3 should NEVER be done for a website
