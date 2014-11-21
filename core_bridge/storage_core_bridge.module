@@ -335,6 +335,7 @@ function storage_core_bridge_styled_image_create($uri) {
     $selector = storage_core_bridge_field_selector($field_name);
   }
 
+  drupal_alter('storage_core_bridge_styled_image_options', $options, $uri, $parent);
   // Create the storage.
   $storage = $parent->addChild($selector, $options);
 

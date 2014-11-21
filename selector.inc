@@ -268,7 +268,7 @@ class StorageSelector {
 
     $initial_container = $this->storageClass()->initial_container;
 
-    if ($initial_container) {
+    if ($initial_container && empty($options['initial_container_id'])) {
       $options['initial_container_id'] = $initial_container->container_id;
     }
 

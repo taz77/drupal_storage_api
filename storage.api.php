@@ -67,3 +67,15 @@ function hook_storage_access_alter(Storage $storage) {
 function hook_storage_service_info() {
   
 }
+
+/**
+ * Allows other modules to alter options for storage objects for styled images.
+ */
+function hook_storage_core_bridge_styled_image_options_alter(&$options, $uri, $parent) {
+  $status = mymodule_file_status_from_storage_id($parent->storage_id);
+
+  // Set the initial container to public if the file is published.
+  if ($status == MYMODULE_PUBLISHED && $container_id = variable_get('mymodule_public_id', NULL)) {
+    $options['initial_container_id'] = $container_id;
+  }
+}
