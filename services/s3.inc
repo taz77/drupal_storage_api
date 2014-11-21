@@ -525,8 +525,15 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
   }
 
   public function serviceSettingsForm($already_exists) {
+    $items['bucket_warning'] = array(
+      '#prefix' => '<div style="font-weight: bold;">',
+      '#markup' => t('Do not use an existing bucket in S3. This will create the bucket for you with the settings needed for this module to function.'),
+      '#suffix' => '</div>',
+    );
     $items['credentials_info'] = array(
-      '#markup' => t('Get your credentials !link.', array('!link' => l(t('here'), 'http://aws-portal.amazon.com/gp/aws/developer/account/index.html?action=access-key', array('attributes' => array('target' => '_blank')))))
+      '#prefix' => '<div style="font-weight: bold;">',
+      '#markup' => t('Get your credentials') . ' ' . l(t('here'), 'http://aws-portal.amazon.com/gp/aws/developer/account/index.html?action=access-key', array('attributes' => array('target' => '_blank'))),
+      '#suffix' => '</div>',
     );
 
     $items['access_key_id'] = array(
@@ -551,7 +558,7 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
       '#validated' => TRUE,
       '#default_value' => $this->settings['bucket'],
       '#maxlength' => 63,
-      '#description' => t("The bucket namespace is shared by all users of Amazon S3.<br />If it contains any dots (e.g. it is a CNAME alias) it is not possible to serve as HTTPS as only a single level of subdomain matching is supported by a wildcard certificate."),
+      '#description' => t('The bucket namespace is shared by all users of Amazon S3.') . '<br />' . t('If it contains any dots (e.g. it is a CNAME alias) it is not possible to serve as HTTPS as only a single level of subdomain matching is supported by a wildcard certificate.'),
     );
 
     $replacements = array(
@@ -652,17 +659,17 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
     if (!$this->settings['bucket']) {
       form_set_error('settings][bucket', t('Bucket name field is required.'));
     }
-
+    // Halt processing if we we have empty form settings.
     if (form_get_errors()) {
       return;
     }
 
-    // Test account credentials.
-    $result = $this->request('GET');   // HEAD doesn't work
+    // Test account credentials. HEAD request doesn't work.
+    $result = $this->request('GET');
 
     if ($result['http_code'] != 200) {
-      form_set_error('settings][access_key_id');
-      form_set_error('settings][secret_access_key');
+      form_set_error('settings][access_key_id', t('Access denied to S3 when testing account credentials.'));
+      form_set_error('settings][secret_access_key', t('Access denied to S3 when testing account credentials.'));
       return;
     }
 
@@ -673,12 +680,12 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
       $result = $this->request('GET', $this->settings['bucket']);
 
       if (count($result['simplexml']->Contents) > 0) {
-        form_set_error('settings][bucket', t("Bucket %name is already owned by this account, but is not empty.", array('%name' => $this->settings['bucket'])));
+        form_set_error('settings][bucket', t('Bucket is already owned by this account, but is not empty.'));
       }
     }
 
     if ($already_exists && $this->result['http_code'] != 200) {
-      form_set_error('settings][bucket', t("Bucket not owned by this account."));
+      form_set_error('settings][bucket', t('Bucket not owned by this account.'));
     }
   }
 
