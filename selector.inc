@@ -4,7 +4,6 @@
  * @file
  * Storage Selector Class file for Storage API.
  */
-
 class StorageSelector {
 
   public $selector_id;
@@ -96,15 +95,13 @@ class StorageSelector {
     }
 
     if (!$description) {
-      $text = "This can be safely changed at any time.<br />";
-      $text .= "Configure storage classes <a href=\"!path\">here</a>.";
-
-      $description = t($text, array('!path' => url('admin/structure/storage')));
+      $description = t('This can be safely changed at any time.') . '<br />';
+      $description .= t('Configure storage classes') . ' ' . l('here', 'admin/structure/storage');
     }
 
     $selector['class_id'] = array(
       '#type' => 'select',
-      '#title' => $title ? $title : t("Storage class"),
+      '#title' => $title ? $title : t('Storage class'),
       '#description' => $description,
       '#options' => $classes,
     );
@@ -175,8 +172,8 @@ class StorageSelector {
 
       $new_class = storage_class_load($form_item['class_id']);
 
-      $message = 'Migrating ' . $num_files . ' ' . format_plural($num_files, 'file', 'files');
-      $message .= ' to storage class <i>' . check_plain($new_class->name) . '</i>.';
+      $message = t('Migrating') . ' ' . $num_files . ' ' . format_plural($num_files, 'file', 'files');
+      $message .= ' ' . t('to storage class') . ' ' . '<i>' . check_plain($new_class->name) . '</i>.';
 
       drupal_set_message($message);
       watchdog('storage', $message, NULL);
@@ -216,8 +213,8 @@ class StorageSelector {
         ->condition('migrating', '1')
         ->execute();
 
-      $message = 'Storage selector ' . check_plain($this->selector_id);
-      $message .= ' has been fully migrated to class <i>' . check_plain($this->storageClass()->name) . '</i>.';
+      $message = t('Storage selector') . ' ' . check_plain($this->selector_id);
+      $message .= ' ' . t('has been fully migrated to class') . ' ' . '<i>' . check_plain($this->storageClass()->name) . '</i>.';
 
       watchdog('storage', $message, NULL);
     }
@@ -303,8 +300,8 @@ class StorageSelector {
           $initial_container->instanceCreate($storage, $source_uri);
         }
         catch (StorageException $e) {
-          $message = 'Failed to create initial instance of file ' . $storage->filename;
-          $message .= ' in storage container <i>' . check_plain($initial_container->name()) . '</i>.';
+          $message = t('Failed to create initial instance of file') . ' ' . $storage->filename;
+          $message .= ' ' . t('in storage container') . '<i>' . check_plain($initial_container->name()) . '</i>.';
 
           if (user_access('administer storage')) {
             drupal_set_message($message);
@@ -319,7 +316,7 @@ class StorageSelector {
       }
     }
 
-    $message = 'File added: ' . $storage->filename . '<br />';
+    $message = t('File added:') . ' ' . $storage->filename . '<br />';
     $message .= $storage->logInfo();
 
     watchdog('storage', $message);
