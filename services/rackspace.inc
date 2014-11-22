@@ -296,7 +296,7 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
       $object->sync_metadata();
     }
     catch (Exception $e) {
-      log_exception($e);
+      $this->log_exception($e);
 
       try {
         $cf_container->delete_object($reference);
