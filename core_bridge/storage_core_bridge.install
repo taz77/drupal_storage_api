@@ -14,13 +14,25 @@ function storage_core_bridge_schema() {
 
   $schema['storage_core_bridge'] = array(
     'fields' => array(
-      'storage_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
-      'uri' => array('type' => 'varchar', 'length' => '255', 'not null' => TRUE),
-      'image_style' => array('type' => 'varchar', 'length' => '255', 'not null' => FALSE),
+      'storage_id' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'uri' => array(
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => TRUE,
+      ),
+      'image_style' => array(
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => FALSE,
+      ),
     ),
     'primary key' => array('storage_id'),
     'unique keys' => array(
-      'uri' => array('uri')
+      'uri' => array('uri'),
     ),
     'indexes' => array(
       'image_style' => array('image_style'),

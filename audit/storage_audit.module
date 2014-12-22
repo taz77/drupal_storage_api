@@ -4,6 +4,7 @@
  * @file
  * Main module file for Audit submodule of Storage API
  */
+
 /**
  * The instance is missing.
  */
@@ -37,6 +38,12 @@ function storage_audit_menu() {
   return $items;
 }
 
+/**
+ * Un-sets a container as audited.
+ *
+ * @param string $container_id
+ *   The container ID.
+ */
 function _storage_audit_unset_audited($container_id) {
 
   $audited = variable_get('storage_audit_audited', array());
@@ -44,6 +51,12 @@ function _storage_audit_unset_audited($container_id) {
   variable_set('storage_audit_audited', $audited);
 }
 
+/**
+ * Sets a container as audited.
+ *
+ * @param string $container_id
+ *   The container ID.
+ */
 function _storage_audit_set_audited($container_id) {
 
   $audited = variable_get('storage_audit_audited');
@@ -51,6 +64,15 @@ function _storage_audit_set_audited($container_id) {
   variable_set('storage_audit_audited', $audited);
 }
 
+/**
+ * Checks if a container is audited.
+ *
+ * @param string $container_id
+ *   The container ID.
+ *
+ * @return bool
+ *   TRUE if the container is audited.
+ */
 function _storage_audit_get_audited($container_id) {
 
   $audited = variable_get('storage_audit_audited');
@@ -58,6 +80,12 @@ function _storage_audit_get_audited($container_id) {
   return isset($audited[$container_id]) ? $audited[$container_id] : NULL;
 }
 
+/**
+ * Prepares a container for auditing.
+ *
+ * @param \StorageContainer $container
+ *   The storage container.
+ */
 function _storage_audit_prepare(StorageContainer $container) {
   // Mark this container as unaudited.
   _storage_audit_unset_audited($container->container_id);
@@ -77,6 +105,19 @@ function _storage_audit_prepare(StorageContainer $container) {
     ->execute();
 }
 
+/**
+ * Imports an item into a container.
+ *
+ * @param \StorageContainerInterface $container
+ *   The storage container.
+ * @param string $reference
+ *   The file reference name.
+ * @param array $info
+ *   The file reference info.
+ *
+ * @throws \Exception
+ * @throws \StorageException
+ */
 function _storage_audit_import(StorageContainerInterface $container, $reference, array $info) {
   $selector_ids = module_invoke_all('storage_audit_import_container', $container);
 
@@ -109,6 +150,19 @@ function _storage_audit_import(StorageContainerInterface $container, $reference,
   }
 }
 
+/**
+ * Gets the audit status for an instance.
+ *
+ * @param array $instance
+ *   The audit instance.
+ * @param array $info
+ *   The file info.
+ *
+ * @return int
+ *   A flag indicating the audit status. One of:
+ *   - STORAGE_AUDIT_STATUS_AUDITED
+ *   - STORAGE_AUDIT_STATUS_INVALID
+ */
 function _storage_audit_instance(array $instance, array $info) {
 
   if (isset($info['whirlpool'])) {
@@ -125,6 +179,18 @@ function _storage_audit_instance(array $instance, array $info) {
   return STORAGE_AUDIT_STATUS_INVALID;
 }
 
+/**
+ * Audits a file.
+ *
+ * @param \StorageContainerInterface $container
+ *   The storage container.
+ * @param string $reference
+ *   The file reference name.
+ * @param array $info
+ *   The file reference info.
+ *
+ * @throws \Exception
+ */
 function _storage_audit_file(StorageContainerInterface $container, $reference, array $info) {
   $transaction = db_transaction();
 
@@ -162,6 +228,19 @@ function _storage_audit_file(StorageContainerInterface $container, $reference, a
   }
 }
 
+/**
+ * Callback for doing an audit.
+ *
+ * @param \StorageContainer $container
+ *   The storage container.
+ * @param array $sandbox
+ *   The storage sandbox.
+ * @param bool $finished
+ *   A flag to indicate whether auditing is finished.
+ *
+ * @return int
+ *   The number of files audited.
+ */
 function _storage_audit(StorageContainer $container, array &$sandbox, &$finished) {
   $manifest = $container->serviceManifest($sandbox, $finished);
   $files = 0;
@@ -180,6 +259,15 @@ function _storage_audit(StorageContainer $container, array &$sandbox, &$finished
   return $files;
 }
 
+/**
+ * Perform an audit of the storage container.
+ *
+ * @param \StorageContainer $container
+ *   The storage container.
+ *
+ * @return int
+ *   The number of files audited.
+ */
 function storage_audit(StorageContainer $container) {
   _storage_audit_prepare($container);
   $sandbox = array();
@@ -187,12 +275,19 @@ function storage_audit(StorageContainer $container) {
 
   do {
     $files += _storage_audit($container, $sandbox, $finished);
-  }
-  while (!$finished);
+  } while (!$finished);
 
   return $files;
 }
 
+/**
+ * Batch callback for auditing a storage container.
+ *
+ * @param \StorageContainerInterface $container
+ *   The storage container.
+ * @param array $context
+ *   The batch context.
+ */
 function storage_audit_batch(StorageContainerInterface $container, array &$context) {
   if (!isset($context['sandbox']['progress'])) {
     $context['sandbox']['service_sandbox'] = array();
@@ -229,6 +324,16 @@ function storage_audit_batch(StorageContainerInterface $container, array &$conte
   }
 }
 
+/**
+ * Repair a broken file instance.
+ *
+ * @param \StorageContainerInterface $container
+ *   The storage container.
+ * @param array $instance
+ *   The file instance.
+ * @param array $results
+ *   An array of recovered files.
+ */
 function _storage_audit_repair(StorageContainerInterface $container, array $instance, array &$results) {
   // Make sure we don't delete anything we shouldn't.
   if ($instance['file_id']) {
@@ -236,7 +341,7 @@ function _storage_audit_repair(StorageContainerInterface $container, array $inst
       $info = $container->serviceInstanceCheck($instance['reference']);
     }
     catch (StorageException $e) {
-      
+
     }
 
     if (isset($info) && _storage_audit_instance($instance, $info) == STORAGE_AUDIT_STATUS_AUDITED) {
@@ -256,7 +361,7 @@ function _storage_audit_repair(StorageContainerInterface $container, array $inst
   // Delete instances that shouldn't exist or are corrupt.
   if (!$container->external && $instance['audit'] != STORAGE_AUDIT_STATUS_MISSING) {
     $container->serviceInstanceDestroy($instance['reference']);
-    $results['instances'] ++;
+    $results['instances']++;
   }
 
   // Delete the record.
@@ -291,13 +396,21 @@ function _storage_audit_repair(StorageContainerInterface $container, array $inst
         continue;
       }
 
-      $results['recovered'] ++;
+      $results['recovered']++;
     }
 
-    $results['records'] ++;
+    $results['records']++;
   }
 }
 
+/**
+ * Batch callback for repairing files.
+ *
+ * @param \StorageContainerInterface $container
+ *   The storage container.
+ * @param array $context
+ *   The batch context.
+ */
 function storage_audit_repair_batch(StorageContainerInterface $container, array &$context) {
   if (!isset($context['sandbox']['progress'])) {
     $context['sandbox']['progress'] = 0;
@@ -330,7 +443,7 @@ function storage_audit_repair_batch(StorageContainerInterface $container, array 
   foreach ($result as $instance) {
     _storage_audit_repair($container, $instance, $context['results']);
 
-    $context['sandbox']['progress'] ++;
+    $context['sandbox']['progress']++;
     $context['message'] = $context['sandbox']['progress'] . ' / ' .
       format_plural($context['sandbox']['max'], "1 file repaired.", "@count files repaired.");
   }

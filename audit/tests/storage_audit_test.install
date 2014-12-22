@@ -1,4 +1,8 @@
 <?php
+/**
+ * @file
+ * Install functions for the storage_audit module.
+ */
 
 /**
  * Implements hook_install().

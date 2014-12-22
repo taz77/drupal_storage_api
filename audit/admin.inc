@@ -4,6 +4,16 @@
  * @file
  * Admin UI functions for Audit submodule of Storage API
  */
+
+/**
+ * Reads storage audit data.
+ *
+ * @param \StorageContainerInterface $container
+ *   The storage container.
+ *
+ * @return array
+ *   An associative array of audit data.
+ */
 function _storage_audit_read(StorageContainerInterface $container) {
   $missing = $invalid = $extra = array();
 
@@ -42,6 +52,21 @@ function _storage_audit_read(StorageContainerInterface $container) {
   );
 }
 
+/**
+ * Form builder function for storage audit settings.
+ *
+ * @param array $form
+ *   The form.
+ * @param array $form_state
+ *   The form state.
+ * @param \StorageContainerInterface $container
+ *   The storage container.
+ *
+ * @return array
+ *   The form array.
+ *
+ * @throws \Exception
+ */
 function storage_audit_form(array $form, array &$form_state, StorageContainerInterface $container) {
   $form['#container'] = $container;
   $audited = _storage_audit_get_audited($container->container_id);

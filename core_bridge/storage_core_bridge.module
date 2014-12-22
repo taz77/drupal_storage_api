@@ -17,22 +17,61 @@ function storage_core_bridge_storage_core_bridge_field_types() {
   return array('file', 'image');
 }
 
+/**
+ * Gets the core bridge field types.
+ *
+ * @return string[]
+ *   The field types.
+ */
 function storage_core_bridge_field_types() {
   return module_invoke_all('storage_core_bridge_field_types');
 }
 
+/**
+ * Gets the storage selector for a field.
+ *
+ * @param string $field_name
+ *   The field name.
+ *
+ * @return \StorageSelector
+ *   The storage selector.
+ */
 function storage_core_bridge_field_selector($field_name) {
   return storage_selector('storage_core_bridge', 'field:' . $field_name);
 }
 
+/**
+ * Gets the storage selector for an image style.
+ *
+ * @param string $isid
+ *   The image style ID.
+ *
+ * @return \StorageSelector
+ *   The storage selector.
+ */
 function storage_core_bridge_image_style_selector($isid) {
   return storage_selector('storage_core_bridge', 'image_style:' . $isid);
 }
 
+/**
+ * Gets the storage selector for the default image style.
+ *
+ * @param string $isid
+ *   The image style ID.
+ *
+ * @return \StorageSelector
+ *   The storage selector.
+ */
 function storage_core_bridge_image_style_default_selector($isid) {
   return storage_selector('storage_core_bridge', 'image_style_default:' . $isid);
 }
 
+/**
+ * Creates a storage selector for a field.
+ *
+ * @param string $field_name
+ *   The field name.
+ */
 function storage_core_bridge_field_selector_create($field_name) {
   storage_core_bridge_field_selector($field_name)->create();
 
@@ -41,6 +80,12 @@ function storage_core_bridge_field_selector_create($field_name) {
   variable_set('storage_core_bridge_fields', $fields);
 }
 
+/**
+ * Destroys a storage selector for a field.
+ *
+ * @param string $field_name
+ *   The field name.
+ */
 function storage_core_bridge_field_selector_destroy($field_name) {
   storage_core_bridge_field_selector($field_name)->destroy();
 
@@ -121,6 +166,9 @@ function storage_core_bridge_form_image_style_revert_form_alter(array &$form, ar
   $form['#submit'][] = 'storage_core_bridge_image_style_revert_form_submit';
 }
 
+/**
+ * Form submit handler for storage_core_bridge_image_style_revert_form.
+ */
 function storage_core_bridge_image_style_revert_form_submit(array $form, array &$form_state) {
   storage_core_bridge_image_style_selector($form_state['image_style']['isid'])->destroy();
   storage_core_bridge_image_style_default_selector($form_state['image_style']['isid'])->destroy();
@@ -148,6 +196,9 @@ function storage_core_bridge_form_field_ui_field_settings_form_alter(array &$for
   $form['#submit'][] = 'storage_core_bridge_field_ui_field_settings_form_submit';
 }
 
+/**
+ * Form submit handler for storage_core_bridge_form_field_ui_field_settings_form.
+ */
 function storage_core_bridge_field_ui_field_settings_form_submit(array $form, array &$form_state) {
 
   storage_core_bridge_field_selector($form['field']['field_name']['#value'])
@@ -176,12 +227,18 @@ function storage_core_bridge_form_field_ui_field_edit_form_alter(array &$form, a
   $form['#submit'][] = 'storage_core_bridge_field_ui_field_edit_form_submit';
 }
 
+/**
+ * Form submit handler for storage_core_bridge_field_ui_field_edit_form.
+ */
 function storage_core_bridge_field_ui_field_edit_form_submit(array $form, array &$form_state) {
 
   storage_core_bridge_field_selector($form['#field']['field_name'])
     ->submit($form_state['values']['field']['settings']['storage_class']);
 }
 
+/**
+ * Implements hook_form_alter().
+ */
 function storage_core_bridge_form_image_style_form_alter(array &$form, array &$form_state) {
 
   $form['storage_api'] = array(
@@ -208,7 +265,8 @@ function storage_core_bridge_form_image_style_form_alter(array &$form, array &$f
     $form['storage_api']['default_images']['storage_class'] = storage_core_bridge_image_style_default_selector($form_state['image_style']['isid'])->formItem("Storage class for styled default images");
 
     if ($form['storage_api']['storage_class']['class_id']['#default_value'] !=
-      $form['storage_api']['default_images']['storage_class']['class_id']['#default_value']) {
+      $form['storage_api']['default_images']['storage_class']['class_id']['#default_value']
+    ) {
       $form['storage_api']['default_images']['#collapsible'] = FALSE;
       $form['storage_api']['default_images']['#collapsed'] = FALSE;
       $form['storage_api']['default_images']['separate_storage_class']['#default_value'] = TRUE;
@@ -221,6 +279,9 @@ function storage_core_bridge_form_image_style_form_alter(array &$form, array &$f
   }
 }
 
+/**
+ * Form submit handler for storage_core_bridge_image_style_form.
+ */
 function storage_core_bridge_image_style_form_submit(array $form, array &$form_state) {
 
   storage_core_bridge_image_style_selector($form_state['image_style']['isid'])
@@ -284,7 +345,8 @@ function storage_core_bridge_styled_image_create($uri) {
 
   // Make sure this is a styled image URI.
   if ((array_shift($components) != 'styles') || !($style_name = array_shift($components)) ||
-    (array_shift($components) != $scheme)) {
+    (array_shift($components) != $scheme)
+  ) {
     throw new StorageException();
   }
 
@@ -418,7 +480,7 @@ function storage_core_bridge_image_style_flush(array $style) {
       storage_load($storage_id)->remove();
     }
     catch (StorageException $e) {
-      
+
     }
   }
 }
@@ -441,7 +503,7 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
   protected $fp;
 
   /**
-   * StreamWrapperInterface methods.
+   * {@inheritdoc}
    */
   public function stream_open($uri, $mode, $options, &$opened_url) {
     $this->uri = $uri;
@@ -475,6 +537,9 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
     return TRUE;
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function stream_close() {
     global $storage_core_bridge_filename;
     fclose($this->fp);
@@ -499,37 +564,58 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
           ->execute();
       }
       catch (StorageException $e) {
-        
+
       }
     }
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function stream_read($count) {
     return fread($this->fp, $count);
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function stream_write($data) {
     return fwrite($this->fp, $data);
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function stream_eof() {
     return feof($this->fp);
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function stream_seek($offset, $whence) {
     // fseek() returns 0 on success and -1 on a failure.
     // stream_seek()   1 on success and  0 on a failure.
     return !fseek($this->fp, $offset, $whence);
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function stream_tell() {
     return ftell($this->fp);
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function stream_stat() {
     return $this->url_stat($this->uri);
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function unlink($uri) {
     // Remove the storage and its derivatives (styled images).
     try {
@@ -542,11 +628,17 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
     return TRUE;
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function mkdir($uri, $mode, $options) {
     return TRUE;
   }
 
-  public function url_stat($uri, $flags) {
+  /**
+   * {@inheritdoc}
+   */
+  public function url_stat($uri, $flags = NULL) {
     global $storage_core_bridge_filename;
     global $storage_core_bridge_dirname;
 
@@ -577,16 +669,22 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
   }
 
   /**
-   * DrupalStreamWrapperInterface methods.
+   * {@inheritdoc}
    */
   public function setUri($uri) {
     $this->uri = $uri;
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function getUri() {
     return $this->uri;
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function getExternalUrl() {
 
     try {
@@ -606,22 +704,30 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
     }
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public static function getMimeType($uri, $mapping = NULL) {
     try {
       $storage = storage_core_bridge_load($uri);
     }
     catch (StorageException $e) {
-      return;
+      return NULL;
     }
 
     return $storage->mimetype;
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function chmod($mode) {
     return TRUE;
   }
 
   /**
+   * {@inheritdoc}
+   *
    * This function is called whenever the desired URI already exists and an
    * alternative is being sought.
    */
@@ -644,42 +750,57 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
   }
 
   /**
-   * Unimplemented methods.
+   * Unimplemented.
    */
   public function stream_lock($operation) {
-    
   }
 
+  /**
+   * Unimplemented.
+   */
   public function stream_flush() {
-    
   }
 
+  /**
+   * Unimplemented.
+   */
   public function rename($from_uri, $to_uri) {
-    
   }
 
+  /**
+   * Unimplemented.
+   */
   public function rmdir($uri, $options) {
-    
   }
 
+  /**
+   * Unimplemented.
+   */
   public function dir_opendir($uri, $options) {
-    
   }
 
+  /**
+   * Unimplemented.
+   */
   public function dir_readdir() {
-    
   }
 
+  /**
+   * Unimplemented.
+   */
   public function dir_rewinddir() {
-    
   }
 
+  /**
+   * Unimplemented.
+   */
   public function dir_closedir() {
-    
   }
 
+  /**
+   * Unimplemented.
+   */
   public function realpath() {
-    
   }
 
 }
