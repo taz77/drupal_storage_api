@@ -4,14 +4,24 @@
  * @file
  * DB Storage class files for Storage API.
  */
+
+/**
+ * Provides a DB storage container.
+ */
 class StorageDB extends StorageContainer implements StorageContainerInterface {
 
+  /**
+   * {@inheritdoc}
+   */
   private function setActiveDB() {
 
     db_set_active($this->settings['db']);
     return new StorageDBActive();
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceSettingsDefault() {
     return array(
       'db' => 'default',
@@ -19,6 +29,9 @@ class StorageDB extends StorageContainer implements StorageContainerInterface {
     );
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceSettingsForm($already_exists) {
     global $databases;
 
@@ -47,6 +60,9 @@ class StorageDB extends StorageContainer implements StorageContainerInterface {
     return $items;
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceSettingsValidate($already_exists) {
     $active = $this->setActiveDB();
 
@@ -64,13 +80,24 @@ class StorageDB extends StorageContainer implements StorageContainerInterface {
     }
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceCreate() {
     $active = $this->setActiveDB();
 
     $spec = array(
       'fields' => array(
-        'file_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
-        'contents' => array('type' => 'blob', 'size' => 'big', 'not null' => TRUE),
+        'file_id' => array(
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+        ),
+        'contents' => array(
+          'type' => 'blob',
+          'size' => 'big',
+          'not null' => TRUE,
+        ),
       ),
       'primary key' => array('file_id'),
     );
@@ -78,6 +105,9 @@ class StorageDB extends StorageContainer implements StorageContainerInterface {
     db_create_table($this->settings['table'], $spec);
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceInfo() {
 
     $info = array(
@@ -88,12 +118,18 @@ class StorageDB extends StorageContainer implements StorageContainerInterface {
     return $info;
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceDestroy() {
     $active = $this->setActiveDB();
 
     db_drop_table($this->settings['table']);
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceInstanceCreate(Storage $storage, $uri) {
     $active = $this->setActiveDB();
 
@@ -107,25 +143,34 @@ class StorageDB extends StorageContainer implements StorageContainerInterface {
     return $storage->file_id;
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceListReferences() {
     $active = $this->setActiveDB();
 
     return db_select($this->settings['table'])
-        ->fields($this->settings['table'], array('file_id'))
-        ->execute()
-        ->fetchCol();
+      ->fields($this->settings['table'], array('file_id'))
+      ->execute()
+      ->fetchCol();
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceInstanceExists($reference) {
     $active = $this->setActiveDB();
 
     return db_select($this->settings['table'])
-        ->condition('file_id', $reference)
-        ->countQuery()
-        ->execute()
-        ->fetchField();
+      ->condition('file_id', $reference)
+      ->countQuery()
+      ->execute()
+      ->fetchField();
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceInstanceGetContents($reference) {
     $active = $this->setActiveDB();
 
@@ -142,6 +187,9 @@ class StorageDB extends StorageContainer implements StorageContainerInterface {
     return $contents;
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceInstanceDestroy($reference) {
     $active = $this->setActiveDB();
 
@@ -150,6 +198,9 @@ class StorageDB extends StorageContainer implements StorageContainerInterface {
       ->execute();
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceInstanceOutput($reference) {
 
     echo $this->serviceInstanceGetContents($reference);
@@ -157,8 +208,14 @@ class StorageDB extends StorageContainer implements StorageContainerInterface {
 
 }
 
+/**
+ * Provides an Active DB storage.
+ */
 class StorageDBActive {
 
+  /**
+   * Destroys the StorageDBActive instance.
+   */
   public function __destruct() {
     db_set_active();
   }

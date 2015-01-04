@@ -4,10 +4,22 @@
  * @file
  * Rackspace Storage class files for Storage API.
  */
+
+/**
+ * Provides a Rackspace Cloudfiles storage container.
+ */
 class StorageRackspace extends StorageContainer implements StorageContainerInterface {
 
   private $conn;
 
+  /**
+   * Logs an exception.
+   *
+   * @param \Exception $e
+   *   The exception to log.
+   * @param bool $dsm
+   *   (optional) TRUE to use drupal_set_message().
+   */
   private function log_exception(Exception $e, $dsm = TRUE) {
     watchdog('storage_rackspace', 'php-cloudfiles exception: @msg', array('@msg' => $e->getMessage()), WATCHDOG_ERROR);
 
@@ -16,6 +28,11 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
     }
   }
 
+  /**
+   * Initialize the Rackspace storage container.
+   *
+   * @throws \StorageException
+   */
   private function init() {
     if (module_exists('libraries') && function_exists('libraries_load')) {
       $library = libraries_load('php-cloudfiles');
@@ -57,6 +74,14 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
     $this->conn->ssl_use_cabundle();
   }
 
+  /**
+   * Creates a CloudFiles container.
+   *
+   * @return \StorageContainerInterface
+   *   The CloudFiles container.
+   *
+   * @throws \StorageException
+   */
   private function cf_container() {
     $cf_containers = &drupal_static(__FUNCTION__, array());
 
@@ -79,6 +104,9 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
     return $cf_container;
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceSettingsDefault() {
     return array(
       'locality' => 'us',
@@ -88,6 +116,12 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
     );
   }
 
+  /**
+   * Returns the list of CloudFiles locations.
+   *
+   * @return array
+   *   An associative array of locations.
+   */
   private function localities() {
     return array(
       'us' => t('United States'),
@@ -95,9 +129,16 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
     );
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceSettingsForm($already_exists) {
     $items['credentials_info'] = array(
-      '#markup' => t('Get your credentials !link.', array('!link' => l(t('here'), 'http://www.rackspace.com/cloud/cloud_hosting_products/files/', array('attributes' => array('target' => '_blank')))))
+      '#markup' => t('Get your credentials !link.',
+        array(
+          '!link' => l(t('here'), 'http://www.rackspace.com/cloud/cloud_hosting_products/files/',
+            array('attributes' => array('target' => '_blank'))),
+        )),
     );
 
     $items['locality'] = array(
@@ -134,8 +175,8 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
     if (!$this->access_control) {
       $replacements = array(
         '!link' => l(t('CNAME'), 'http://en.wikipedia.org/wiki/CNAME_record', array(
-          'attributes' => array('target' => '_blank')
-        ))
+          'attributes' => array('target' => '_blank'),
+        )),
       );
       $description = t('Points to the Rackspace domain name for the container (leave blank to obtain automatically), or a !link alias of it.', $replacements);
 
@@ -150,6 +191,9 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
     return $items;
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceSettingsValidate($already_exists) {
     if (!$this->settings['username']) {
       form_set_error('settings][username', t('Username field is required.'));
@@ -195,6 +239,9 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
     }
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceCreate() {
     $this->init();
 
@@ -202,10 +249,12 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
       $cf_container = $this->conn->create_container($this->settings['cf_container']);
 
       if ($this->access_control) {
-        $cf_container->make_private();    // strangely, this has to be done explicity, or it might be public
+        // Strangely, this has to be done explicity, or it might be public.
+        $cf_container->make_private();
       }
       else {
-        $cf_container->make_public(60 * 60 * 24 * 3);    // 3 days is the maximum ttl that can be set in the api
+        // 3 days is the maximum ttl that can be set in the api.
+        $cf_container->make_public(60 * 60 * 24 * 3);
       }
     }
     catch (Exception $e) {
@@ -214,6 +263,9 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
     }
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function servicePostCreate() {
     // Get the base URL from Rackspace if necessary.
     if (!$this->access_control && !$this->settings['base_url']) {
@@ -222,8 +274,12 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
       $this->settings['base_url'] = $this->cf_container()->cdn_uri;
       return TRUE;
     }
+    return FALSE;
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceUpdate() {
     // Get the base URL from Rackspace if necessary.
     if (!$this->access_control && !$this->settings['base_url']) {
@@ -231,6 +287,9 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
     }
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceInfo() {
     $localities = $this->localities();
 
@@ -243,6 +302,9 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
     return $info;
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceDestroy() {
     $this->init();
 
@@ -264,6 +326,9 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
     }
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceListReferences() {
     $cf_container = $this->cf_container();
 
@@ -276,6 +341,9 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
     }
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceInstanceCreate(Storage $storage, $uri) {
     $reference = $this->uniqueFilename($storage->filename);
 
@@ -302,7 +370,6 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
         $cf_container->delete_object($reference);
       }
       catch (Exception $e) {
-        
       }
 
       throw new StorageException();
@@ -311,6 +378,9 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
     return $reference;
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceInstanceExists($reference) {
     $cf_container = $this->cf_container();
 
@@ -324,6 +394,9 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
     return TRUE;
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceInstanceDestroy($reference) {
     $cf_container = $this->cf_container();
 
@@ -336,6 +409,9 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
     }
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceInstanceGetUri($reference) {
     $cf_container = $this->cf_container();
     $temp_uri = new StorageTempURI();

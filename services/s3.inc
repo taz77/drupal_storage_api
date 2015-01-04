@@ -4,9 +4,24 @@
  * @file
  * Amazon S3 Storage class files for Storage API.
  */
+
+/**
+ * Provides an Amazon S3 storage container.
+ */
 class StorageS3 extends StorageContainer implements StorageContainerInterface {
 
-  private function signature($source, $cf = false) {
+  /**
+   * Generates an S3 request signature.
+   *
+   * @param string $source
+   *   The source.
+   * @param bool $cf
+   *   Use CloudFront.
+   *
+   * @return bool|string
+   *   The signature, or FALSE if the signature could not be generated.
+   */
+  private function signature($source, $cf = FALSE) {
     if (!$cf) {
       // @todo Determine why the secret key will not be pulled from settings
       return base64_encode(hash_hmac('sha1', utf8_encode($source), $this->settings['secret_access_key'], TRUE));
@@ -15,20 +30,27 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
       $key = openssl_get_privatekey($this->settings['cf_key_contents']);
       if (!$key) {
         watchdog('storage_s3', 'Amazon S3 error: Unable to get key from Cloudfront key file contents ID @id', array('@id' => $this->settings['cf_key_id']), WATCHDOG_ERROR);
-        if (user_access('administer storage'))
+        if (user_access('administer storage')) {
           drupal_set_message(t('Amazon S3 error: Unable to get key from Cloudfront key file contents ID @id', array('@id' => $this->settings['cf_key_id'])), 'error');
+        }
         return FALSE;
       }
       if (!openssl_sign($source, $signed_source, $key)) {
         watchdog('storage_s3', 'Amazon S3 error: Unable to create signature using Cloudfront key file contents ID @id', array('@id' => $this->settings['cf_key_id']), WATCHDOG_ERROR);
-        if (user_access('administer storage'))
+        if (user_access('administer storage')) {
           drupal_set_message(t('Amazon S3 error: Unable to create signature using Cloudfront key file contents ID @id', array('@id' => $this->settings['cf_key_id'])), 'error');
+        }
         return FALSE;
       }
       openssl_free_key($key);
-      return str_replace(array('+', '=', '/'), array('-', '_', '~'), base64_encode($signed_source));
+      return str_replace(array('+', '=', '/'), array(
+        '-',
+        '_',
+        '~',
+      ), base64_encode($signed_source));
     }
   }
+
   /**
    * Parse a header into an array.
    */
@@ -36,7 +58,8 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
     $headers = array();
 
     $source = explode("\r\n", trim($source));
-    array_shift($source);  // Get rid of the HTTP result line.
+    // Get rid of the HTTP result line.
+    array_shift($source);
 
     foreach ($source as $header) {
       list($header, $value) = explode(':', $header . ':', 3);
@@ -45,16 +68,25 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
 
     return $headers;
   }
+
   /**
    * Function to perform a request against S3.
-   * 
+   *
    * @param string $op
+   *   The operation. Valid values are GET, PUT, HEAD, DELETE
    * @param string $bucket
+   *   (optional) The bucket name.
    * @param string $object_name
+   *   (optional) The object name.
    * @param Storage $storage
+   *   (optional) The storage source.
    * @param string $uri
+   *   (optional) The uri.
    * @param array $query
+   *   (optional) An array of query string parameters.
+   *
    * @return array
+   *   The request result.
    */
   private function request($op, $bucket = NULL, $object_name = NULL, Storage $storage = NULL, $uri = NULL, array $query = array()) {
     $result = array();
@@ -185,8 +217,9 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
 
             watchdog('storage_s3', 'Amazon S3 error: @msg', array('@msg' => $msg), WATCHDOG_ERROR);
 
-            if (user_access('administer storage'))
+            if (user_access('administer storage')) {
               drupal_set_message(t('Amazon S3 error: @msg', array('@msg' => $msg)), 'error');
+            }
           }
         }
       }
@@ -195,6 +228,19 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
     return $result;
   }
 
+  /**
+   * Gets RTMP data for the S3 object.
+   *
+   * @param string $s3_object
+   *   The S3 object.
+   *
+   * @return array
+   *   An array of RTMP data. Keys include:
+   *   - streamer
+   *   - file
+   *
+   * @throws \StorageException
+   */
   private function rtmp($s3_object) {
 
     if ($this->settings['cloudfront_streaming'] && $this->settings['cloudfront_streaming_status'] == 'Deployed') {
@@ -207,6 +253,19 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
     throw new StorageException();
   }
 
+  /**
+   * Makes a CloudFront request.
+   *
+   * @param string $op
+   *   The operation to perform. Valid values are: POST, PUT, GET, DELETE
+   * @param bool $streaming
+   *   (optional) TRUE to use streaming.
+   * @param string|null $xml
+   *   (optional) The XML payload for POST or PUT operations.
+   *
+   * @return array
+   *   The request results.
+   */
   private function requestCloudFront($op, $streaming = FALSE, $xml = NULL) {
     $result = array();
     $date = date(DATE_RFC1123, time());
@@ -297,8 +356,9 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
 
           watchdog('storage_s3', 'Amazon CloudFront error: @msg', array('@msg' => $msg), WATCHDOG_ERROR);
 
-          if (user_access('administer storage'))
+          if (user_access('administer storage')) {
             drupal_set_message(t('Amazon CloudFront error: @msg', array('@msg' => $msg)), 'error');
+          }
         }
       }
     }
@@ -306,6 +366,12 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
     return $result;
   }
 
+  /**
+   * Gets the Amazon regions.
+   *
+   * @return array
+   *   An associative array of Amazon regions.
+   */
   private function locations() {
 
     return array(
@@ -321,6 +387,12 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
     );
   }
 
+  /**
+   * Generates a caller reference ID.
+   *
+   * @return string
+   *   The unique caller reference ID.
+   */
   private function callerReference() {
     static $id;
 
@@ -328,6 +400,9 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
     return REQUEST_TIME . '-' . ++$id;
   }
 
+  /**
+   * Creates a CloudFront distribution.
+   */
   private function distributionCreate() {
 
     $xml = '<?xml version="1.0" encoding="UTF-8"?>';
@@ -354,6 +429,9 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
     watchdog('storage_s3', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $this->path()));
   }
 
+  /**
+   * Creates a streaming CloudFront distribution.
+   */
   private function distributionCreateStreaming() {
 
     $xml = '<?xml version="1.0" encoding="UTF-8"?>';
@@ -380,6 +458,9 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
     watchdog('storage_s3', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $this->path()));
   }
 
+  /**
+   * Deploys a CloudFront distribution.
+   */
   private function distributionDeploy() {
     $result = $this->requestCloudFront('GET');
 
@@ -408,6 +489,9 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
     watchdog('storage_s3', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $this->path()));
   }
 
+  /**
+   * Deploys a streaming CloudFront distribution.
+   */
   private function distributionDeployStreaming() {
     $result = $this->requestCloudFront('GET', TRUE);
 
@@ -426,7 +510,6 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
       if ($this->settings['cloudfront_streaming_status'] != 'Deployed') {
         return;
       }
-
       $message = 'Deployed CloudFront streaming distribution for storage container <i>' . check_plain($this->name()) . '</i>.';
     }
 
@@ -436,6 +519,11 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
     watchdog('storage_s3', $message, NULL, WATCHDOG_NOTICE, l(t('view'), $this->path()));
   }
 
+  /**
+   * Deletes a CloudFront distribution.
+   *
+   * @throws \StorageException
+   */
   private function distributionDelete() {
     $result = $this->requestCloudFront('GET');
 
@@ -480,6 +568,11 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
     throw new StorageException();
   }
 
+  /**
+   * Deletes a streaming CloudFront distribution.
+   *
+   * @throws \StorageException
+   */
   private function distributionDeleteStreaming() {
     $result = $this->requestCloudFront('GET', TRUE);
 
@@ -524,6 +617,9 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
     throw new StorageException();
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceSettingsDefault() {
     return array(
       'access_key_id' => '',
@@ -537,6 +633,9 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
     );
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceSettingsForm($already_exists) {
     $items['bucket_warning'] = array(
       '#prefix' => '<div style="font-weight: bold;">',
@@ -576,8 +675,8 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
 
     $replacements = array(
       '!link' => l(t('Customizing Amazon S3 URLs with CNAMEs'), 'http://docs.amazonwebservices.com/AmazonS3/latest/dev/VirtualHosting.html', array(
-        'attributes' => array('target' => '_blank')
-      ))
+        'attributes' => array('target' => '_blank'),
+      )),
     );
     $description = t('See !link. Currently ignored for CloudFront.', $replacements);
 
@@ -642,27 +741,30 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
       );
 
       $items['cf_signed_notice_2'] = array(
-        '#markup' => t('<p>If you have not created a Cloudfront Key Pair.  You must stop this process and go complete those steps first. Note: creating and setting up Cloudfront distribution changes can take a long time.') . ' ' . l('Link to AWS Security Credentials page', 'https://console.aws.amazon.com/iam/home?#security_credential', array('external' => TRUE)) . '</p>',
+        '#markup' => t('<p>If you have not created a Cloudfront Key Pair.  You must stop this process and go complete those steps first. Note: creating and setting up Cloudfront distribution changes can take a long time.') . ' ' . l(t('Link to AWS Security Credentials page'), 'https://console.aws.amazon.com/iam/home?#security_credential', array('external' => TRUE)) . '</p>',
       );
 
       $items['cf_key_id'] = array(
         '#type' => 'textfield',
         '#title' => t('Cloudfront key pair ID'),
         '#default_value' => (!empty($this->settings['cf_key_id'])) ? $this->settings['cf_key_id'] : '',
-        '#description' => t('This is the Key Pair ID provided by Amazon for your Cloudfront key that you have created.')
+        '#description' => t('This is the Key Pair ID provided by Amazon for your Cloudfront key that you have created.'),
       );
 
       $items['cf_key_contents'] = array(
         '#type' => 'textarea',
         '#title' => t('Cloudfront Private key contents'),
         '#default_value' => (!empty($this->settings['cf_key_contents'])) ? $this->settings['cf_key_contents'] : '',
-        '#description' => t('This is the contents of the Private Key downloaded from Amazon.  Paste in the ENTIRE contents of the downloaded PEM file. The file should start with "-----BEGIN RSA PRIVATE KEY-----" and end with "-----END RSA PRIVATE KEY-----".')
+        '#description' => t('This is the contents of the Private Key downloaded from Amazon.  Paste in the ENTIRE contents of the downloaded PEM file. The file should start with "-----BEGIN RSA PRIVATE KEY-----" and end with "-----END RSA PRIVATE KEY-----".'),
       );
     }
 
     return $items;
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceSettingsValidate($already_exists) {
 
     if (!$this->settings['access_key_id']) {
@@ -702,6 +804,9 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
     }
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceCreate() {
     if ($this->result['http_code'] != 200) {
       $result = $this->request('PUT', $this->settings['bucket']);
@@ -716,6 +821,9 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
     }
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function servicePostCreate() {
     if ($this->settings['cloudfront']) {
       $this->distributionCreate();
@@ -730,6 +838,9 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
     return isset($update);
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceUpdate() {
     if ($this->settings['cloudfront'] && !isset($this->settings['cloudfront_id'])) {
       $this->distributionCreate();
@@ -740,6 +851,9 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
     }
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceInfo() {
     $locations = $this->locations();
 
@@ -756,10 +870,12 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
     else {
       if ($this->settings['cloudfront']) {
 
-        if ($this->settings['cloudfront_status'] == 'Deployed')
+        if ($this->settings['cloudfront_status'] == 'Deployed') {
           $status = t('Yes');
-        else
+        }
+        else {
           $status = t('Setting up. This can take a few minutes.');
+        }
       }
       else {
         $status = t('No');
@@ -768,16 +884,19 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
       $info[t('Serving with CloudFront')] = $status;
 
       if (isset($this->settings['cloudfront_status']) &&
-        $this->settings['cloudfront_status'] == 'Deployed') {
+        $this->settings['cloudfront_status'] == 'Deployed'
+      ) {
         $info[t('CloudFront domain name')] = $this->settings['cloudfront_domain'];
       }
 
       if ($this->settings['cloudfront_streaming']) {
 
-        if ($this->settings['cloudfront_streaming_status'] == 'Deployed')
+        if ($this->settings['cloudfront_streaming_status'] == 'Deployed') {
           $status = t('Yes');
-        else
+        }
+        else {
           $status = t('Setting up. This can take a few minutes.');
+        }
       }
       else {
         $status = t('No');
@@ -786,7 +905,8 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
       $info[t('Streaming with CloudFront')] = $status;
 
       if (isset($this->settings['cloudfront_streaming_status']) &&
-        $this->settings['cloudfront_streaming_status'] == 'Deployed') {
+        $this->settings['cloudfront_streaming_status'] == 'Deployed'
+      ) {
         $info[t('CloudFront streaming domain name')] = $this->settings['cloudfront_streaming_domain'];
       }
     }
@@ -794,6 +914,9 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
     return $info;
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceDestroy() {
     $failed = FALSE;
 
@@ -821,6 +944,9 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
     }
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceMaintenance() {
     if ($this->settings['cloudfront'] && $this->settings['cloudfront_status'] != 'Deployed') {
       $this->distributionDeploy();
@@ -831,6 +957,9 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
     }
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceInstanceCreate(Storage $storage, $uri) {
     $reference = $this->uniqueFilename($storage->filename);
 
@@ -844,6 +973,9 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
     }
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceInstanceCopy(Storage $storage, StorageContainerInterface $source_container) {
     $reference = $this->uniqueFilename($storage->filename);
 
@@ -853,17 +985,30 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
 
     if ($result['http_code'] == 200 && $result['simplexml']) {
 
-      if ($result['simplexml']->getName() == 'CopyObjectResult')
+      if ($result['simplexml']->getName() == 'CopyObjectResult') {
         return $reference;
+      }
     }
 
     throw new StorageException();
   }
 
+  /**
+   * Converts an ETag to MD5 hash.
+   *
+   * @param string $etag
+   *   The ETag.
+   *
+   * @return string
+   *   The MD5 hash.
+   */
   private function eTag2md5($etag) {
     return pack('H*', substr($etag, 1, 32));
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceManifest(array &$sandbox, &$finished) {
 
     $query = array(
@@ -890,15 +1035,18 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
     return $manifest;
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceInstanceExists($reference) {
-
     $result = $this->request('HEAD', $this->settings['bucket'], $reference);
-
     return $result['http_code'] == 200;
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceInstanceCheck($reference) {
-
     $result = $this->request('HEAD', $this->settings['bucket'], $reference);
 
     if ($result['http_code'] != 200) {
@@ -911,6 +1059,9 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
     );
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceInstanceGetUri($reference) {
 
     $result = $this->request('GET', $this->settings['bucket'], $reference);
@@ -918,6 +1069,9 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
     return $result['temp_uri'];
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceInstanceDestroy($reference) {
 
     $result = $this->request('DELETE', $this->settings['bucket'], $reference);
@@ -927,6 +1081,9 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
     }
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceInstanceServe($reference, $https) {
     $s3_object = '/' . drupal_encode_path($reference);
     $base_url = 'http' . ($https ? 's' : '') . '://';
@@ -937,19 +1094,23 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
       if ($this->access_control) {
         $expires = time() + $this->settings['url_lifetime'];
         $policy = '{"Statement":[{"Resource":"' . $base_url . $s3_object . '","Condition":{"DateLessThan":{"AWS:EpochTime":' . $expires . '}}}]}';
-        $query['Policy'] = str_replace(array('+', '=', '/'), array('-', '_', '~'), base64_encode($policy));
+        $query['Policy'] = str_replace(array('+', '=', '/'), array(
+          '-',
+          '_',
+          '~',
+        ), base64_encode($policy));
         $query['Signature'] = $this->signature($policy, TRUE);
         $query['Key-Pair-Id'] = $this->settings['cf_key_id'];
       }
     }
     else {
-      if (https && strpos($this->settings['bucket'], '.') !== false) {
+      if ($https && strpos($this->settings['bucket'], '.') !== FALSE) {
         $base_url .= 's3.amazonaws.com/' . $this->settings['bucket'];
       }
       else {
         $base_url .= $this->settings['bucket'];
-        // If the bucket is a CNAME alias, the full domain name is not required unless we are
-        // serving over https.
+        // If the bucket is a CNAME alias, the full domain name is not required
+        // unless we are serving over https.
         if (!$this->settings['cname'] || $https) {
           $base_url .= '.s3.amazonaws.com';
         }

@@ -4,8 +4,15 @@
  * @file
  * FS Storage class files for Storage API.
  */
+
+/**
+ * Provides a file system storage container.
+ */
 class StorageFS extends StorageContainer implements StorageContainerInterface {
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceSettingsDefault() {
     return array(
       'path' => '',
@@ -13,6 +20,9 @@ class StorageFS extends StorageContainer implements StorageContainerInterface {
     );
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceSettingsForm($already_exists) {
     if (!$this->settings['path']) {
       $this->settings['path'] = storage_new_local_storage_path();
@@ -33,8 +43,6 @@ class StorageFS extends StorageContainer implements StorageContainerInterface {
     }
 
     if (!$this->access_control) {
-      $description = 'The URL of the directory path specified above (typically exactly the same).' . ' ';
-      $description .= 'Can be absolute or relative.';
 
       if (!$this->settings['base_url']) {
         $this->settings['base_url'] = $this->settings['path'];
@@ -43,7 +51,7 @@ class StorageFS extends StorageContainer implements StorageContainerInterface {
       $items['base_url'] = array(
         '#type' => 'textfield',
         '#title' => t('Base URL'),
-        '#description' => t($description),
+        '#description' => t("The URL of the directory path specified above (typically exactly the same). Can be absolute or relative."),
         '#required' => TRUE,
         '#validated' => TRUE,
         '#default_value' => $this->settings['base_url'],
@@ -53,8 +61,10 @@ class StorageFS extends StorageContainer implements StorageContainerInterface {
     return $items;
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceSettingsValidate($already_exists) {
-
     if (!$this->settings['path']) {
       form_set_error('settings][path', t('Directory path field is required.'));
       return;
@@ -73,6 +83,9 @@ class StorageFS extends StorageContainer implements StorageContainerInterface {
     }
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceCreate() {
     if (!file_prepare_directory($this->settings['path'], FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS)) {
       form_set_error('settings][path', t('The directory %directory could not be created. Please check permissions.', array('%directory' => $this->settings['path'])));
@@ -81,20 +94,44 @@ class StorageFS extends StorageContainer implements StorageContainerInterface {
     }
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceInfo() {
     $info['Free space'] = storage_format_byte_count(@disk_free_space($this->settings['path']));
     $info['Directory'] = realpath($this->settings['path']);
     return $info;
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceDestroy() {
     return @rmdir($this->settings['path']);
   }
 
+  /**
+   * Gets the instance path.
+   *
+   * @param string $reference
+   *   The path reference.
+   *
+   * @return string
+   *   The instance path.
+   */
   private function instancePath($reference) {
     return $this->settings['path'] . '/' . $reference;
   }
 
+  /**
+   * Creates the directory path if it does not exist.
+   *
+   * @param string $reference
+   *   The path reference.
+   *
+   * @return string
+   *   The directory path.
+   */
   private function ensureDirectoryPathExists($reference) {
     $dirs = explode('/', $reference);
     $basename = array_pop($dirs);
@@ -105,7 +142,7 @@ class StorageFS extends StorageContainer implements StorageContainerInterface {
       $test_path = $path . $dir;
 
       while (!is_dir($this->instancePath($test_path)) &&
-      !@mkdir($this->instancePath($test_path))) {
+        !@mkdir($this->instancePath($test_path))) {
         $count++;
         $test_path = $path . $dir . '_' . $count;
       }
@@ -116,8 +153,10 @@ class StorageFS extends StorageContainer implements StorageContainerInterface {
     return $path . $basename;
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceInstanceCreate(Storage $storage, $uri) {
-
     $reference = $this->uniqueFilename($this->ensureDirectoryPathExists($storage->filename));
     $path = $this->instancePath($reference);
 
@@ -131,6 +170,17 @@ class StorageFS extends StorageContainer implements StorageContainerInterface {
     }
   }
 
+  /**
+   * Recursively gets a list of files in the directory and any sub-directories.
+   *
+   * @param string $dir
+   *   The directory to scan.
+   *
+   * @return array
+   *   An array of file names.
+   *
+   * @throws \StorageException
+   */
   private function scanDirectory($dir) {
     $files = array();
     $handle = opendir($dir);
@@ -163,21 +213,31 @@ class StorageFS extends StorageContainer implements StorageContainerInterface {
     return $files;
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceListReferences() {
 
     return $this->scanDirectory($this->settings['path']);
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceInstanceExists($reference) {
-
     return @stat($this->instancePath($reference)) !== FALSE;
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceInstanceGetUri($reference) {
-
     return $this->instancePath($reference);
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceInstanceDestroy($reference) {
 
     @drupal_unlink($this->instancePath($reference));

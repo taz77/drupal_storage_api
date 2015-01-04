@@ -4,10 +4,22 @@
  * @file
  * FTP Storage class files for Storage API.
  */
+
+/**
+ * Provides an FTP storage container.
+ */
 class StorageFTP extends StorageContainer implements StorageContainerInterface {
 
   private $ftpStream;
 
+  /**
+   * Login to the FTP server.
+   *
+   * @param bool $change_directory
+   *   TRUE to change directory.
+   *
+   * @throws \StorageException
+   */
   private function login($change_directory = TRUE) {
 
     if (isset($this->ftpStream)) {
@@ -38,6 +50,9 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
     }
   }
 
+  /**
+   * Destroys the StorageFTP instance.
+   */
   public function __destruct() {
 
     if ($this->ftpStream != NULL) {
@@ -45,6 +60,14 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
     }
   }
 
+  /**
+   * Create the specified directory.
+   *
+   * @param string $directory
+   *   The directory to create.
+   *
+   * @throws \StorageException
+   */
   private function createDirectory($directory) {
 
     if (!ftp_mkdir($this->ftpStream, $directory)) {
@@ -52,6 +75,14 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
     }
   }
 
+  /**
+   * Recursively create directories in the path.
+   *
+   * @param string $path
+   *   The directory path.
+   *
+   * @throws \StorageException
+   */
   private function createDirectoryRecursive($path) {
     $original_dir = ftp_pwd($this->ftpStream);
 
@@ -68,6 +99,14 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
     $this->changeDirectory($original_dir);
   }
 
+  /**
+   * Remove the specified directory.
+   *
+   * @param string $directory
+   *   The directory to remove.
+   *
+   * @throws \StorageException
+   */
   private function removeDirectory($directory) {
 
     if (!@ftp_rmdir($this->ftpStream, $directory)) {
@@ -75,6 +114,14 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
     }
   }
 
+  /**
+   * Change to the specified directory.
+   *
+   * @param string $directory
+   *   The directory to change to.
+   *
+   * @throws \StorageException
+   */
   private function changeDirectory($directory) {
 
     if (!@ftp_chdir($this->ftpStream, $directory)) {
@@ -82,6 +129,16 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
     }
   }
 
+  /**
+   * Set the file mode for the file.
+   *
+   * @param string $filename
+   *   The file name.
+   * @param string $mode
+   *   The file mode.
+   *
+   * @throws \StorageException
+   */
   private function setMode($filename, $mode) {
 
     if (!ftp_chmod($this->ftpStream, octdec(str_pad($mode, 4, '0', STR_PAD_LEFT)), $filename)) {
@@ -89,6 +146,9 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
     }
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceSettingsDefault() {
     return array(
       'host' => '',
@@ -100,12 +160,15 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
     );
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceSettingsForm($already_exists) {
 
     $items['host'] = array(
       '#type' => 'textfield',
       '#title' => t('Host'),
-      '#description' => t('The FTP server address. This parameter shouldn\'t have any trailing slashes and shouldn\'t be prefixed with ftp:// .'),
+      '#description' => t("The FTP server address. This parameter shouldn't have any trailing slashes and shouldn't be prefixed with ftp:// ."),
       '#required' => TRUE,
       '#validated' => TRUE,
       '#default_value' => $this->settings['host'],
@@ -125,7 +188,7 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
     $items['username'] = array(
       '#type' => 'textfield',
       '#title' => t('Username'),
-      '#description' => t(''),
+      '#description' => '',
       '#required' => TRUE,
       '#validated' => TRUE,
       '#default_value' => $this->settings['username'],
@@ -148,7 +211,7 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
     $items['mode'] = array(
       '#type' => 'textfield',
       '#title' => t('File mode'),
-      '#description' => t('Octal format, e.g. 644.<br />For serving, ensure the files are readable by the web server.<br />If omitted, the FTP server\'s default permissions will be used.'),
+      '#description' => t("Octal format, e.g. 644.<br />For serving, ensure the files are readable by the web server.<br />If omitted, the FTP server's default permissions will be used."),
       '#maxlength' => 4,
       '#size' => 5,
       '#default_value' => $this->settings['mode'],
@@ -168,8 +231,10 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
     return $items;
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceSettingsValidate($already_exists) {
-
     if (!$this->settings['host']) {
       form_set_error('settings][host', t('Host field is required.'));
     }
@@ -221,15 +286,24 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
     }
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceCreate() {
     $this->login(FALSE);
     $this->createDirectoryRecursive($this->settings['directory']);
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function servicePostCreate() {
     $this->changeDirectory($this->settings['directory']);
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceInfo() {
     $info = array(
       t('Host') => $this->settings['host'],
@@ -249,6 +323,9 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
     return $info;
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceDestroy() {
     $this->login(FALSE);
 
@@ -256,10 +333,19 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
       $this->removeDirectory($this->settings['directory']);
     }
     catch (StorageException $e) {
-      
+
     }
   }
 
+  /**
+   * Change to the directory that contains the file.
+   *
+   * @param string $filename
+   *   The file name.
+   *
+   * @return string
+   *   The directory path.
+   */
   private function enterFileDirectory($filename) {
     $components = explode('/', $filename);
     $basename = array_pop($components);
@@ -287,8 +373,7 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
         }
 
         break;
-      }
-      while (TRUE);
+      } while (TRUE);
 
       $directory = $potential;
     }
@@ -298,6 +383,9 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
     return implode('/', $components);
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceInstanceCreate(Storage $storage, $uri) {
     $this->login();
     $original_dir = ftp_pwd($this->ftpStream);
@@ -320,6 +408,15 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
     return $reference;
   }
 
+  /**
+   * Lists all files in the directory.
+   *
+   * @param string $dir
+   *   The directory.
+   *
+   * @return array
+   *   An array of file names.
+   */
   private function listItems($dir) {
     $files = array();
 
@@ -353,18 +450,27 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
     return $files;
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceListReferences() {
     $this->login();
 
     return $this->listItems('.');
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceInstanceExists($reference) {
     $this->login();
 
     return ftp_size($this->ftpStream, $reference) != -1;
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceInstanceDestroy($reference) {
     $this->login();
 
@@ -386,6 +492,9 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
     }
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function serviceInstanceGetUri($reference) {
     $this->login();
 
