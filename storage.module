@@ -4,6 +4,7 @@
  * @file
  * Main module file for Storage API.
  */
+
 /**
  * The storage is idle.
  */
@@ -24,28 +25,32 @@ define('STORAGE_CONTAINER_STATUS_ACTIVE', 0);
  */
 define('STORAGE_CONTAINER_STATUS_SUSPENDED', 1);
 
-class BadImageStyleStorageException extends StorageException {
-  
-}
-
 /**
  * The storage container is being destroyed.
  */
 define('STORAGE_CONTAINER_STATUS_DESTROY', 2);
 
+/**
+ * Provides an general exception for storage.
+ */
 class StorageException extends Exception {
-  
+}
+
+/**
+ * Provides an exception for image style storage.
+ */
+class BadImageStyleStorageException extends StorageException {
 }
 
 /**
  * Implements hook_permission().
  */
 function storage_permission() {
-
-  return array('administer storage' => array(
+  return array(
+    'administer storage' => array(
       'title' => t('Administer storage'),
-//    'description' => t(''),
-  ));
+    ),
+  );
 }
 
 /**
@@ -195,10 +200,10 @@ function storage_menu() {
 /**
  * Loads a storage.
  *
- * @param $storage_id
+ * @param int $storage_id
  *   The storage_id of the storage to be loaded.
  *
- * @return
+ * @return \Storage
  *   The storage.
  *
  * @throws StorageException
@@ -212,10 +217,10 @@ function storage_load($storage_id) {
 /**
  * Loads a storage for the menu system.
  *
- * @param $storage_id
+ * @param int $storage_id
  *   The storage_id of the storage to be loaded.
  *
- * @return
+ * @return \Storage|bool
  *   The storage or FALSE if it could not be loaded.
  */
 function storage_menu_load($storage_id) {
@@ -231,10 +236,10 @@ function storage_menu_load($storage_id) {
 /**
  * Loads a storage service.
  *
- * @param $srvice_id
+ * @param string $service_id
  *   The service_id of the service to be loaded.
  *
- * @return
+ * @return \StorageService
  *   The storage service.
  */
 function storage_service_load($service_id) {
@@ -242,6 +247,15 @@ function storage_service_load($service_id) {
   return new StorageService($service_id);
 }
 
+/**
+ * Gets the service name.
+ *
+ * @param \StorageService $service
+ *   The storage service.
+ *
+ * @return string
+ *   The name, passed through check_plain().
+ */
 function storage_service_title(StorageService $service) {
 
   return check_plain($service->name);
@@ -250,13 +264,13 @@ function storage_service_title(StorageService $service) {
 /**
  * Loads a storage container.
  *
- * @param $container_id
+ * @param int $container_id
  *   The container_id of the container to be loaded.
  *
- * @return
+ * @return \StorageContainerInterface|bool
  *   The storage container or FALSE if it could not be loaded.
  *
- * @throws StorageException
+ * @throws \StorageException
  *   If the storage container cannot be loaded.
  */
 function storage_container_load($container_id) {
@@ -277,10 +291,10 @@ function storage_container_load($container_id) {
 /**
  * Loads a storage container for the menu system.
  *
- * @param $container_id
+ * @param int $container_id
  *   The container_id of the container to be loaded.
  *
- * @return
+ * @return \StorageContainerInterface
  *   The storage container.
  */
 function storage_container_menu_load($container_id) {
@@ -293,6 +307,17 @@ function storage_container_menu_load($container_id) {
   }
 }
 
+/**
+ * Creates a new storage container.
+ *
+ * @param array $fields
+ *   The container fields.
+ * @param bool $unserialize
+ *   (optional) TRUE to unserialize the settings field.
+ *
+ * @return \StorageContainerInterface
+ *   The storage container instance.
+ */
 function storage_container_new(array $fields, $unserialize = TRUE) {
 
   if ($unserialize) {
@@ -303,6 +328,15 @@ function storage_container_new(array $fields, $unserialize = TRUE) {
   return new $class($fields);
 }
 
+/**
+ * Gets the storage container title.
+ *
+ * @param \StorageContainerInterface $container
+ *   The storage container.
+ *
+ * @return string
+ *   The title passed through check_plain().
+ */
 function storage_container_title(StorageContainerInterface $container) {
 
   return check_plain($container->name());
@@ -311,31 +345,29 @@ function storage_container_title(StorageContainerInterface $container) {
 /**
  * Loads a storage class.
  *
- * @param $class_id
+ * @param int $class_id
  *   The class_id of the class to be loaded.
  *
- * @return
+ * @return \StorageClass
  *   The storage class.
  *
  * @throws StorageException
  *   If the storage class cannot be loaded.
  */
 function storage_class_load($class_id) {
-
   return new StorageClass($class_id);
 }
 
 /**
  * Loads a storage class for the menu system.
  *
- * @param $class_id
+ * @param int $class_id
  *   The class_id of the class to be loaded.
  *
- * @return
+ * @return \StorageClass|bool
  *   The storage class or FALSE if it could not be loaded.
  */
 function storage_class_menu_load($class_id) {
-
   try {
     return storage_class_load($class_id);
   }
@@ -344,11 +376,25 @@ function storage_class_menu_load($class_id) {
   }
 }
 
+/**
+ * Gets the storage class title.
+ *
+ * @param \StorageClass $class
+ *   The storage class.
+ *
+ * @return string
+ *   The title passed through check_plain().
+ */
 function storage_class_title(StorageClass $class) {
-
   return check_plain($class->name);
 }
 
+/**
+ * Unserializes the class options.
+ *
+ * @param array $options
+ *   The storage class options.
+ */
 function storage_unserialize_class_options(&$options) {
   $options = unserialize($options);
   $options += array(
@@ -363,7 +409,6 @@ function storage_unserialize_class_options(&$options) {
  * Creates an object for a class selector.
  */
 function storage_selector($arg0, $arg1 = NULL) {
-
   return new StorageSelector($arg0, $arg1);
 }
 
@@ -449,6 +494,12 @@ function storage_storage_service_check_rackspace() {
   throw new StorageException(theme('item_list', array('items' => $items)));
 }
 
+/**
+ * Gets information for all storage services.
+ *
+ * @return array
+ *   An array of storage service info.
+ */
 function storage_service_info() {
   $services = array();
 
@@ -469,11 +520,26 @@ function storage_service_info() {
   return $services;
 }
 
+/**
+ * Gets the class for a storage service.
+ *
+ * @param int $service_id
+ *   The storage service ID.
+ *
+ * @return string
+ *   The storage class name.
+ */
 function storage_container_class($service_id) {
   $service = storage_service_load($service_id);
   return $service->class;
 }
 
+/**
+ * Page callback for serving a file from storage.
+ *
+ * @param \Storage $storage
+ *   The storage to serve from.
+ */
 function storage_serve(Storage $storage) {
   $storage->serve();
 }
@@ -481,19 +547,34 @@ function storage_serve(Storage $storage) {
 /**
  * Determine whether the user has access to a storage.
  *
- * @param $storage
+ * @param \Storage $storage
  *   The storage that access is being checked for.
- * @return
- *   Boolean TRUE if the current user has access to the storage.
+ *
+ * @return bool
+ *   TRUE if the current user has access to the storage.
  */
 function storage_access(Storage $storage) {
   return $storage->access();
 }
 
+/**
+ * Handles a request when service is unavailable.
+ */
 function _storage_service_unavailable() {
   drupal_deliver_page(MENU_SITE_OFFLINE);
 }
 
+/**
+ * Detect the mime-type of the file.
+ *
+ * @param string $uri
+ *   The path to the file.
+ * @param string $filename
+ *   The file name.
+ *
+ * @return string
+ *   The mime-type.
+ */
 function storage_mime_detect($uri, $filename) {
   $filepath = drupal_realpath($uri);
   $mime = FALSE;
@@ -528,6 +609,21 @@ function storage_mime_detect($uri, $filename) {
   return ($mime == '') ? 'application/octet-stream; charset=binary' : $mime;
 }
 
+/**
+ * Gets a file ID for a file.
+ *
+ * @param string $uri
+ *   The file uri.
+ * @param string $filename
+ *   (optional) The filename
+ * @param bool $new_file
+ *   (optional) TRUE if a new file.
+ *
+ * @return string
+ *   The file ID.
+ *
+ * @throws \StorageException
+ */
 function _storage_file_id($uri, $filename = NULL, &$new_file = NULL) {
   $fileinfo = @stat($uri);
 
@@ -567,6 +663,17 @@ function _storage_file_id($uri, $filename = NULL, &$new_file = NULL) {
   return $file_id;
 }
 
+/**
+ * Get a file from a specified URL.
+ *
+ * @param string $url
+ *   The URL source of the file.
+ *
+ * @return bool|null|\StorageTempURI
+ *   - success: A temporary storage URI.
+ *   - hard failure: FALSE.
+ *   - soft failure: NULL.
+ */
 function _storage_acquire_from_url($url) {
 
   $temp_uri = new StorageTempURI();
@@ -578,10 +685,11 @@ function _storage_acquire_from_url($url) {
     CURLOPT_CONNECTTIMEOUT => 30,
     CURLOPT_LOW_SPEED_LIMIT => 256,
     CURLOPT_LOW_SPEED_TIME => 60,
-    CURLOPT_FILE => $fp
+    CURLOPT_FILE => $fp,
   );
 
-  $ch = curl_init(str_replace(' ', '+', $url));   // this seems to keep everyone happy
+  // This seems to keep everyone happy.
+  $ch = curl_init(str_replace(' ', '+', $url));
   curl_setopt_array($ch, $options);
   $result = curl_exec($ch);
   fclose($fp);
@@ -594,22 +702,31 @@ function _storage_acquire_from_url($url) {
       return $temp_uri;
 
     case 4:
-      return FALSE;         // hard failure
+      // Hard failure.
+      return FALSE;
 
     default:
-      return NULL;          // soft failure
+      // Soft failure.
+      return NULL;
   }
 }
 
+/**
+ * Deletes a file if not used.
+ *
+ * @param int $file_id
+ *   The file ID to delete.
+ */
 function _storage_delete_file_if_unrequired($file_id) {
   $txn = db_transaction();
 
   // Do any storages use this file?
   if (db_select('storage')
-      ->condition('file_id', $file_id)
-      ->countQuery()
-      ->execute()
-      ->fetchField()) {
+    ->condition('file_id', $file_id)
+    ->countQuery()
+    ->execute()
+    ->fetchField()
+  ) {
     return;
   }
 
@@ -618,6 +735,12 @@ function _storage_delete_file_if_unrequired($file_id) {
     ->execute();
 }
 
+/**
+ * Gets a list of service names.
+ *
+ * @return array
+ *   The list of service names.
+ */
 function _storage_get_service_names() {
   $names = array();
 
@@ -635,10 +758,10 @@ function _storage_get_service_names() {
  *
  * See http://en.wikipedia.org/wiki/Kilobyte for more information.
  *
- * @param $count
+ * @param int $count
  *   An integer byte count.
  *
- * @return
+ * @return string
  *   A human readable representation of the byte count.
  */
 function storage_format_byte_count($count) {
@@ -670,6 +793,9 @@ function storage_theme($existing, $type, $theme, $path) {
   );
 }
 
+/**
+ * Theme function for info table.
+ */
 function theme_storage_info_table(array $variables) {
   $rows = array();
 
@@ -689,15 +815,37 @@ function theme_storage_info_table(array $variables) {
 
   return theme('table', array(
     'rows' => $rows,
-    'attributes' => array('style' => 'width: auto;')
+    'attributes' => array('style' => 'width: auto;'),
   ));
 }
 
+/**
+ * Provides a storage lock.
+ */
 class StorageLock {
 
+  /**
+   * The lock name.
+   *
+   * @var string
+   */
   public $name;
+
+  /**
+   * The lock ID.
+   *
+   * @var string
+   */
   private $id;
 
+  /**
+   * Creates a new storage lock.
+   *
+   * @param string $name
+   *   The lock name.
+   *
+   * @throws \StorageException
+   */
   public function __construct($name) {
     global $databases;
     $this->name = $name;
@@ -711,21 +859,37 @@ class StorageLock {
     }
   }
 
+  /**
+   * Destroys this StorageLock instance.
+   */
   public function __destruct() {
     db_query('DO RELEASE_LOCK(:name)', array(':name' => $this->id));
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function __toString() {
     return $this->name;
   }
 
 }
 
+/**
+ * Provides a temporary storage URI.
+ */
 class StorageTempURI {
 
+  /**
+   * The URI.
+   *
+   * @var bool|string
+   */
   private $uri;
 
   /**
+   * Creates a StorageTempURI instance.
+   *
    * @throws StorageException
    */
   public function __construct() {
@@ -734,32 +898,60 @@ class StorageTempURI {
     }
   }
 
+  /**
+   * Destroys this StorageTempURI instance.
+   */
   public function __destruct() {
     drupal_unlink($this->uri);
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function __toString() {
     return $this->uri;
   }
 
 }
 
+/**
+ * Creates a new local storage path.
+ *
+ * @return string
+ *   The local storage path.
+ */
 function storage_new_local_storage_path() {
-
   return file_create_filename('storage', variable_get('file_public_path', conf_path() . '/files'));
 }
 
+/**
+ * Tests an image data uri.
+ *
+ * @return bool
+ *   TRUE if the image data uri matches.
+ */
 function storage_test_theme_image_data_uri() {
   $test_uri = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg==';
-
   return url(file_create_url($test_uri)) == $test_uri;
 }
 
+/**
+ * Provides a link to the Data URIs documentation.
+ *
+ * @return string
+ *   The link to the documentation.
+ */
 function storage_data_uri_doc_link() {
   $data_uri_doc_url = 'https://www.drupal.org/node/1405018';
   return l($data_uri_doc_url, $data_uri_doc_url, array('attributes' => array('target' => '_blank')));
 }
 
+/**
+ * Checks if a request is using the HTTPS protocol.
+ *
+ * @return bool
+ *   TRUE if using HTTPS.
+ */
 function storage_is_request_https() {
   return (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on');
 }
