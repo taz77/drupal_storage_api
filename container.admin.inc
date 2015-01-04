@@ -230,7 +230,7 @@ function storage_container_form(array $form, array &$form_state, StorageContaine
   $info += $container->serviceInfo();
 
   if (!$container->access_control && isset($container->settings['base_url'])) {
-    $info[t('Base URL')] = url($container->settings['base_url'], array('absolute' => TRUE));
+    $info[t('Base URL')] = file_create_url($container->settings['base_url']);
   }
 
   $form['status'] = array(

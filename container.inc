@@ -609,7 +609,7 @@ EOF;
   }
 
   public function serviceInstanceServe($reference, $https) {
-    return $this->settings['base_url'] . '/' . $reference;
+    return file_create_url($this->settings['base_url'] . '/' . $reference);
   }
 
   public function serviceInstanceOutput($reference) {
