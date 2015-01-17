@@ -142,7 +142,7 @@ class StorageFS extends StorageContainer implements StorageContainerInterface {
       $test_path = $path . $dir;
 
       while (!is_dir($this->instancePath($test_path)) &&
-        !@mkdir($this->instancePath($test_path))) {
+      !drupal_mkdir($this->instancePath($test_path), null, TRUE)) {
         $count++;
         $test_path = $path . $dir . '_' . $count;
       }
