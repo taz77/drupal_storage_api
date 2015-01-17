@@ -748,6 +748,26 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
     $storage_core_bridge_dirname = $scheme . '://' . $dirname;
     return $storage_core_bridge_dirname;
   }
+   /**
+   * {@inheritdoc}
+   *
+   * Return the actual path of a uri if using local file system container type.
+   */
+  public function realpath() {
+    try {
+      $storage = storage_core_bridge_load($this->uri);
+    }
+    catch (StorageException $e) {
+      return;
+    }
+    $container = $storage->selectContainerInstance();
+    if ($container && get_class($container) == 'StorageFS'){
+      global $base_path;
+      return DRUPAL_ROOT . $base_path . $storage->getUri();
+    }
+    else
+      return FALSE;
+  }
 
   /**
    * Unimplemented.
@@ -795,12 +815,6 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
    * Unimplemented.
    */
   public function dir_closedir() {
-  }
-
-  /**
-   * Unimplemented.
-   */
-  public function realpath() {
   }
 
 }
