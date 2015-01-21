@@ -84,6 +84,15 @@ function storage_menu() {
     'file' => 'class.admin.inc',
   );
 
+  $items['admin/structure/storage-ajax/%/%/stats'] = array(
+    'title' => "AJAX Callback",
+    'page callback' => 'storage_class_ajax_stats',
+    'access arguments' => array('administer storage'),
+    'page arguments' => array(3, 4, 6, 7),
+    'type' => MENU_CALLBACK,
+    'file' => 'class.admin.inc',
+  );
+
   $items['admin/structure/storage/class/%storage_class_menu'] = array(
     'title callback' => 'storage_class_title',
     'title arguments' => array(4),

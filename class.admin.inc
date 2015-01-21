@@ -93,7 +93,7 @@ function _storage_class_selectors(StorageClass $class) {
 }
 
 function storage_class(StorageClass $class) {
-
+  drupal_add_js('misc/ajax.js');
   $info = array(
     t('Files') => $class->count(),
     t('Size') => $class->size(TRUE),
@@ -105,28 +105,11 @@ function storage_class(StorageClass $class) {
 
   $output = theme('storage_info_table', array('info' => $info));
 
-  $subquery = db_select('storage_selector');
-  $subquery->join('storage', NULL, 'storage_selector.selector_id = storage.selector_id');
-  $subquery->join('storage_file', NULL, 'storage.file_id = storage_file.file_id');
-  $subquery->join('storage_instance', NULL, 'storage.file_id = storage_instance.file_id');
-
-  $subquery->fields('storage_instance', array('container_id'));
-  $subquery->addExpression('COUNT(storage.storage_id)', 'count');
-  $subquery->addExpression('SUM(storage_file.size)', 'size');
-
-  $subquery->condition('storage_selector.class_id', $class->class_id)
-    ->groupBy('storage_instance.container_id');
-
-
   $query = db_select('storage_class_container', NULL, array('fetch' => PDO::FETCH_ASSOC));
   $query->join('storage_container', NULL, 'storage_class_container.container_id = storage_container.container_id');
-  $query->leftJoin($subquery, 'files', 'storage_container.container_id = files.container_id');
 
   $query->fields('storage_container')
     ->fields('storage_class_container');
-
-  $query->addField('files', 'count', 'count');
-  $query->addField('files', 'size', 'size');
 
   $result = $query->condition('storage_class_container.class_id', $class->class_id)
     ->orderBy('storage_class_container.weight')
@@ -137,13 +120,14 @@ function storage_class(StorageClass $class) {
     unset($row);
 
     $container = storage_container_load($container_info['container_id']);
+    $path = 'admin/structure/storage-ajax/' . $class->class_id . '/' . $container_info['container_id'] . '/stats';
 
     $row[] = $container->link();
     $row[] = $container_info['propagate'] ? t('Yes') : t('No');
     $row[] = $container_info['serving'] ? t('Yes') : t('No');
     $row[] = $container_info['remove'] ? t('Yes') : t('No');
-    $row[] = (int) $container_info['count'];
-    $row[] = storage_format_byte_count($container_info['size']);
+    $row[] = l(t('Calculate'), $path . '/files/nojs', array('attributes' => array('class' => array('use-ajax'), 'id' => array('target-' . $container_info['container_id'] . '-files'))));
+    $row[] = l(t('Calculate'), $path . '/size/nojs', array('attributes' => array('class' => array('use-ajax'), 'id' => array('target-' . $container_info['container_id'] . '-size'))));
 
     $rows[] = $row;
   }
@@ -163,6 +147,35 @@ function storage_class(StorageClass $class) {
   $output .= _storage_class_selectors($class);
 
   return $output;
+}
+
+/**
+ * AJAX callback.
+ */
+function storage_class_ajax_stats($class_id, $container_id, $type, $ajax) {
+  $commands = array();
+  $query = db_select('storage_instance');
+  $query->innerJoin('storage_file', NULL, 'storage_file.file_id = storage_instance.file_id');
+  $query->innerJoin('storage', NULL, 'storage.file_id = storage_file.file_id');
+  $query->innerJoin('storage_selector', NULL, 'storage.selector_id = storage_selector.selector_id');
+  $query->condition('storage_instance.container_id', $container_id);
+  $query->condition('storage_selector.class_id', $class_id);
+  if ($type == 'files') {
+    $query->addExpression('COUNT(storage.storage_id)', 'count');
+  }
+  elseif ($type == 'size') {
+    $query->addExpression('SUM(storage_file.size)', 'size');
+  }
+  $result = $query->execute()->fetchField();
+  if ($type == 'size') {
+    $result = storage_format_byte_count($result);
+  }
+  if ($ajax == 'nojs') {
+    return $result;
+  }
+  $target = '#target-' . $container_id . '-' . $type;
+  $commands[] = ajax_command_replace($target, $result);
+  ajax_deliver(array('#type' => 'ajax', '#commands' => $commands));
 }
 
 /**
