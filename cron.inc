@@ -26,14 +26,13 @@ function _storage_remove_containers() {
 
 function _storage_check_files() {
 
-  $storage_ids = db_select('storage')
+  $result = db_select('storage')
     ->fields('storage', array('storage_id'))
     ->condition('status', STORAGE_STATUS_PROCESS_CRON)
     ->orderBy('storage_id')
-    ->execute()
-    ->fetchCol();
+    ->execute();
 
-  foreach ($storage_ids as $storage_id) {
+  while ($storage_id = $results->fetchField()) {
     try {
       storage_load($storage_id)->check();
     }
