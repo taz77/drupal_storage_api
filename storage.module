@@ -328,7 +328,9 @@ function storage_container_menu_load($container_id) {
  *   The storage container instance.
  */
 function storage_container_new(array $fields, $unserialize = TRUE) {
-
+  // Override $fields with custom $conf settings.
+  _storage_variable_override($fields);
+  
   if ($unserialize) {
     $fields['settings'] = unserialize($fields['settings']);
   }
@@ -995,5 +997,34 @@ function storage_modules_uninstalled($modules) {
     foreach ($selector_ids as $selector_id) {
       storage_selector($selector_id)->destroy();
     }
+  }
+}
+
+/**
+ * Adds custom settings overrides.
+ *
+ * Allows to override storage container settings from code rather than DB.
+ *
+ * @param array $fields
+ *   Associative array of $fields data.
+ */
+function _storage_variable_override(&$fields) {
+  $settings = variable_get('storage_api_container_settings', NULL);
+  $container_id = !empty($fields['container_id']) ? $fields['container_id'] : '';
+  // If settings available and exist for this container, use them.
+  if (!is_null($settings) && !empty($settings[$container_id])) {
+    // Update Settings in DB.
+    $serial_settings = serialize($settings[$container_id]);
+    if ($serial_settings != $fields['settings']) {
+      $query = db_update('storage_container')
+        ->fields(
+          array(
+            'settings' => $serial_settings,
+          )
+        )
+        ->condition('container_id', $container_id, '=')
+        ->execute();
+    }
+    $fields['settings'] = $serial_settings;
   }
 }
