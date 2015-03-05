@@ -32,7 +32,7 @@ function _storage_check_files() {
     ->orderBy('storage_id')
     ->execute();
 
-  while ($storage_id = $results->fetchField()) {
+  while ($storage_id = $result->fetchField()) {
     try {
       storage_load($storage_id)->check();
     }
