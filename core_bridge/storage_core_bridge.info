@@ -3,4 +3,5 @@ description = "Allows file and image fields to utilize Storage API."
 package = "Storage API"
 dependencies[] = storage
 dependencies[] = field
+dependencies[] = image
 core = 7.x
