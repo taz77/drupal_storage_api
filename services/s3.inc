@@ -104,7 +104,8 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
     );
 
     // Apply the proxy details if we are utilising one.
-    if (!empty(variable_get('proxy_server'))) {
+    $proxy_server = variable_get('proxy_server');
+    if (!empty($proxy_server)) {
       $proxy_curl_opts = array(
         CURLOPT_PROXY => variable_get('proxy_server'),
         CURLOPT_PROXYUSERPWD => variable_get('proxy_username') . ':' . variable_get('proxy_password'),
