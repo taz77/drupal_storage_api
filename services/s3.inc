@@ -103,6 +103,17 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
       CURLOPT_USERAGENT => 'Storage API (https://www.drupal.org/project/storage_api)',
     );
 
+    // Apply the proxy details if we are utilising one.
+    if (!empty(variable_get('proxy_server'))) {
+      $proxy_curl_opts = array(
+        CURLOPT_PROXY => variable_get('proxy_server'),
+        CURLOPT_PROXYUSERPWD => variable_get('proxy_username') . ':' . variable_get('proxy_password'),
+        CURLOPT_PROXYPORT => variable_get('proxy_port'),
+      );
+
+      $curl_options += $proxy_curl_opts;
+    }
+
     switch ($op) {
 
       case 'PUT':
