@@ -762,7 +762,9 @@ public function check() {
   }
 
   // The storage is fully propagated, now we can destroy unrequired instances.
-  $this->destroyUnrequiredInstances($container_ids);
+  if (isset($this->file_id)) {
+    $this->destroyUnrequiredInstances($container_ids);
+  }
 
   if ($this->selector_id) {
     $this->initial_container_id = NULL;
