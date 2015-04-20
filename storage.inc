@@ -235,7 +235,7 @@ private function generate() {
     return $this->selectContainerInstance(TRUE);
   }
   catch (StorageException $e) {
-    
+
   }
 
   $container = storage_container_load($this->initial_container_id);
@@ -405,6 +405,10 @@ public function serveURL($absolute = FALSE, $https = NULL) {
       }
       else {
         $url = $container->serviceInstanceServe($container->reference, $https);
+
+        if (get_class($container) === 'StorageFS' && !$container->access_control) {
+          $url = file_create_url($url);
+        }
       }
     }
   }
@@ -598,7 +602,7 @@ public function getUri() {
     return $container->serviceInstanceGetUri($container->reference);
   }
   catch (StorageException $e) {
-    
+
   }
 
   if ($this->source_uri) {
@@ -607,7 +611,7 @@ public function getUri() {
       $uri = $this->acquireFromSourceURL();
     }
     catch (StorageException $e) {
-      
+
     }
 
     if (isset($uri)) {
