@@ -769,11 +769,17 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
       return FALSE;
   }
 
+  public function stream_lock($operation) {
+    if (in_array($operation, array(LOCK_SH, LOCK_EX, LOCK_UN, LOCK_NB))) {
+      return flock($this->fp, $operation);
+    }
+
+    return FALSE;
+  }
+
   /**
    * Unimplemented.
    */
-  public function stream_lock($operation) {
-  }
 
   /**
    * Unimplemented.
