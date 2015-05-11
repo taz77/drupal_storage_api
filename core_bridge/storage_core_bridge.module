@@ -511,10 +511,11 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
 
     try {
       switch ($this->mode) {
+        case 'a':
         case 'w':
           $this->temp_uri = new StorageTempURI();
 
-          if (!$this->fp = fopen($this->temp_uri, 'wb')) {
+          if (!$this->fp = fopen($this->temp_uri, $this->mode.'b')) {
             throw new StorageException();
           }
 
