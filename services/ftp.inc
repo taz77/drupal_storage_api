@@ -432,6 +432,10 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
       }
 
       $filename = strtok('');
+      // Ignore files and directory names begining with a period
+      if ($filename[0] == '.') {
+        continue;
+      }
 
       switch ($mode[0]) {
 
