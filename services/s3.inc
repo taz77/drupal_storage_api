@@ -140,6 +140,9 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
 
         if ($uri) {
           $fp = fopen($uri, 'r');
+          if ($fp === FALSE) {
+            throw new StorageException("Could not open source file");
+          }
 
           $components[1] = base64_encode($storage->md5);
           $components[2] = $storage->mimetype;

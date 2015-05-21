@@ -289,6 +289,19 @@ EOF;
     }
 
     if (!$exists) {
+      // Check to make sure that the source file actually exists.
+      if (!file_exists($uri)) {
+        watchdog(
+          'storage_api',
+          'File not found to be uploaded (!uri). Removing storage record',
+          array(
+            '!uri' => $uri,
+          ),
+          WATCHDOG_ERROR
+        );
+        $storage->remove(TRUE);
+        return FALSE;
+      };
       $this->instanceCreate($storage, $uri);
     }
   }
