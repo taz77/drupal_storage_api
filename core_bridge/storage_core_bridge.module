@@ -423,18 +423,18 @@ function storage_core_bridge_storage_access(Storage $storage) {
   $query->join('file_usage', NULL, 'file_managed.fid = file_usage.fid');
 
   $file_usage = $query->fields('file_usage')
+    ->fields('file_managed')
     ->condition('storage_core_bridge.storage_id', $storage->storage_id)
     ->execute()
     ->fetchAssoc();
 
   // If this file isn't known, it's probably a styled image (they aren't
   // recorded in file_managed). Access will be determined from the source image.
-  if (!$file_usage || ($file_usage['type'] != 'node')) {
+  if (!$file_usage) {
     return;
   }
 
-  $node = node_load($file_usage['id']);
-  return node_access('view', $node);
+  return file_download_access($file_usage['uri']);
 }
 
 /**
