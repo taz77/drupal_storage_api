@@ -330,7 +330,7 @@ function storage_container_menu_load($container_id) {
 function storage_container_new(array $fields, $unserialize = TRUE) {
   // Override $fields with custom $conf settings.
   _storage_variable_override($fields);
-  
+
   if ($unserialize) {
     $fields['settings'] = unserialize($fields['settings']);
   }
@@ -896,14 +896,17 @@ class StorageTempURI {
    *
    * @var bool|string
    */
-  private $uri;
+  private $uri, $original_uri;
 
   /**
    * Creates a StorageTempURI instance.
    *
    * @throws StorageException
    */
-  public function __construct() {
+  public function __construct($uri = NULL) {
+    if ($uri) {
+      $this->original_uri = $uri;
+    }
     if (!$this->uri = drupal_tempnam('temporary://', 'storage-')) {
       throw new StorageException();
     }
@@ -923,6 +926,19 @@ class StorageTempURI {
     return $this->uri;
   }
 
+  /**
+   * Get the original URI of a temp storage object.
+   *
+   * @throws StorageException
+   */
+  public function getOriginalURI() {
+    if (property_exists($this, 'original_uri')) {
+      return $this->original_uri;
+    }
+    else {
+      throw new StorageException();
+    }
+  }
 }
 
 /**

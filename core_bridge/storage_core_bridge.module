@@ -454,7 +454,20 @@ function storage_core_bridge_storage_generate(Storage $storage) {
     throw new BadImageStyleStorageException();
   }
 
-  $source = $storage->parent()->getUri();
+  $parent = $storage->parent();
+  // Getting the URI of the parent, it may be used later by image effects.
+  // It seems like it's the easiest way to get it, by looking it up in the DB?
+  $uri = db_select('storage_core_bridge')
+    ->fields('storage_core_bridge', array('uri'))
+    ->condition('storage_id', $parent->storage_id)
+    ->execute()
+    ->fetchField();
+  // Make sure we keep a reference to the temp file until a copy has been made.
+  $source = $parent->getUri();
+  $source_uri = new StorageTempURI($uri);
+  copy($source, $source_uri);
+  // Remove the initial reference, thus deleting the original temp file.
+  $source = $source_uri;
   $destination = new StorageTempURI();
 
   if (!image_style_create_derivative($style, $source, $destination)) {
