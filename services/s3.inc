@@ -796,16 +796,18 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
 
     // Test account credentials. HEAD request doesn't work.
     $result = $this->request('GET');
+    // Test that the account can access the bucket.
+    $this->result = $this->request('HEAD', $this->settings['bucket']);
 
-    if ($result['http_code'] != 200) {
+    // Accounts may only have permissions to access buckets, we should ensure
+    // that both requests return a 200 before assuming permission errors.
+    if ($result['http_code'] != 200 && $this->result['http_code'] != 200) {
       form_set_error('settings][access_key_id', t('Access denied to S3 when testing account credentials.'));
       form_set_error('settings][secret_access_key', t('Access denied to S3 when testing account credentials.'));
       return;
     }
 
     // Check if bucket is already owned by this account.
-    $this->result = $this->request('HEAD', $this->settings['bucket']);
-
     if (!$already_exists && $this->result['http_code'] == 200) {
       $result = $this->request('GET', $this->settings['bucket']);
 
