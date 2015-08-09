@@ -14,11 +14,11 @@
  *
  * @param $storage
  *   The storage to be generated.
- * @return
+ * @return string
  *   Filepath to the generated file.
  */
 function hook_storage_generate(Storage $storage) {
-  
+
 }
 
 /**
@@ -26,14 +26,14 @@ function hook_storage_generate(Storage $storage) {
  *
  * @param $storage
  *   Storage that is attempting to be accessed.
- * @return
+ * @return BOOL
  *   Whether access is permitted or not.
  *   - TRUE for permitted.
  *   - FALSE for denied.
  *   - NULL to inherit the parent's access.
  */
 function hook_storage_access(Storage $storage) {
-  
+
 }
 
 /**
@@ -41,20 +41,20 @@ function hook_storage_access(Storage $storage) {
  *
  * @param $storage
  *   Storage that is attempting to be accessed.
- * @return
+ * @return BOOL
  *   Access alteration.
  *   - TRUE for permitted.
  *   - FALSE for denied.
  *   - NULL for don't alter.
  */
 function hook_storage_access_alter(Storage $storage) {
-  
+
 }
 
 /**
  * Provides information about the storage service.
  *
- * @return
+ * @return array()
  *   An associative array, with the following keys:
  *     - 'name'
  *       Translated name of the storage service.
@@ -65,11 +65,16 @@ function hook_storage_access_alter(Storage $storage) {
  *     - 'serve_secure'
  */
 function hook_storage_service_info() {
-  
+
 }
 
 /**
  * Allows other modules to alter options for storage objects for styled images.
+ *
+ * @param $options
+ *    Image options
+ * @param $parent
+ *    Parent file object
  */
 function hook_storage_core_bridge_styled_image_options_alter(&$options, $uri, $parent) {
   $status = mymodule_file_status_from_storage_id($parent->storage_id);
