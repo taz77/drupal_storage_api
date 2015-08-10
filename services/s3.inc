@@ -1083,6 +1083,10 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
 
     $result = $this->request('GET', $this->settings['bucket'], $reference);
 
+    // If the asset is not found, throw an appropriate exception.
+    if ($result['http_code'] == 404) {
+      throw new StorageException("Asset missing from S3");
+    }
     return $result['temp_uri'];
   }
 
