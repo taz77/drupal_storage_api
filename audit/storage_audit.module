@@ -32,7 +32,7 @@ function storage_audit_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('storage_audit_form', 4),
     'weight' => 1,
-    'file' => 'admin.inc',
+    'file' => 'storage_audit.admin.inc',
   );
 
   return $items;
