@@ -136,6 +136,9 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
             $headers[] = 'x-amz-storage-class: REDUCED_REDUNDANCY';
             $components[] = 'x-amz-storage-class:REDUCED_REDUNDANCY';
           }
+
+          $headers[] = 'Cache-Control: max-age=' . $this->settings['cache_control_max_age'];
+
         }
 
         if ($uri) {
@@ -645,6 +648,7 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
       'url_lifetime' => 60 * 60,
       'cloudfront' => FALSE,
       'cloudfront_streaming' => FALSE,
+      'cache_control_max_age' => 60 * 5,
     );
   }
 
@@ -686,6 +690,16 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
       '#default_value' => $this->settings['bucket'],
       '#maxlength' => 63,
       '#description' => t('The bucket namespace is shared by all users of Amazon S3.') . '<br />' . t('If it contains any dots (e.g. it is a CNAME alias) it is not possible to serve as HTTPS as only a single level of subdomain matching is supported by a wildcard certificate.'),
+    );
+
+    $items['cache_control_max_age'] = array(
+      '#type' => 'textfield',
+      '#title' => 'Cache Control Header (max-age)',
+      '#required' => TRUE,
+      '#validated' => TRUE,
+      '#default_value' => $this->settings['cache_control_max_age'],
+      '#description' => t('Set max-age cache header, in seconds, to let caches know when an asset is expired.'),
+      '#element_validate' => array('element_validate_integer_positive'),
     );
 
     $replacements = array(
