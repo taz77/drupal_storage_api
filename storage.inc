@@ -256,7 +256,7 @@ private function generate() {
       $message .= 'in storage container <i>' . check_plain($container->name()) . '</i>.';
 
       if (user_access('administer storage')) {
-        drupal_set_message($message);
+        drupal_set_message($message, 'warning');
       }
 
       $message .= ' <br />' . $this->logInfo();

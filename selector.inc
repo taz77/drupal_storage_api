@@ -301,10 +301,10 @@ class StorageSelector {
         }
         catch (StorageException $e) {
           $message = t('Failed to create initial instance of file') . ' ' . $storage->filename;
-          $message .= ' ' . t('in storage container') . '<i>' . check_plain($initial_container->name()) . '</i>.';
+          $message .= ' ' . t('in storage container') . ' <i>' . check_plain($initial_container->name()) . '</i>.';
 
           if (user_access('administer storage')) {
-            drupal_set_message($message);
+            drupal_set_message($message, 'warning');
           }
 
           $message .= ' <br />' . $storage->logInfo();
