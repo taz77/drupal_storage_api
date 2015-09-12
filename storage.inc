@@ -492,11 +492,15 @@ public function remove($recursive = TRUE) {
  *   An array of HTTP headers.
  */
 public function HTTPHeaders() {
-  $headers[] = 'Content-Type: ' . $this->mimetype;
-  $headers[] = 'Content-Length: ' . $this->size;
-  $headers[] = 'Content-MD5: ' . base64_encode($this->md5);
-  $headers[] = 'Last-Modified: ' . date(DATE_RFC1123, $this->created);
-  $headers[] = 'Content-Disposition: attachment; filename="' . drupal_basename($this->filename) . '"';
+  $headers = array(
+    'Content-Type'        => 'Content-Type: ' . $this->mimetype,
+    'Content-Length'      => 'Content-Length: ' . $this->size,
+    'Content-MD5'         => 'Content-MD5: ' . base64_encode($this->md5),
+    'Last-Modified'       => 'Last-Modified: ' . date(DATE_RFC1123, $this->created),
+    'Content-Disposition' => 'Content-Disposition: attachment; filename="' . drupal_basename($this->filename) . '"',
+  );
+
+  drupal_alter('storage_http_headers', $headers, $this);
 
   return $headers;
 }

@@ -84,3 +84,13 @@ function hook_storage_core_bridge_styled_image_options_alter(&$options, $uri, $p
     $options['initial_container_id'] = $container_id;
   }
 }
+
+/**
+ * Alter http headers for files served by storage api.
+ */
+function hook_storage_http_headers_alter(&$headers, $storage) {
+  if (strpos($storage->mimetype, 'image') === 0) {
+    unset($headers['Content-disposition']);
+  }
+}
+

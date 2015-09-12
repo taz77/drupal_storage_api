@@ -28,7 +28,7 @@ class StorageClass {
         ->fetchAssoc();
 
       if (!$class) {
-        throw new StorageException();
+        throw new StorageException(t('Unable to load class !class', array('!class' => var_export($class, TRUE))));
       }
 
       storage_unserialize_class_options($class['options']);
