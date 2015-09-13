@@ -74,6 +74,12 @@ function storage_menu() {
     'file' => 'storage.admin.inc',
   );
 
+  $items['admin/structure/storage/list'] = array(
+    'title' => 'Classes and containers',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => 1,
+  );
+
   $items['admin/structure/storage/create-class'] = array(
     'title' => "Create class",
     'access arguments' => array('administer storage'),
