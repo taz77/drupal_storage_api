@@ -1,0 +1,56 @@
+diff --git a/class.inc b/class.inc
+index 29c7bf1..40e5f74 100644
+--- a/class.inc
++++ b/class.inc
+@@ -28,7 +28,7 @@ class StorageClass {
+         ->fetchAssoc();
+ 
+       if (!$class) {
+-        throw new StorageException();
++        throw new StorageException(t('Unable to load class !class', array('!class' => var_export($class, TRUE))));
+       }
+ 
+       storage_unserialize_class_options($class['options']);
+diff --git a/storage.api.php b/storage.api.php
+index 17b638d..99a5d41 100644
+--- a/storage.api.php
++++ b/storage.api.php
+@@ -84,3 +84,13 @@ function hook_storage_core_bridge_styled_image_options_alter(&$options, $uri, $p
+     $options['initial_container_id'] = $container_id;
+   }
+ }
++
++/**
++ * Alter http headers for files served by storage api.
++ */
++function hook_storage_http_headers_alter(&$headers, $storage) {
++  if (strpos($storage->mimetype, 'image') === 0) {
++    unset($headers['Content-disposition']);
++  }
++}
++
+diff --git a/storage.inc b/storage.inc
+index ac4ee05..ca632bf 100644
+--- a/storage.inc
++++ b/storage.inc
+@@ -492,11 +492,15 @@ public function remove($recursive = TRUE) {
+  *   An array of HTTP headers.
+  */
+ public function HTTPHeaders() {
+-  $headers[] = 'Content-Type: ' . $this->mimetype;
+-  $headers[] = 'Content-Length: ' . $this->size;
+-  $headers[] = 'Content-MD5: ' . base64_encode($this->md5);
+-  $headers[] = 'Last-Modified: ' . date(DATE_RFC1123, $this->created);
+-  $headers[] = 'Content-Disposition: attachment; filename="' . drupal_basename($this->filename) . '"';
++  $headers = array(
++    'Content-Type'        => 'Content-Type: ' . $this->mimetype,
++    'Content-Length'      => 'Content-Length: ' . $this->size,
++    'Content-MD5'         => 'Content-MD5: ' . base64_encode($this->md5),
++    'Last-Modified'       => 'Last-Modified: ' . date(DATE_RFC1123, $this->created),
++    'Content-Disposition' => 'Content-Disposition: attachment; filename="' . drupal_basename($this->filename) . '"',
++  );
++
++  drupal_alter('storage_http_headers', $headers, $this);
+ 
+   return $headers;
+ }
