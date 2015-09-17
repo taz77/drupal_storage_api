@@ -918,6 +918,9 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
         $this->settings['cloudfront_status'] == 'Deployed'
       ) {
         $info[t('CloudFront domain name')] = $this->settings['cloudfront_domain'];
+        if (!empty($this->settings['cname_cf'])) {
+          $info[t('CloudFront CNAME')] = $this->settings['cname_cf'];
+        }
       }
 
       if ($this->settings['cloudfront_streaming']) {
