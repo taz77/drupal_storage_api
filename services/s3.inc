@@ -205,7 +205,7 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
     if ($bucket) {
       $bucket .= '.';
     }
-    $ch = curl_init(url('http://' . $bucket . 's3.amazonaws.com' . drupal_encode_path($object_name), array('query' => $query)));
+    $ch = curl_init(url('https://' . $bucket . 's3.amazonaws.com' . drupal_encode_path($object_name), array('query' => $query)));
     curl_setopt_array($ch, $curl_options);
     $transfer = curl_exec($ch);
     $result += curl_getinfo($ch);
