@@ -724,6 +724,8 @@ public function check() {
       ->fetchField();
 
     if ($count) {
+      $this->status = STORAGE_STATUS_IDLE;
+      $this->update();
       return;
     }
   }
