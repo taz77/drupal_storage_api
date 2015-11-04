@@ -26,7 +26,8 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
       return;
     }
 
-    $this->ftpStream = ftp_connect($this->settings['host'], $this->settings['port'] ? $this->settings['port'] : NULL);
+    $connect_function = $this->settings['ssl'] ? 'ftp_ssl_connect' : 'ftp_connect';
+    $this->ftpStream = $connect_function($this->settings['host'], $this->settings['port'] ? $this->settings['port'] : NULL);
 
     if (!$this->ftpStream) {
       throw new StorageException();
@@ -154,6 +155,7 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
       'host' => '',
       'port' => '21',
       'username' => '',
+      'ssl' => 0,
       'directory' => '',
       'mode' => '',
       'base_url' => '',
@@ -192,6 +194,13 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
       '#required' => TRUE,
       '#validated' => TRUE,
       '#default_value' => $this->settings['username'],
+    );
+
+    $items['ssl'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('SSL'),
+      '#description' => t('If checked, the connection will be over SSL.'),
+      '#default_value' => $this->settings['ssl'],
     );
 
     $items['password'] = array(
@@ -309,6 +318,7 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
       t('Host') => $this->settings['host'],
       t('Port') => $this->settings['port'] ? $this->settings['port'] : 21,
       t('Username') => $this->settings['username'],
+      t('SSL') => $this->settings['ssl'] ? t('Yes') : t('No'),
       t('Directory') => $this->settings['directory'],
     );
 
