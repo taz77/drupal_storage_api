@@ -668,6 +668,9 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
       $storage = storage_core_bridge_load($uri);
     }
     catch (StorageException $e) {
+      if (!($flags & STREAM_URL_STAT_QUIET)) {
+        watchdog('storage_core_bridge', 'Exception in @function. (uri: @uri) (message: @message)', array('@uri' => $uri, '@function' => __FUNCTION__, '@message' => $e->getMessage()));
+      }
       return FALSE;
     }
 
