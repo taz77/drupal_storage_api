@@ -624,7 +624,7 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
    * {@inheritdoc}
    */
   public function stream_stat() {
-    return $this->url_stat($this->uri);
+    return $this->url_stat($this->uri, NULL);
   }
 
   /**
@@ -652,7 +652,7 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
   /**
    * {@inheritdoc}
    */
-  public function url_stat($uri, $flags = NULL) {
+  public function url_stat($uri, $flags) {
     global $storage_core_bridge_filename;
     global $storage_core_bridge_dirname;
 
