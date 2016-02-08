@@ -460,6 +460,10 @@ function storage_storage_services() {
       'copy' => TRUE,
       'serve_secure' => TRUE,
     ),
+    'google' => array(
+      'name' => t('Google Cloud Storage'),
+      'class' => 'StorageGoogle',
+    ),
   );
 
   return $services;
@@ -479,6 +483,19 @@ function storage_libraries_info() {
     'files' => array(
       'php' => array(
         'cloudfiles.php',
+      ),
+    ),
+  );
+
+  $libraries['google-api-php-client'] = array(
+    'name' => 'google-api-php-client',
+    'vendor url' => 'https://github.com/google/google-api-php-client',
+    'download url' => 'https://github.com/google/google-api-php-client/releases',
+    'path' => 'src/Google',
+    'version' => '1.1.7',
+    'files' => array(
+      'php' => array(
+        'autoload.php',
       ),
     ),
   );

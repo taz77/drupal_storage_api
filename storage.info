@@ -15,5 +15,6 @@ files[] = services/fs.inc
 files[] = services/ftp.inc
 files[] = services/rackspace.inc
 files[] = services/s3.inc
+files[] = services/google.inc
 
 configure = admin/structure/storage
