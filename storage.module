@@ -492,7 +492,7 @@ function storage_libraries_info() {
     'vendor url' => 'https://github.com/google/google-api-php-client',
     'download url' => 'https://github.com/google/google-api-php-client/releases',
     'path' => 'src/Google',
-    'version' => '1.1.7',
+    'version' => 'whatever',
     'files' => array(
       'php' => array(
         'autoload.php',
