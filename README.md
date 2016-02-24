@@ -1,4 +1,5 @@
 Storaga API Module
+================================================================================
 
 The storage API module creates an agnostic form of storingin files withing
 Drupal.  You can create containers and classes that will give you flexibility
@@ -6,10 +7,13 @@ in storying information from Drupal and even creating redundant methods of
 storing information.
 
 
-== 3rd Party Storage Providers ==
+3rd Party Storage Providers
+================================================================================
 
 Rackspace Cloudfiles Provider:
-This service requires an accout with the external service provider.
+This service requires an accoutt with the external service provider.
+**Warning**: this storage provider implementation is old. If you are a developer
+we would gladly accept updates to this provider.
 
 Amazon S3 Provider:
 This service requires an accout with the external service provider. Please refer
@@ -20,6 +24,10 @@ Amazon S3 is a redundant storage service.
 Directly serving web content from an S3 should NEVER be done for a website
 focused on any level of performance.  S3 is NOT designed for performance!!!
 Amazon clearly declares this in their documentation.
+
+Google Cloud Storage Service:
+This service requires an account with the external service provider. Visit
+Google's [product](https://cloud.google.com/storage/) page for more details.
 
 S3 is for storage! It is designed for data integretity and redundancy.  If you
 desire to have a high performance website with assests stored in S3 you must
