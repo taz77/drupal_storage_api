@@ -670,6 +670,8 @@ function _storage_file_id($uri, $filename = NULL, &$new_file = NULL) {
     $filename = drupal_basename(file_uri_target($uri));
   }
 
+  $whirlpool = md5( $whirlpool );
+
   $transaction = db_transaction();
   $file_id = db_select('storage_file')
     ->fields('storage_file', array('file_id'))
@@ -873,6 +875,13 @@ class StorageLock {
   private $id;
 
   /**
+   * The DB driver.
+   *
+   * @var string
+   */
+  private $driver;
+
+  /**
    * Creates a new storage lock.
    *
    * @param string $name
@@ -885,10 +894,18 @@ class StorageLock {
     $this->name = $name;
     $this->id = $databases['default']['default']['database'] . ':storage:' . $name;
 
-    $success = db_query('SELECT GET_LOCK(:name, 86400)', array(':name' => $this->id))
-      ->fetchField();
+    $this->driver = $databases['default']['default']['driver'];
 
-    if (!$success) {
+    if ($this->driver == 'mysql') {
+      $success = db_query('SELECT GET_LOCK(:name, 86400)', array(':name' => $this->id))
+        ->fetchField();
+    } elseif ($this->driver == 'pgsql') {
+      $this->id = '12345';
+      $success  = db_query('SELECT pg_advisory_lock(:id)', array(':id' => $this->id))
+        ->fetchField();
+    }
+
+    if (!$success){
       throw new StorageException();
     }
   }
@@ -897,7 +914,13 @@ class StorageLock {
    * Destroys this StorageLock instance.
    */
   public function __destruct() {
-    db_query('DO RELEASE_LOCK(:name)', array(':name' => $this->id));
+
+    if ($this->driver == 'mysql' ){
+      db_query('DO RELEASE_LOCK(:name)', array(':name' => $this->id));
+    } elseif ($this->driver == 'pgsql') {
+      db_query('SELECT pg_advisory_unlock(:id)', array(':id' => $this->id))
+        ->fetchField();
+    }
   }
 
   /**
