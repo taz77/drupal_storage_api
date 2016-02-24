@@ -12,7 +12,7 @@ class StorageAPITestCase extends DrupalWebTestCase {
     return array(
       'name' => 'Storage',
       'description' => 'Test Storage.',
-      'group' => 'Storage',
+      'group' => 'Storage API',
     );
   }
 
