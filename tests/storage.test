@@ -9,17 +9,17 @@ class StorageAPITestCase extends DrupalWebTestCase {
   protected $profile = 'testing';
 
   public static function getInfo() {
-    return array(
-      'name' => 'Storage',
+    return [
+      'name' => 'Storage API General Testing',
       'description' => 'Test Storage.',
       'group' => 'Storage API',
-    );
+    ];
   }
 
   function setUp() {
     parent::setUp('storage');
 
-    $web_user = $this->drupalCreateUser(array('administer storage'));
+    $web_user = $this->drupalCreateUser(['administer storage']);
     $this->drupalLogin($web_user);
   }
 
@@ -31,14 +31,14 @@ class StorageAPITestCase extends DrupalWebTestCase {
 
     $path = storage_new_local_storage_path();
 
-    $container = array(
+    $container = [
       'name' => t('Local2'),
       'service_id' => 'storage:fs',
-      'settings' => array(
+      'settings' => [
         'path' => $path,
         'base_url' => $path,
-      ),
-    );
+      ],
+    ];
 
     $container = storage_container_new($container, FALSE);
     $container->create();
@@ -50,10 +50,10 @@ class StorageAPITestCase extends DrupalWebTestCase {
     $selector = storage_selector('storage', 'test');
     $selector->create();
 
-    $options = array(
+    $options = [
       'source_uri' => 'modules/simpletest/files/html-1.txt',
       'get_filename' => TRUE,
-    );
+    ];
 
     $storage = $selector->storageAdd($options);
     $this->assertNotNull($storage, t('Store file.'));
@@ -88,13 +88,13 @@ class StorageAPITestCase extends DrupalWebTestCase {
     $this->assertFalse($exists, t('Intial instance removed.'));
 
     // Create another class.
-    $class2 = new StorageClass(array(
+    $class2 = new StorageClass([
       'name' => t('AAA'),
-      'options' => array(
+      'options' => [
         'redirect' => FALSE,
         'serve_source_uri' => FALSE,
-      )
-    ));
+      ],
+    ]);
 
     $class2->create();
 
