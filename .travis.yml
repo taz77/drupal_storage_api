@@ -1,120 +1,57 @@
-# @file
-# .travis.yml - Drupal for Travis CI Integration
-#
-# Template provided by https://github.com/LionsAd/drupal_ti.
-#
-# Based for simpletest upon:
-#   https://github.com/sonnym/travis-ci-drupal-module-example
-
 language: php
-
 sudo: false
-
 php:
-  - 5.4
-  - 5.5
-  - 5.6
-  - 7
-  - hhvm
-
+- 5.4
+- 5.5
+- 5.6
+- 7
+- hhvm
 matrix:
   fast_finish: true
   allow_failures:
-    - php: 7
-    - php: hhvm
-
+  - php: 7
+  - php: hhvm
 env:
   global:
-    # add composer's global bin directory to the path
-    # see: https://github.com/drush-ops/drush#install---composer
-    - PATH="$PATH:$HOME/.composer/vendor/bin"
-
-    # Configuration variables.
-    - DRUPAL_TI_MODULE_NAME="storage"
-    - DRUPAL_TI_SIMPLETEST_GROUP="Storage API"
-
-    # Define runners and environment vars to include before and after the
-    # main runners / environment vars.
-    #- DRUPAL_TI_SCRIPT_DIR_BEFORE="./drupal_ti/before"
-    #- DRUPAL_TI_SCRIPT_DIR_AFTER="./drupal_ti/after"
-
-    # The environment to use, supported are: drupal-7, drupal-8
-    - DRUPAL_TI_ENVIRONMENT="drupal-7"
-
-    # Drupal specific variables.
-    - DRUPAL_TI_DB="drupal_travis_db"
-    - DRUPAL_TI_DB_URL="mysql://root:@127.0.0.1/drupal_travis_db"
-    # Note: Do not add a trailing slash here.
-    - DRUPAL_TI_WEBSERVER_URL="http://127.0.0.1"
-    - DRUPAL_TI_WEBSERVER_PORT="8080"
-
-    # Simpletest specific commandline arguments, the DRUPAL_TI_SIMPLETEST_GROUP is appended at the end.
-    - DRUPAL_TI_SIMPLETEST_ARGS="--verbose --color --concurrency 4 --url $DRUPAL_TI_WEBSERVER_URL:$DRUPAL_TI_WEBSERVER_PORT"
-
-    # === Behat specific variables.
-    # This is relative to $TRAVIS_BUILD_DIR
-    - DRUPAL_TI_BEHAT_DIR="./tests/behat"
-    # These arguments are passed to the bin/behat command.
-    - DRUPAL_TI_BEHAT_ARGS=""
-    # Specify the filename of the behat.yml with the $DRUPAL_TI_DRUPAL_DIR variables.
-    - DRUPAL_TI_BEHAT_YML="behat.yml.dist"
-    # This is used to setup Xvfb.
-    - DRUPAL_TI_BEHAT_SCREENSIZE_COLOR="1280x1024x16"
-    # The version of selenium that should be used.
-    - DRUPAL_TI_BEHAT_SELENIUM_VERSION="2.44"
-    # Set DRUPAL_TI_BEHAT_DRIVER to "selenium" to use "firefox" or "chrome" here.
-    - DRUPAL_TI_BEHAT_DRIVER="phantomjs"
-    - DRUPAL_TI_BEHAT_BROWSER="firefox"
-
-    # PHPUnit specific commandline arguments.
-    - DRUPAL_TI_PHPUNIT_ARGS=""
-    # Specifying the phpunit-core src/ directory is useful when e.g. a vendor/
-    # directory is present in the module directory, which phpunit would then
-    # try to find tests in. This option is relative to $TRAVIS_BUILD_DIR.
-    #- DRUPAL_TI_PHPUNIT_CORE_SRC_DIRECTORY="./tests/src"
-
-    # Code coverage via coveralls.io
-    - DRUPAL_TI_COVERAGE="satooshi/php-coveralls:0.6.*"
-    # This needs to match your .coveralls.yml file.
-    - DRUPAL_TI_COVERAGE_FILE="build/logs/clover.xml"
-
-    # Debug options
-    #- DRUPAL_TI_DEBUG="-x -v"
-    # Set to "all" to output all files, set to e.g. "xvfb selenium" or "selenium",
-    # etc. to only output those channels.
-    #- DRUPAL_TI_DEBUG_FILE_OUTPUT="selenium xvfb webserver"
-
+  - PATH="$PATH:$HOME/.composer/vendor/bin"
+  - DRUPAL_TI_MODULE_NAME="storage"
+  - DRUPAL_TI_SIMPLETEST_GROUP="Storage API"
+  - DRUPAL_TI_ENVIRONMENT="drupal-7"
+  - DRUPAL_TI_DB="drupal_travis_db"
+  - DRUPAL_TI_DB_URL="mysql://root:@127.0.0.1/drupal_travis_db"
+  - DRUPAL_TI_WEBSERVER_URL="http://127.0.0.1"
+  - DRUPAL_TI_WEBSERVER_PORT="8080"
+  - DRUPAL_TI_SIMPLETEST_ARGS="--verbose --color --concurrency 4 --url $DRUPAL_TI_WEBSERVER_URL:$DRUPAL_TI_WEBSERVER_PORT"
+  - DRUPAL_TI_BEHAT_DIR="./tests/behat"
+  - DRUPAL_TI_BEHAT_ARGS=""
+  - DRUPAL_TI_BEHAT_YML="behat.yml.dist"
+  - DRUPAL_TI_BEHAT_SCREENSIZE_COLOR="1280x1024x16"
+  - DRUPAL_TI_BEHAT_SELENIUM_VERSION="2.44"
+  - DRUPAL_TI_BEHAT_DRIVER="phantomjs"
+  - DRUPAL_TI_BEHAT_BROWSER="firefox"
+  - DRUPAL_TI_PHPUNIT_ARGS=""
+  - DRUPAL_TI_COVERAGE="satooshi/php-coveralls:0.6.*"
+  - DRUPAL_TI_COVERAGE_FILE="build/logs/clover.xml"
   matrix:
-    # [[[ SELECT ANY OR MORE OPTIONS ]]]
-    #- DRUPAL_TI_RUNNERS="phpunit"
-    - DRUPAL_TI_RUNNERS="simpletest"
-    #- DRUPAL_TI_RUNNERS="behat"
-    #- DRUPAL_TI_RUNNERS="phpunit simpletest behat"
-    # Use phpunit-core to test modules with phpunit with Drupal 8 core.
-    #- DRUPAL_TI_RUNNERS="phpunit-core"
-
+  - DRUPAL_TI_RUNNERS="simpletest"
 mysql:
   database: drupal_travis_db
   username: root
   encoding: utf8
-
 before_install:
-  - composer self-update
-  - cd ./tests
-  - composer global require "lionsad/drupal_ti:1.*"
-  - drupal-ti before_install
-
+- composer self-update
+- cd ./tests
+- composer global require "lionsad/drupal_ti:1.*"
+- drupal-ti before_install
 install:
-  - drupal-ti install
-
+- drupal-ti install
 before_script:
-  - drupal-ti before_script
-
+- drupal-ti before_script
 script:
-  - drupal-ti script
-
+- drupal-ti script
 after_script:
-  - drupal-ti after_script
-
+- drupal-ti after_script
 notifications:
   email: false
+  slack:
+    secure: uT/dbzbKkZMYwEZYKas11VkZcCyLI1Q7HHOt7M/OsfS62mhyAQRd2oEjTX4+YOkfEu0pg1d1eA9leAK8xdDFYzVLfnGuqQ075Wbyh4Dlzt8COd12hJ7ek3OZ8V68rwr36yabriBtRb63j9czaah8BuWdfcT3//YQQvjtPjEfRE/BCldIzmHtKYg3UgALXkuG1v9pAPhmNMg6YYWitmXAU3kkmBVKx+Cge/PyJq3aXpuFaCvUTDCe+iHcGhYX6dcOh+20cDtzT/NI1BVdgnwQN8uCfLQgAZT01BkMuMPKPgJzODP1PXPjZnFdgi9Ppk0o2vR7puvV/up7rMuAue75vT/Ju53IuhBkFguHtCy8zoHRHABhj6jH5qIGLH7wPyiTfHdI8pmP23Nv1XBPmBEWWXMu+6IcB2xv85J1curB+EX+9VzcNMHE8nZJG+UmJrwbwUiQmcngoJsKD4/EwSPXlC/kieHulJ6ao7XAdNUDZfneJHFlAEta6rvKbS8WhQFtE3T/PCl2l5dj3RpNacnraOzqsfJxfWHp61PH670yn1fcG4zLcPxJeVaFbIZiYJNsvx0DgxDugCkL8DNrOGq+7IqXylrgfb1hV3gyplt1XYkuWke9yalFYZgBvKqnJIZ5KD/FTyAIsKyCGeEnD2OelZJ4a8VUDB3yqci5qzNzHsA=
