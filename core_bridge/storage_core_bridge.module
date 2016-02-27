@@ -14,7 +14,7 @@
  * Implements hook_storage_core_bridge_field_types().
  */
 function storage_core_bridge_storage_core_bridge_field_types() {
-  return array('file', 'image');
+  return ['file', 'image'];
 }
 
 /**
@@ -124,17 +124,17 @@ function storage_core_bridge_field_delete_field(array $field) {
  * Implements hook_stream_wrappers().
  */
 function storage_core_bridge_stream_wrappers() {
-  $fields = variable_get('storage_core_bridge_fields', array());
-  $wrappers = array();
+  $fields = variable_get('storage_core_bridge_fields', []);
+  $wrappers = [];
 
   // Declare hidden scheme for each field that is handled by Core Bridge.
   foreach ($fields as $field) {
-    $wrappers[storage_core_bridge_field_scheme($field)] = array(
+    $wrappers[storage_core_bridge_field_scheme($field)] = [
       'name' => t('Storage API selector'),
       'class' => 'DrupalStorageStreamWrapper',
-      'description' => t('Storage API field: !fieldname', array('!fieldname' => $field)),
+      'description' => t('Storage API field: !fieldname', ['!fieldname' => $field]),
       'type' => STREAM_WRAPPERS_HIDDEN,
-    );
+    ];
   }
 
   return $wrappers;
@@ -241,26 +241,26 @@ function storage_core_bridge_field_ui_field_edit_form_submit(array $form, array 
  */
 function storage_core_bridge_form_image_style_form_alter(array &$form, array &$form_state) {
 
-  $form['storage_api'] = array(
+  $form['storage_api'] = [
     '#type' => 'fieldset',
     '#title' => t('Storage API'),
-  );
+  ];
 
   if ($form_state['image_style']['storage'] & IMAGE_STORAGE_EDITABLE) {
     $form['storage_api']['#description'] = t('These settings only apply to styled images which are derived from images managed by Storage API.');
     $form['storage_api']['storage_class'] = storage_core_bridge_image_style_selector($form_state['image_style']['isid'])->formItem('Storage class for styled images');
 
-    $form['storage_api']['default_images'] = array(
+    $form['storage_api']['default_images'] = [
       '#title' => t('Default images'),
       '#type' => 'fieldset',
       '#collapsible' => TRUE,
       '#collapsed' => TRUE,
-    );
+    ];
 
-    $form['storage_api']['default_images']['separate_storage_class'] = array(
+    $form['storage_api']['default_images']['separate_storage_class'] = [
       '#title' => t('Separate class for styled default images (select below)'),
       '#type' => 'checkbox',
-    );
+    ];
 
     $form['storage_api']['default_images']['storage_class'] = storage_core_bridge_image_style_default_selector($form_state['image_style']['isid'])->formItem("Storage class for styled default images");
 
@@ -311,7 +311,7 @@ function storage_core_bridge_image_style_form_submit(array $form, array &$form_s
 function storage_core_bridge_load($uri) {
 
   $storage_id = db_select('storage_core_bridge')
-    ->fields('storage_core_bridge', array('storage_id'))
+    ->fields('storage_core_bridge', ['storage_id'])
     ->condition('uri', $uri)
     ->execute()
     ->fetchField();
@@ -359,9 +359,9 @@ function storage_core_bridge_styled_image_create($uri) {
   array_push($components, $style_name, $basename);
 
   // Populate the options for the new storage.
-  $options = array(
+  $options = [
     'filename' => implode('/', $components),
-  );
+  ];
 
   // Try to determine the file_id of the new storage. This means
   // deduplication can occur without the image being generated.
@@ -371,7 +371,7 @@ function storage_core_bridge_styled_image_create($uri) {
 
   $file_id = $query->condition('parent.file_id', $parent->file_id)
     ->condition('core_bridge.image_style', $style_name)
-    ->fields('child', array('file_id'))
+    ->fields('child', ['file_id'])
     ->range(0, 1)
     ->execute()
     ->fetchField();
@@ -402,11 +402,11 @@ function storage_core_bridge_styled_image_create($uri) {
   $storage = $parent->addChild($selector, $options);
 
   db_insert('storage_core_bridge')
-    ->fields(array(
+    ->fields([
       'storage_id' => $storage->storage_id,
       'uri' => $uri,
       'image_style' => $style_name,
-    ))
+    ])
     ->execute();
 
   return $storage;
@@ -445,7 +445,7 @@ function storage_core_bridge_storage_access(Storage $storage) {
 function storage_core_bridge_storage_generate(Storage $storage) {
 
   $style_name = db_select('storage_core_bridge')
-    ->fields('storage_core_bridge', array('image_style'))
+    ->fields('storage_core_bridge', ['image_style'])
     ->condition('storage_id', $storage->storage_id)
     ->execute()
     ->fetchField();
@@ -458,7 +458,7 @@ function storage_core_bridge_storage_generate(Storage $storage) {
   // Getting the URI of the parent, it may be used later by image effects.
   // It seems like it's the easiest way to get it, by looking it up in the DB?
   $uri = db_select('storage_core_bridge')
-    ->fields('storage_core_bridge', array('uri'))
+    ->fields('storage_core_bridge', ['uri'])
     ->condition('storage_id', $parent->storage_id)
     ->execute()
     ->fetchField();
@@ -483,7 +483,7 @@ function storage_core_bridge_storage_generate(Storage $storage) {
 function storage_core_bridge_image_style_flush(array $style) {
 
   $storage_ids = db_select('storage_core_bridge')
-    ->fields('storage_core_bridge', array('storage_id'))
+    ->fields('storage_core_bridge', ['storage_id'])
     ->condition('image_style', $style['name'])
     ->execute()
     ->fetchCol();
@@ -528,7 +528,7 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
         case 'w':
           $this->temp_uri = new StorageTempURI();
 
-          if (!$this->fp = fopen($this->temp_uri, $this->mode.'b')) {
+          if (!$this->fp = fopen($this->temp_uri, $this->mode . 'b')) {
             throw new StorageException();
           }
 
@@ -560,10 +560,10 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
 
     if ($this->mode == 'w') {
 
-      $options = array(
+      $options = [
         'source_uri' => $this->temp_uri,
         'filename' => $storage_core_bridge_filename[file_uri_scheme($this->uri)],
-      );
+      ];
 
       $field_name = storage_core_bridge_uri_field_name($this->uri);
 
@@ -571,10 +571,10 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
         $storage = storage_core_bridge_field_selector($field_name)->storageAdd($options);
 
         db_insert('storage_core_bridge')
-          ->fields(array(
+          ->fields([
             'storage_id' => $storage->storage_id,
             'uri' => $this->uri,
-          ))
+          ])
           ->execute();
       }
       catch (StorageException $e) {
@@ -659,7 +659,7 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
     // Did we just say in DrupalStorageStreamWrapper::dirname() that this is a
     // directory?
     if ($storage_core_bridge_dirname == $uri) {
-      return array('mode' => 0040777);
+      return ['mode' => 0040777];
     }
 
     $storage_core_bridge_filename[file_uri_scheme($uri)] = file_uri_target($uri);
@@ -669,18 +669,22 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
     }
     catch (StorageException $e) {
       if (!($flags & STREAM_URL_STAT_QUIET)) {
-        watchdog('storage_core_bridge', 'Exception in @function. (uri: @uri) (message: @message)', array('@uri' => $uri, '@function' => __FUNCTION__, '@message' => $e->getMessage()));
+        watchdog('storage_core_bridge', 'Exception in @function. (uri: @uri) (message: @message)', [
+          '@uri' => $uri,
+          '@function' => __FUNCTION__,
+          '@message' => $e->getMessage(),
+        ]);
       }
       return FALSE;
     }
 
-    $stat = array(
+    $stat = [
       'mode' => 0100666,
       'size' => $storage->size,
       'atime' => $storage->created,
       'mtime' => $storage->created,
       'ctime' => $storage->created,
-    );
+    ];
 
     return $stat;
   }
@@ -765,7 +769,8 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
     $storage_core_bridge_dirname = $scheme . '://' . $dirname;
     return $storage_core_bridge_dirname;
   }
-   /**
+
+  /**
    * {@inheritdoc}
    *
    * Return the actual path of a uri if using local file system container type.
@@ -778,16 +783,17 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
       return;
     }
     $container = $storage->selectContainerInstance();
-    if ($container && get_class($container) == 'StorageFS'){
+    if ($container && get_class($container) == 'StorageFS') {
       global $base_path;
       return DRUPAL_ROOT . $base_path . $storage->getUri();
     }
-    else
+    else {
       return FALSE;
+    }
   }
 
   public function stream_lock($operation) {
-    if (in_array($operation, array(LOCK_SH, LOCK_EX, LOCK_UN, LOCK_NB))) {
+    if (in_array($operation, [LOCK_SH, LOCK_EX, LOCK_UN, LOCK_NB])) {
       return flock($this->fp, $operation);
     }
 
