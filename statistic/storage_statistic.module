@@ -11,7 +11,7 @@
 function storage_statistic_storage_serving(Storage $storage, StorageContainerInterface $container = NULL) {
   global $user;
 
-  $statistic = array(
+  $statistic = [
     'storage_id' => $storage->storage_id,
     'size' => $storage->size,
     'uid' => $user->uid,
@@ -19,7 +19,7 @@ function storage_statistic_storage_serving(Storage $storage, StorageContainerInt
     'ip_address' => ip_address(),
     'timestamp' => REQUEST_TIME,
     'referrer' => substr($_SERVER['HTTP_REFERER'], 0, 4095),
-  );
+  ];
 
   if ($container) {
     $statistic['container_id'] = $container->container_id;
