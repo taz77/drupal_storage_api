@@ -87,6 +87,22 @@ function storage_requirements($phase) {
       }
     }
   }
+  // Storage API only works with MySQL and Postgre.
+  $databasetype = db_driver();
+
+  if ($databasetype == 'mysql' || $databasetype == 'pgsql') {
+    $dbvalue = t('Compatible');
+    $severity = REQUIREMENT_OK;
+  }
+  else {
+    $dbvalue = t('Non-Compatible');
+    $severity = REQUIREMENT_ERROR;
+  }
+  $requirements['storage_database'] = [
+    'title' => t('Storage - Database Compatibility'),
+    'value' => $dbvalue,
+    'severity' => $severity,
+  ];
 
   return $requirements;
 }
