@@ -14,10 +14,10 @@ class StorageFS extends StorageContainer implements StorageContainerInterface {
    * {@inheritdoc}
    */
   public function serviceSettingsDefault() {
-    return array(
+    return [
       'path' => '',
       'base_url' => '',
-    );
+    ];
   }
 
   /**
@@ -28,14 +28,14 @@ class StorageFS extends StorageContainer implements StorageContainerInterface {
       $this->settings['path'] = storage_new_local_storage_path();
     }
 
-    $items['path'] = array(
+    $items['path'] = [
       '#type' => 'textfield',
       '#title' => t('Directory path'),
       '#description' => t('Can be absolute or relative.'),
       '#default_value' => $this->settings['path'],
       '#required' => TRUE,
       '#validated' => TRUE,
-    );
+    ];
 
     if ($already_exists) {
       $items['path']['#description'] .= '<br />' .
@@ -48,14 +48,14 @@ class StorageFS extends StorageContainer implements StorageContainerInterface {
         $this->settings['base_url'] = $this->settings['path'];
       }
 
-      $items['base_url'] = array(
+      $items['base_url'] = [
         '#type' => 'textfield',
         '#title' => t('Base URL'),
         '#description' => t("The URL of the directory path specified above (typically exactly the same). Can be absolute or relative."),
         '#required' => TRUE,
         '#validated' => TRUE,
         '#default_value' => $this->settings['base_url'],
-      );
+      ];
     }
 
     return $items;
@@ -88,7 +88,7 @@ class StorageFS extends StorageContainer implements StorageContainerInterface {
    */
   public function serviceCreate() {
     if (!file_prepare_directory($this->settings['path'], FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS)) {
-      form_set_error('settings][path', t('The directory %directory could not be created. Please check permissions.', array('%directory' => $this->settings['path'])));
+      form_set_error('settings][path', t('The directory %directory could not be created. Please check permissions.', ['%directory' => $this->settings['path']]));
 
       throw new StorageException();
     }
@@ -142,7 +142,7 @@ class StorageFS extends StorageContainer implements StorageContainerInterface {
       $test_path = $path . $dir;
 
       while (!is_dir($this->instancePath($test_path)) &&
-      !drupal_mkdir($this->instancePath($test_path), null, TRUE)) {
+        !drupal_mkdir($this->instancePath($test_path), NULL, TRUE)) {
         $count++;
         $test_path = $path . $dir . '_' . $count;
       }
@@ -182,7 +182,7 @@ class StorageFS extends StorageContainer implements StorageContainerInterface {
    * @throws \StorageException
    */
   private function scanDirectory($dir) {
-    $files = array();
+    $files = [];
     $handle = opendir($dir);
 
     if (!$handle) {

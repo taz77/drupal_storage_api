@@ -21,10 +21,10 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
    *   (optional) TRUE to use drupal_set_message().
    */
   private function log_exception(Exception $e, $dsm = TRUE) {
-    watchdog('storage_rackspace', 'php-cloudfiles exception: @msg', array('@msg' => $e->getMessage()), WATCHDOG_ERROR);
+    watchdog('storage_rackspace', 'php-cloudfiles exception: @msg', ['@msg' => $e->getMessage()], WATCHDOG_ERROR);
 
     if ($dsm && user_access('administer storage')) {
-      drupal_set_message(t('php-cloudfiles exception: @msg', array('@msg' => $e->getMessage())), 'error');
+      drupal_set_message(t('php-cloudfiles exception: @msg', ['@msg' => $e->getMessage()]), 'error');
     }
   }
 
@@ -39,10 +39,10 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
     }
 
     if (!isset($library) || $library['loaded'] == FALSE) {
-      watchdog('storage_rackspace', 'php-cloudfiles not found', array(), WATCHDOG_ERROR);
+      watchdog('storage_rackspace', 'php-cloudfiles not found', [], WATCHDOG_ERROR);
 
       if (user_access('administer storage')) {
-        drupal_set_message(t('php-cloudfiles not found. Check the <a href="!path">status report</a>.', array('!path' => url('admin/reports/status'))), 'error');
+        drupal_set_message(t('php-cloudfiles not found. Check the <a href="!path">status report</a>.', ['!path' => url('admin/reports/status')]), 'error');
       }
 
       throw new StorageException();
@@ -83,7 +83,7 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
    * @throws \StorageException
    */
   private function cf_container() {
-    $cf_containers = &drupal_static(__FUNCTION__, array());
+    $cf_containers = &drupal_static(__FUNCTION__, []);
 
     if (isset($cf_containers[$this->container_id])) {
       return $cf_containers[$this->container_id];
@@ -108,12 +108,12 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
    * {@inheritdoc}
    */
   public function serviceSettingsDefault() {
-    return array(
+    return [
       'locality' => 'us',
       'username' => '',
       'cf_container' => '',
       'base_url' => '',
-    );
+    ];
   }
 
   /**
@@ -123,69 +123,69 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
    *   An associative array of locations.
    */
   private function localities() {
-    return array(
+    return [
       'us' => t('United States'),
       'uk' => t('United Kingdom'),
-    );
+    ];
   }
 
   /**
    * {@inheritdoc}
    */
   public function serviceSettingsForm($already_exists) {
-    $items['credentials_info'] = array(
+    $items['credentials_info'] = [
       '#markup' => t('Get your credentials !link.',
-        array(
+        [
           '!link' => l(t('here'), 'http://www.rackspace.com/cloud/cloud_hosting_products/files/',
-            array('attributes' => array('target' => '_blank'))),
-        )),
-    );
+            ['attributes' => ['target' => '_blank']]),
+        ]),
+    ];
 
-    $items['locality'] = array(
+    $items['locality'] = [
       '#type' => 'select',
       '#title' => t('Locality'),
       '#description' => t('The locality of the Rackspace Cloud website the account was created on.'),
       '#options' => $this->localities(),
       '#default_value' => $this->settings['locality'],
-    );
+    ];
 
-    $items['username'] = array(
+    $items['username'] = [
       '#type' => 'textfield',
       '#title' => t('Username'),
       '#required' => TRUE,
       '#validated' => TRUE,
       '#default_value' => $this->settings['username'],
-    );
+    ];
 
-    $items['api_key'] = array(
+    $items['api_key'] = [
       '#type' => 'password',
       '#title' => t('API key'),
       '#required' => TRUE,
       '#validated' => TRUE,
-    );
+    ];
 
-    $items['cf_container'] = array(
+    $items['cf_container'] = [
       '#type' => 'textfield',
       '#title' => t('Cloud Files container'),
       '#required' => TRUE,
       '#validated' => TRUE,
       '#default_value' => $this->settings['cf_container'],
-    );
+    ];
 
     if (!$this->access_control) {
-      $replacements = array(
-        '!link' => l(t('CNAME'), 'http://en.wikipedia.org/wiki/CNAME_record', array(
-          'attributes' => array('target' => '_blank'),
-        )),
-      );
+      $replacements = [
+        '!link' => l(t('CNAME'), 'http://en.wikipedia.org/wiki/CNAME_record', [
+          'attributes' => ['target' => '_blank'],
+        ]),
+      ];
       $description = t('Points to the Rackspace domain name for the container (leave blank to obtain automatically), or a !link alias of it.', $replacements);
 
-      $items['base_url'] = array(
+      $items['base_url'] = [
         '#type' => 'textfield',
         '#title' => t('Base URL'),
         '#description' => $description,
         '#default_value' => $this->settings['base_url'],
-      );
+      ];
     }
 
     return $items;
@@ -224,7 +224,7 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
     }
     catch (NoSuchContainerException $e) {
       if ($already_exists) {
-        form_set_error('settings][cf_container', t('Cloud Files container %name does not exist.', array('%name' => $this->settings['cf_container'])));
+        form_set_error('settings][cf_container', t('Cloud Files container %name does not exist.', ['%name' => $this->settings['cf_container']]));
       }
       return;
     }
@@ -235,7 +235,7 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
     }
 
     if (!$already_exists) {
-      form_set_error('settings][cf_container', t('Cloud Files container %name already exists.', array('%name' => $this->settings['cf_container'])));
+      form_set_error('settings][cf_container', t('Cloud Files container %name already exists.', ['%name' => $this->settings['cf_container']]));
     }
   }
 
@@ -293,11 +293,11 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
   public function serviceInfo() {
     $localities = $this->localities();
 
-    $info = array(
+    $info = [
       t('Locality') => $localities[$this->settings['locality']],
       t('Username') => $this->settings['username'],
       t('Container') => $this->settings['cf_container'],
-    );
+    ];
 
     return $info;
   }
@@ -355,11 +355,11 @@ class StorageRackspace extends StorageContainer implements StorageContainerInter
       $object->set_etag(base64_encode($storage->md5));
       $object->load_from_filename($uri, FALSE);
 
-      $object->metadata = array(
+      $object->metadata = [
         'storage_id' => $storage->storage_id,
         'file_id' => $storage->file_id,
         'filename' => $storage->filename,
-      );
+      ];
 
       $object->sync_metadata();
     }

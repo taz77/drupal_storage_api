@@ -151,7 +151,7 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
    * {@inheritdoc}
    */
   public function serviceSettingsDefault() {
-    return array(
+    return [
       'host' => '',
       'port' => '21',
       'username' => '',
@@ -159,7 +159,7 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
       'directory' => '',
       'mode' => '',
       'base_url' => '',
-    );
+    ];
   }
 
   /**
@@ -167,16 +167,16 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
    */
   public function serviceSettingsForm($already_exists) {
 
-    $items['host'] = array(
+    $items['host'] = [
       '#type' => 'textfield',
       '#title' => t('Host'),
       '#description' => t("The FTP server address. This parameter shouldn't have any trailing slashes and shouldn't be prefixed with ftp:// ."),
       '#required' => TRUE,
       '#validated' => TRUE,
       '#default_value' => $this->settings['host'],
-    );
+    ];
 
-    $items['port'] = array(
+    $items['port'] = [
       '#type' => 'textfield',
       '#title' => t('Port'),
       '#description' => t('The standard port is 21.'),
@@ -185,56 +185,56 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
       '#maxlength' => 5,
       '#size' => 5,
       '#default_value' => $this->settings['port'],
-    );
+    ];
 
-    $items['username'] = array(
+    $items['username'] = [
       '#type' => 'textfield',
       '#title' => t('Username'),
       '#description' => '',
       '#required' => TRUE,
       '#validated' => TRUE,
       '#default_value' => $this->settings['username'],
-    );
+    ];
 
-    $items['ssl'] = array(
+    $items['ssl'] = [
       '#type' => 'checkbox',
       '#title' => t('SSL'),
       '#description' => t('If checked, the connection will be over SSL.'),
       '#default_value' => $this->settings['ssl'],
-    );
+    ];
 
-    $items['password'] = array(
+    $items['password'] = [
       '#type' => 'password',
       '#title' => t('Password'),
-    );
+    ];
 
-    $items['directory'] = array(
+    $items['directory'] = [
       '#type' => 'textfield',
       '#title' => t('Directory'),
       '#description' => t('The directory to be created on the FTP server.'),
       '#required' => TRUE,
       '#validated' => TRUE,
       '#default_value' => $this->settings['directory'],
-    );
+    ];
 
-    $items['mode'] = array(
+    $items['mode'] = [
       '#type' => 'textfield',
       '#title' => t('File mode'),
       '#description' => t("Octal format, e.g. 644.<br />For serving, ensure the files are readable by the web server.<br />If omitted, the FTP server's default permissions will be used."),
       '#maxlength' => 4,
       '#size' => 5,
       '#default_value' => $this->settings['mode'],
-    );
+    ];
 
     if (!$this->access_control) {
-      $items['base_url'] = array(
+      $items['base_url'] = [
         '#type' => 'textfield',
         '#title' => t('Base URL'),
         '#description' => t('The URL of the directory specified above.'),
         '#required' => TRUE,
         '#validated' => TRUE,
         '#default_value' => $this->settings['base_url'],
-      );
+      ];
     }
 
     return $items;
@@ -314,20 +314,20 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
    * {@inheritdoc}
    */
   public function serviceInfo() {
-    $info = array(
+    $info = [
       t('Host') => $this->settings['host'],
       t('Port') => $this->settings['port'] ? $this->settings['port'] : 21,
       t('Username') => $this->settings['username'],
       t('SSL') => $this->settings['ssl'] ? t('Yes') : t('No'),
       t('Directory') => $this->settings['directory'],
-    );
+    ];
 
     if ($this->settings['mode']) {
       $info[t('File mode')] = $this->settings['mode'];
     }
 
     if ($this->settings['base_url'] !== '') {
-      $info[t('Base URL')] = url($this->settings['base_url'], array('absolute' => TRUE));
+      $info[t('Base URL')] = url($this->settings['base_url'], ['absolute' => TRUE]);
     }
 
     return $info;
@@ -428,7 +428,7 @@ class StorageFTP extends StorageContainer implements StorageContainerInterface {
    *   An array of file names.
    */
   private function listItems($dir) {
-    $files = array();
+    $files = [];
 
     $items = ftp_rawlist($this->ftpStream, $dir);
 

@@ -23,10 +23,10 @@ class StorageDB extends StorageContainer implements StorageContainerInterface {
    * {@inheritdoc}
    */
   public function serviceSettingsDefault() {
-    return array(
+    return [
       'db' => 'default',
       'table' => 'storage_contents',
-    );
+    ];
   }
 
   /**
@@ -39,23 +39,23 @@ class StorageDB extends StorageContainer implements StorageContainerInterface {
       $options[$key] = $key;
     }
 
-    $items['db'] = array(
+    $items['db'] = [
       '#type' => 'select',
       '#title' => t('Database'),
       '#options' => $options,
       '#required' => TRUE,
       '#validated' => TRUE,
       '#default_value' => $this->settings['db'],
-    );
+    ];
 
-    $items['table'] = array(
+    $items['table'] = [
       '#type' => 'textfield',
       '#title' => t('Table'),
       '#description' => t('Without prefix or {}.'),
       '#required' => TRUE,
       '#validated' => TRUE,
       '#default_value' => $this->settings['table'],
-    );
+    ];
 
     return $items;
   }
@@ -86,21 +86,21 @@ class StorageDB extends StorageContainer implements StorageContainerInterface {
   public function serviceCreate() {
     $active = $this->setActiveDB();
 
-    $spec = array(
-      'fields' => array(
-        'file_id' => array(
+    $spec = [
+      'fields' => [
+        'file_id' => [
           'type' => 'int',
           'unsigned' => TRUE,
           'not null' => TRUE,
-        ),
-        'contents' => array(
+        ],
+        'contents' => [
           'type' => 'blob',
           'size' => 'big',
           'not null' => TRUE,
-        ),
-      ),
-      'primary key' => array('file_id'),
-    );
+        ],
+      ],
+      'primary key' => ['file_id'],
+    ];
 
     db_create_table($this->settings['table'], $spec);
   }
@@ -110,10 +110,10 @@ class StorageDB extends StorageContainer implements StorageContainerInterface {
    */
   public function serviceInfo() {
 
-    $info = array(
+    $info = [
       t('Database') => $this->settings['db'],
       t('Table') => $this->settings['table'],
-    );
+    ];
 
     return $info;
   }
@@ -134,10 +134,10 @@ class StorageDB extends StorageContainer implements StorageContainerInterface {
     $active = $this->setActiveDB();
 
     db_insert($this->settings['table'])
-      ->fields(array(
+      ->fields([
         'file_id' => $storage->file_id,
         'contents' => file_get_contents($uri),
-      ))
+      ])
       ->execute();
 
     return $storage->file_id;
@@ -150,7 +150,7 @@ class StorageDB extends StorageContainer implements StorageContainerInterface {
     $active = $this->setActiveDB();
 
     return db_select($this->settings['table'])
-      ->fields($this->settings['table'], array('file_id'))
+      ->fields($this->settings['table'], ['file_id'])
       ->execute()
       ->fetchCol();
   }
@@ -175,7 +175,7 @@ class StorageDB extends StorageContainer implements StorageContainerInterface {
     $active = $this->setActiveDB();
 
     $contents = db_select($this->settings['table'])
-      ->fields($this->settings['table'], array('contents'))
+      ->fields($this->settings['table'], ['contents'])
       ->condition('file_id', $reference)
       ->execute()
       ->fetchField();
