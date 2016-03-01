@@ -25,15 +25,15 @@ define('STORAGE_AUDIT_STATUS_INVALID', 2);
  */
 function storage_audit_menu() {
 
-  $items['admin/structure/storage/container/%storage_container_menu/audit'] = array(
+  $items['admin/structure/storage/container/%storage_container_menu/audit'] = [
     'title' => "Audit",
-    'access arguments' => array('administer storage'),
+    'access arguments' => ['administer storage'],
     'type' => MENU_LOCAL_TASK,
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('storage_audit_form', 4),
+    'page arguments' => ['storage_audit_form', 4],
     'weight' => 1,
     'file' => 'storage_audit.admin.inc',
-  );
+  ];
 
   return $items;
 }
@@ -46,7 +46,7 @@ function storage_audit_menu() {
  */
 function _storage_audit_unset_audited($container_id) {
 
-  $audited = variable_get('storage_audit_audited', array());
+  $audited = variable_get('storage_audit_audited', []);
   unset($audited[$container_id]);
   variable_set('storage_audit_audited', $audited);
 }
@@ -98,9 +98,9 @@ function _storage_audit_prepare(StorageContainer $container) {
 
   // Set every instance record in container to unaudited.
   db_update('storage_instance')
-    ->fields(array(
+    ->fields([
       'audit' => STORAGE_AUDIT_STATUS_MISSING,
-    ))
+    ])
     ->condition('container_id', $container->container_id)
     ->execute();
 }
@@ -130,17 +130,17 @@ function _storage_audit_import(StorageContainerInterface $container, $reference,
   $file_id = _storage_file_id($uri, $reference);
 
   db_insert('storage_instance')
-    ->fields(array(
+    ->fields([
       'container_id' => $container->container_id,
       'reference' => $reference,
       'file_id' => $file_id,
-    ))
+    ])
     ->execute();
 
-  $options = array(
+  $options = [
     'file_id' => $file_id,
     'source_uri' => $uri,
-  );
+  ];
 
   foreach ($selector_ids as $selector_id) {
     $selector = storage_selector($selector_id);
@@ -210,18 +210,18 @@ function _storage_audit_file(StorageContainerInterface $container, $reference, a
     }
     catch (StorageException $e) {
       db_insert('storage_instance')
-        ->fields(array(
+        ->fields([
           'container_id' => $container->container_id,
           'reference' => $reference,
-        ))
+        ])
         ->execute();
     }
   }
   else {
     db_update('storage_instance')
-      ->fields(array(
+      ->fields([
         'audit' => _storage_audit_instance($instance, $info),
-      ))
+      ])
       ->condition('container_id', $container->container_id)
       ->condition('reference', $reference)
       ->execute();
@@ -270,7 +270,7 @@ function _storage_audit(StorageContainer $container, array &$sandbox, &$finished
  */
 function storage_audit(StorageContainer $container) {
   _storage_audit_prepare($container);
-  $sandbox = array();
+  $sandbox = [];
   $files = 0;
 
   do {
@@ -290,7 +290,7 @@ function storage_audit(StorageContainer $container) {
  */
 function storage_audit_batch(StorageContainerInterface $container, array &$context) {
   if (!isset($context['sandbox']['progress'])) {
-    $context['sandbox']['service_sandbox'] = array();
+    $context['sandbox']['service_sandbox'] = [];
     $context['sandbox']['files'] = 0;
     $context['sandbox']['max'] = db_select('storage_instance')
       ->condition('container_id', $container->container_id)
@@ -347,9 +347,9 @@ function _storage_audit_repair(StorageContainerInterface $container, array $inst
     if (isset($info) && _storage_audit_instance($instance, $info) == STORAGE_AUDIT_STATUS_AUDITED) {
 
       db_update('storage_instance')
-        ->fields(array(
+        ->fields([
           'audit' => STORAGE_AUDIT_STATUS_AUDITED,
-        ))
+        ])
         ->condition('container_id', $container->container_id)
         ->condition('reference', $instance['reference'])
         ->execute();
@@ -373,15 +373,15 @@ function _storage_audit_repair(StorageContainerInterface $container, array $inst
   // Attempt to fix the damage.
   if ($instance['file_id']) {
     db_update('storage')
-      ->fields(array(
+      ->fields([
         'status' => STORAGE_STATUS_PROCESS_CRON,
-      ))
+      ])
       ->expression('serving_container', 'NULL')
       ->condition('file_id', $instance['file_id'])
       ->execute();
 
     $storage_ids = db_select('storage')
-      ->fields('storage', array('storage_id'))
+      ->fields('storage', ['storage_id'])
       ->condition('file_id', $instance['file_id'])
       ->orderBy('storage_id')
       ->execute()
@@ -428,7 +428,7 @@ function storage_audit_repair_batch(StorageContainerInterface $container, array 
       ->fetchField();
   }
 
-  $query = db_select('storage_instance', NULL, array('fetch' => PDO::FETCH_ASSOC));
+  $query = db_select('storage_instance', NULL, ['fetch' => PDO::FETCH_ASSOC]);
   $query->leftJoin('storage_file', NULL, 'storage_instance.file_id = storage_file.file_id');
 
   $result = $query->fields('storage_instance')

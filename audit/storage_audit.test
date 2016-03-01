@@ -16,11 +16,11 @@ class StorageAuditTestCase extends DrupalWebTestCase {
    * {@inheritdoc}
    */
   public static function getInfo() {
-    return array(
+    return [
       'name' => 'Storage Audit',
       'description' => 'Test Storage Audit.',
       'group' => 'Storage',
-    );
+    ];
   }
 
   /**
@@ -29,7 +29,7 @@ class StorageAuditTestCase extends DrupalWebTestCase {
   public function setUp() {
     parent::setUp('storage', 'storage_audit', 'storage_audit_test');
 
-    $web_user = $this->drupalCreateUser(array('administer storage'));
+    $web_user = $this->drupalCreateUser(['administer storage']);
     $this->drupalLogin($web_user);
   }
 
@@ -54,7 +54,7 @@ class StorageAuditTestCase extends DrupalWebTestCase {
     $container = storage_container_load(1);
     file_unmanaged_copy('CHANGELOG.txt', $container->settings['path']);
 
-    $this->drupalPost('admin/structure/storage/container/1/audit', array(), t('Audit'));
+    $this->drupalPost('admin/structure/storage/container/1/audit', [], t('Audit'));
 
     $storage = storage_load(variable_get('storage_audit_test_storage'));
     $this->assertEqual($storage->selector_id, 'storage_audit_test:test', t('Storage has correct selector.'));

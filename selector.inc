@@ -25,7 +25,7 @@ class StorageSelector {
 
     if (!$class_id) {
       $class_id = db_select('storage_class')
-        ->fields('storage_class', array('class_id'))
+        ->fields('storage_class', ['class_id'])
         ->orderBy('name')
         ->orderBy('class_id')
         ->range(0, 1)
@@ -34,10 +34,10 @@ class StorageSelector {
     }
 
     db_insert('storage_selector')
-      ->fields(array(
+      ->fields([
         'selector_id' => $this->selector_id,
         'class_id' => $class_id,
-      ))
+      ])
       ->execute();
   }
 
@@ -47,10 +47,10 @@ class StorageSelector {
   public function destroy() {
 
     db_update('storage')
-      ->fields(array(
+      ->fields([
         'status' => STORAGE_STATUS_PROCESS_CRON,
         'serving_container' => serialize(FALSE),
-      ))
+      ])
       ->expression('selector_id', 'NULL')
       ->condition('selector_id', $this->selector_id)
       ->execute();
@@ -78,17 +78,17 @@ class StorageSelector {
    *   The select element.
    */
   public function formItem($title = NULL, $description = NULL) {
-    $selector = array(
-      '#tree' => TRUE
-    );
+    $selector = [
+      '#tree' => TRUE,
+    ];
 
-    $result = db_select('storage_class', NULL, array('fetch' => PDO::FETCH_ASSOC))
+    $result = db_select('storage_class', NULL, ['fetch' => PDO::FETCH_ASSOC])
       ->fields('storage_class')
       ->orderBy('name')
       ->orderBy('class_id')
       ->execute();
 
-    $classes = array();
+    $classes = [];
 
     foreach ($result as $class) {
       $classes[$class['class_id']] = $class['name'];
@@ -99,15 +99,15 @@ class StorageSelector {
       $description .= t('Configure storage classes') . ' ' . l('here', 'admin/structure/storage');
     }
 
-    $selector['class_id'] = array(
+    $selector['class_id'] = [
       '#type' => 'select',
       '#title' => $title ? $title : t('Storage class'),
       '#description' => $description,
       '#options' => $classes,
-    );
+    ];
 
     $current_class_id = db_select('storage_selector')
-      ->fields('storage_selector', array('class_id'))
+      ->fields('storage_selector', ['class_id'])
       ->condition('selector_id', $this->selector_id)
       ->condition('migrating', 0)
       ->execute()
@@ -115,10 +115,10 @@ class StorageSelector {
 
     $selector['class_id']['#default_value'] = $current_class_id;
 
-    $selector['current_class_id'] = array(
+    $selector['current_class_id'] = [
       '#type' => 'value',
-      '#value' => $current_class_id
-    );
+      '#value' => $current_class_id,
+    ];
 
     return $selector;
   }
@@ -139,11 +139,11 @@ class StorageSelector {
     }
 
     db_merge('storage_selector')
-      ->key(array(
+      ->key([
         'selector_id' => $this->selector_id,
         'class_id' => $form_item['class_id'],
-      ))
-      ->fields(array('migrating' => 0))
+      ])
+      ->fields(['migrating' => 0])
       ->execute();
 
     // Are there any files to migrate?
@@ -155,17 +155,17 @@ class StorageSelector {
 
     if ($num_files) {
       db_merge('storage_selector')
-        ->key(array(
+        ->key([
           'selector_id' => $this->selector_id,
           'class_id' => $form_item['current_class_id'],
-        ))
-        ->fields(array('migrating' => 1))
+        ])
+        ->fields(['migrating' => 1])
         ->execute();
 
       db_update('storage')
-        ->fields(array(
+        ->fields([
           'status' => STORAGE_STATUS_PROCESS_CRON,
-        ))
+        ])
         ->expression('serving_container', 'NULL')
         ->condition('selector_id', $this->selector_id)
         ->execute();
@@ -190,21 +190,21 @@ class StorageSelector {
   public function storageClass() {
 
     return storage_class_load(db_select('storage_selector')
-        ->fields('storage_selector', array('class_id'))
-        ->condition('selector_id', $this->selector_id)
-        ->condition('migrating', 0)
-        ->execute()
-        ->fetchField());
+      ->fields('storage_selector', ['class_id'])
+      ->condition('selector_id', $this->selector_id)
+      ->condition('migrating', 0)
+      ->execute()
+      ->fetchField());
   }
 
   public function checkMigration() {
     // Is the selector fully migrated?
     $migrated = !db_select('storage')
-        ->condition('selector_id', $this->selector_id)
-        ->condition('status', STORAGE_STATUS_PROCESS_CRON)
-        ->countQuery()
-        ->execute()
-        ->fetchField();
+      ->condition('selector_id', $this->selector_id)
+      ->condition('status', STORAGE_STATUS_PROCESS_CRON)
+      ->countQuery()
+      ->execute()
+      ->fetchField();
 
     if ($migrated) {
       // Remove the classes it was migrating from.
@@ -250,9 +250,9 @@ class StorageSelector {
    * @throws StorageException
    *   When it isn't possible to add the storage to the selector.
    */
-  public function storageAdd(array $options = array()) {
+  public function storageAdd(array $options = []) {
     // Add defaults.
-    $options += array(
+    $options += [
       'selector_id' => $this->selector_id,
       'source_uri' => NULL,
       'keep_source_uri' => FALSE,
@@ -260,8 +260,8 @@ class StorageSelector {
       'filename' => NULL,
       'parent_id' => NULL,
       'created' => time(),
-      'data' => array(),
-    );
+      'data' => [],
+    ];
 
     $initial_container = $this->storageClass()->initial_container;
 

@@ -19,12 +19,12 @@ function storage_create_container_form(array $form, array &$form_state) {
   if (!isset($form_state['values']['step'])) {
     $step = 1;
     // Set defaults.
-    $form_state['storage'] = array(
+    $form_state['storage'] = [
       'service_id' => 'storage:fs',
       'name' => '',
       'access_control' => FALSE,
       'already_exists' => FALSE,
-    );
+    ];
   }
   else {
     if ($form_state['clicked_button']['#value'] == t('Back')) {
@@ -39,47 +39,47 @@ function storage_create_container_form(array $form, array &$form_state) {
     }
   }
 
-  $form['step'] = array(
+  $form['step'] = [
     '#type' => 'value',
-    '#value' => $step
-  );
+    '#value' => $step,
+  ];
 
   switch ($step) {
 
     case 1:
       $services = _storage_get_service_names();
 
-      $form['service_id'] = array(
+      $form['service_id'] = [
         '#type' => 'select',
         '#title' => t('Service'),
         '#options' => $services,
         '#default_value' => $form_state['storage']['service_id'],
-      );
+      ];
 
-      $form['name'] = array(
+      $form['name'] = [
         '#title' => t('Name'),
         '#type' => 'textfield',
         '#default_value' => $form_state['storage']['name'],
         '#description' => t('Optional'),
-      );
+      ];
 
-      $form['access_control'] = array(
+      $form['access_control'] = [
         '#type' => 'checkbox',
         '#title' => t('Access control'),
         '#default_value' => $form_state['storage']['access_control'],
         '#description' => t('Prevents files being served to users who are not authorised.<br />Depending on the service, this can have significant performance implications.<br />Even without this enabled, URLs will only be generated for files that the user has permission to access.'),
-      );
+      ];
 
-      $form['already_exists'] = array(
+      $form['already_exists'] = [
         '#type' => 'checkbox',
         '#title' => t('Already exists'),
         '#default_value' => $form_state['storage']['already_exists'],
-      );
+      ];
 
-      $form['next'] = array(
+      $form['next'] = [
         '#type' => 'submit',
-        '#value' => t('Next')
-      );
+        '#value' => t('Next'),
+      ];
 
       break;
 
@@ -87,34 +87,34 @@ function storage_create_container_form(array $form, array &$form_state) {
       $container = storage_container_new($form_state['storage'], FALSE);
       $service_name = check_plain($container->service()->name);
 
-      $info = array(
+      $info = [
         t('Service') => $service_name,
         t('Name') => check_plain($container->name),
         t('Access control') => $container->access_control ? t('Yes') : t('No'),
         t('Already exists') => $container->already_exists ? t('Yes') : t('No'),
-      );
+      ];
 
-      $form['info'] = array(
-        '#markup' => theme('storage_info_table', array('info' => $info))
-      );
+      $form['info'] = [
+        '#markup' => theme('storage_info_table', ['info' => $info]),
+      ];
 
-      $form['settings'] = array(
+      $form['settings'] = [
         '#type' => 'fieldset',
         '#title' => $service_name . t(' settings'),
-        '#tree' => TRUE
-      );
+        '#tree' => TRUE,
+      ];
 
       $form['settings'] += $container->serviceSettingsForm($form_state['storage']['already_exists']);
 
-      $form['back'] = array(
+      $form['back'] = [
         '#type' => 'submit',
-        '#value' => t('Back')
-      );
+        '#value' => t('Back'),
+      ];
 
-      $form['create'] = array(
+      $form['create'] = [
         '#type' => 'submit',
-        '#value' => t('Create')
-      );
+        '#value' => t('Create'),
+      ];
 
       break;
   }
@@ -137,7 +137,7 @@ function storage_create_container_form_validate(array $form, array &$form_state)
       $form_state['storage']['service_id'] = $form_state['values']['service_id'];
       $form_state['storage']['access_control'] = $form_state['values']['access_control'];
       $form_state['storage']['already_exists'] = $form_state['values']['already_exists'];
-      $form_state['storage']['settings'] = array();
+      $form_state['storage']['settings'] = [];
 
       $service = storage_service_load($form_state['storage']['service_id']);
 
@@ -197,7 +197,7 @@ function storage_create_container_form_submit(array $form, array &$form_state) {
 }
 
 function _storage_container_render_classes(array $classes) {
-  $links = array();
+  $links = [];
 
   foreach ($classes as $class) {
     $links[] = $class->link();
@@ -216,7 +216,7 @@ function _storage_container_render_classes(array $classes) {
 function storage_container_form(array $form, array &$form_state, StorageContainerInterface $container) {
   $form['#container'] = $container;
 
-  $info = array(
+  $info = [
     t('Service') => check_plain($container->service()->name),
     t('Name') => check_plain($container->name),
     t('Access control') => $container->access_control ? t('Yes') : t('No'),
@@ -225,7 +225,7 @@ function storage_container_form(array $form, array &$form_state, StorageContaine
     t('Classes') => _storage_container_render_classes($container->classes()),
     t('Files') => $container->count(),
     t('Size') => $container->size(TRUE),
-  );
+  ];
 
   $info += $container->serviceInfo();
 
@@ -233,28 +233,28 @@ function storage_container_form(array $form, array &$form_state, StorageContaine
     $info[t('Base URL')] = file_create_url($container->settings['base_url']);
   }
 
-  $form['status'] = array(
-    '#markup' => theme('storage_info_table', array('info' => $info))
-  );
+  $form['status'] = [
+    '#markup' => theme('storage_info_table', ['info' => $info]),
+  ];
 
   switch ($container->status) {
 
     case STORAGE_CONTAINER_STATUS_ACTIVE:
-      $form['suspend'] = array(
+      $form['suspend'] = [
         '#type' => 'submit',
         '#value' => t('Suspend'),
-        '#submit' => array('storage_container_form_suspend'),
+        '#submit' => ['storage_container_form_suspend'],
         '#weight' => 2,
-      );
+      ];
       break;
 
     case STORAGE_CONTAINER_STATUS_SUSPENDED:
-      $form['unsuspend'] = array(
+      $form['unsuspend'] = [
         '#type' => 'submit',
         '#value' => t('Unsuspend'),
-        '#submit' => array('storage_container_form_unsuspend'),
+        '#submit' => ['storage_container_form_unsuspend'],
         '#weight' => 2,
-      );
+      ];
       break;
   }
 
@@ -368,29 +368,29 @@ function storage_container_destroy_form(array $form, array &$form_state, Storage
     $output .= _storage_container_render_classes($classes);
     $output .= t(' - destroying it now could cause data loss.');
 
-    $form[] = array(
+    $form[] = [
       '#markup' => $output,
-    );
+    ];
   }
 
-  $form[] = array(
+  $form[] = [
     '#prefix' => '<p>',
     '#markup' => t('Are you sure you want to destroy this storage container?'),
     '#suffix' => '</p>',
-  );
+  ];
 
-  $form['just_delete'] = array(
+  $form['just_delete'] = [
     '#type' => 'checkbox',
     '#title' => t('Just delete database records.'),
     '#description' => t('Checking this option means that there will be no communication with the service and the container itself will remain untouched.'),
     '#default_value' => $container->external,
     '#disabled' => $container->external,
-  );
+  ];
 
-  $form['confirm'] = array(
+  $form['confirm'] = [
     '#type' => 'submit',
     '#value' => t('Confirm'),
-  );
+  ];
 
   return $form;
 }
@@ -423,40 +423,40 @@ function storage_container_destroy_form_submit(array $form, array &$form_state) 
 function storage_container_edit_form(array $form, array &$form_state, StorageContainerInterface $container) {
   $form['#container'] = $container;
 
-  $form['name'] = array(
+  $form['name'] = [
     '#title' => 'Name',
     '#type' => 'textfield',
     '#default_value' => $container->name,
     '#description' => t('Optional'),
-  );
+  ];
 
-  $form['settings'] = array(
+  $form['settings'] = [
     '#type' => 'fieldset',
     '#title' => check_plain($container->service()->name) . t(' settings'),
     '#tree' => TRUE,
-  );
+  ];
 
   $form['settings'] += $container->serviceSettingsForm(TRUE);
 
-  $form['external'] = array(
+  $form['external'] = [
     '#title' => t('External'),
     '#type' => 'fieldset',
     '#collapsible' => !$container->external,
     '#collapsed' => TRUE,
     '#description' => t('It is important that two sites don\'t try to control the same container, otherwise data loss can occur. Any duplicate site must have it\'s remote containers marked as external.'),
-  );
+  ];
 
-  $form['external']['external'] = array(
+  $form['external']['external'] = [
     '#title' => t('This container is controlled by another site'),
     '#type' => 'checkbox',
     '#default_value' => $container->external,
     '#description' => t('<ul><li>files will not be propagated to this container</li><li>files will not be deleted from this container, but their database records will</li><li>files can still be served and retrieved from this container</li></ul>'),
-  );
+  ];
 
-  $form['submit'] = array(
+  $form['submit'] = [
     '#type' => 'submit',
     '#value' => 'Save',
-  );
+  ];
 
   return $form;
 }

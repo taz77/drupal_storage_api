@@ -44,7 +44,7 @@ class StorageClass {
       }
     }
     catch (StorageException $e) {
-      
+
     }
   }
 
@@ -61,9 +61,9 @@ class StorageClass {
     $query->join('storage', NULL, 'storage_selector.selector_id = storage.selector_id');
 
     return $query->condition('storage_selector.class_id', $this->class_id)
-        ->countQuery()
-        ->execute()
-        ->fetchField();
+      ->countQuery()
+      ->execute()
+      ->fetchField();
   }
 
   public function size($format = FALSE) {
@@ -73,8 +73,8 @@ class StorageClass {
     $query->addExpression('SUM(storage_file.size)');
 
     $size = (int) $query->condition('storage_selector.class_id', $this->class_id)
-        ->execute()
-        ->fetchField();
+      ->execute()
+      ->fetchField();
 
     return $format ? storage_format_byte_count($size) : $size;
   }
@@ -82,10 +82,10 @@ class StorageClass {
   public function selectorIds() {
 
     return db_select('storage_selector')
-        ->fields('storage_selector', array('selector_id'))
-        ->condition('class_id', $this->class_id)
-        ->execute()
-        ->fetchCol();
+      ->fields('storage_selector', ['selector_id'])
+      ->condition('class_id', $this->class_id)
+      ->execute()
+      ->fetchCol();
   }
 
   public function processStorages() {
@@ -97,7 +97,7 @@ class StorageClass {
     }
 
     db_update('storage')
-      ->fields(array('status' => STORAGE_STATUS_PROCESS_CRON))
+      ->fields(['status' => STORAGE_STATUS_PROCESS_CRON])
       ->expression('serving_container', 'NULL')
       ->condition('selector_id', $selector_ids)
       ->execute();
@@ -106,10 +106,10 @@ class StorageClass {
   public function addContainer(StorageContainerInterface $container) {
 
     db_insert('storage_class_container')
-      ->fields(array(
+      ->fields([
         'class_id' => $this->class_id,
         'container_id' => $container->container_id,
-      ))
+      ])
       ->execute();
 
     if (empty($this->initial_container)) {
@@ -120,10 +120,10 @@ class StorageClass {
     $this->processStorages();
 
     $msg = 'Storage container !container has been added to class !class.';
-    $args = array(
+    $args = [
       '!container' => $container->link(),
       '!class' => $this->link(),
-    );
+    ];
 
     drupal_set_message(t($msg, $args));
     watchdog('storage', $msg, $args, WATCHDOG_NOTICE, l(t('view'), $this->path()));
@@ -151,7 +151,7 @@ class StorageClass {
 
     $subquery->condition('storage_class_container.class_id', $this->class_id)
       ->condition('storage_class_container.container_id', $container->container_id, '<>')
-      ->fields('storage_instance', array('file_id'))
+      ->fields('storage_instance', ['file_id'])
       ->distinct();
 
     // Are there any instances of storages in the class that are in the container to be
@@ -196,10 +196,10 @@ class StorageClass {
     cache_clear_all();
 
     $message = "Storage container %container has been removed from class %class.";
-    $replacements = array(
+    $replacements = [
       '%container' => $container->name(),
       '%class' => $this->name,
-    );
+    ];
 
     drupal_set_message(t($message, $replacements));
     watchdog('storage', $message, $replacements, WATCHDOG_NOTICE, l(t('view'), $this->path()));
@@ -217,7 +217,7 @@ class StorageClass {
     $this->insert();
 
     $message = "Storage class !class has been created.";
-    $replacements = array('!class' => $this->link());
+    $replacements = ['!class' => $this->link()];
 
     drupal_set_message(t($message, $replacements));
     watchdog('storage', $message, $replacements, WATCHDOG_NOTICE, l(t('view'), $this->path()));
@@ -241,27 +241,27 @@ class StorageClass {
 
   public function formElements() {
 
-    $form['name'] = array(
+    $form['name'] = [
       '#title' => t('Name'),
       '#type' => 'textfield',
       '#required' => TRUE,
       '#default_value' => $this->name,
-    );
+    ];
 
-    $form['options'] = array(
+    $form['options'] = [
       '#tree' => TRUE,
-      'redirect' => array(
+      'redirect' => [
         '#title' => t('Serve by redirection'),
         '#type' => 'checkbox',
         '#default_value' => $this->options['redirect'],
-      ),
-      'serve_source_uri' => array(
+      ],
+      'serve_source_uri' => [
         '#title' => t('Serve source URL'),
         '#type' => 'checkbox',
         '#default_value' => $this->options['serve_source_uri'],
         '#description' => t('If no instances are available, serve the source url.'),
-      ),
-    );
+      ],
+    ];
 
     // Are data URIs supported?
     $description = '';
@@ -271,12 +271,12 @@ class StorageClass {
     }
     $description .= t('See') . ' ' . storage_data_uri_doc_link();
 
-    $form['options']['data_uri'] = array(
+    $form['options']['data_uri'] = [
       '#title' => t('Serve as data URI'),
       '#type' => 'checkbox',
       '#default_value' => $this->options['data_uri'],
       '#description' => $description,
-    );
+    ];
 
     return $form;
   }
@@ -284,10 +284,10 @@ class StorageClass {
   public function selectorCount() {
 
     return db_select('storage_selector')
-        ->condition('class_id', $this->class_id)
-        ->countQuery()
-        ->execute()
-        ->fetchField();
+      ->condition('class_id', $this->class_id)
+      ->countQuery()
+      ->execute()
+      ->fetchField();
   }
 
 }

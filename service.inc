@@ -34,7 +34,7 @@ class StorageService {
     $selector_subquery->join('storage_class_container', NULL, 'storage_container.container_id = storage_class_container.container_id');
     $selector_subquery->join('storage_selector', NULL, 'storage_class_container.class_id = storage_selector.class_id');
 
-    $selector_subquery->fields('storage_selector', array('selector_id'))
+    $selector_subquery->fields('storage_selector', ['selector_id'])
       ->condition('storage_container.service_id', $this->service_id);
 
     db_update('storage')

@@ -10,34 +10,34 @@
  * Implements hook_schema().
  */
 function storage_core_bridge_schema() {
-  $schema = array();
+  $schema = [];
 
-  $schema['storage_core_bridge'] = array(
-    'fields' => array(
-      'storage_id' => array(
+  $schema['storage_core_bridge'] = [
+    'fields' => [
+      'storage_id' => [
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
-      ),
-      'uri' => array(
+      ],
+      'uri' => [
         'type' => 'varchar',
         'length' => '255',
         'not null' => TRUE,
-      ),
-      'image_style' => array(
+      ],
+      'image_style' => [
         'type' => 'varchar',
         'length' => '255',
         'not null' => FALSE,
-      ),
-    ),
-    'primary key' => array('storage_id'),
-    'unique keys' => array(
-      'uri' => array('uri'),
-    ),
-    'indexes' => array(
-      'image_style' => array('image_style'),
-    ),
-  );
+      ],
+    ],
+    'primary key' => ['storage_id'],
+    'unique keys' => [
+      'uri' => ['uri'],
+    ],
+    'indexes' => [
+      'image_style' => ['image_style'],
+    ],
+  ];
 
   return $schema;
 }
@@ -47,10 +47,10 @@ function storage_core_bridge_schema() {
  */
 function storage_core_bridge_install() {
   // Create selectors for fields.
-  variable_set('storage_core_bridge_fields', array());
+  variable_set('storage_core_bridge_fields', []);
 
   foreach (field_read_fields() as $field) {
-    if (in_array($field['type'], array('file', 'image'))) {
+    if (in_array($field['type'], ['file', 'image'])) {
       storage_core_bridge_field_selector_create($field['field_name']);
     }
   }

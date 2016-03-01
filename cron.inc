@@ -6,7 +6,7 @@
  */
 function _storage_remove_containers() {
 
-  $result = db_select('storage_class_container', NULL, array('fetch' => PDO::FETCH_ASSOC))
+  $result = db_select('storage_class_container', NULL, ['fetch' => PDO::FETCH_ASSOC])
     ->fields('storage_class_container')
     ->condition('remove', 1)
     ->execute();
@@ -19,7 +19,7 @@ function _storage_remove_containers() {
       $class->removeContainer($container);
     }
     catch (StorageException $e) {
-      
+
     }
   }
 }
@@ -27,7 +27,7 @@ function _storage_remove_containers() {
 function _storage_check_files() {
 
   $result = db_select('storage')
-    ->fields('storage', array('storage_id'))
+    ->fields('storage', ['storage_id'])
     ->condition('status', STORAGE_STATUS_PROCESS_CRON)
     ->orderBy('storage_id')
     ->execute();
@@ -37,7 +37,7 @@ function _storage_check_files() {
       storage_load($storage_id)->check();
     }
     catch (StorageException $e) {
-      
+
     }
   }
 }
@@ -45,8 +45,8 @@ function _storage_check_files() {
 function _storage_check_migrations() {
 
   // Find selectors that are being migrated.
-  $selector_ids = db_select('storage_selector', NULL, array('fetch' => PDO::FETCH_ASSOC))
-    ->fields('storage_selector', array('selector_id'))
+  $selector_ids = db_select('storage_selector', NULL, ['fetch' => PDO::FETCH_ASSOC])
+    ->fields('storage_selector', ['selector_id'])
     ->distinct()
     ->condition('migrating', 1)
     ->orderBy('selector_id')
@@ -60,7 +60,7 @@ function _storage_check_migrations() {
 
 function _storage_container_maintenance() {
 
-  $result = db_select('storage_container', NULL, array('fetch' => PDO::FETCH_ASSOC))
+  $result = db_select('storage_container', NULL, ['fetch' => PDO::FETCH_ASSOC])
     ->condition('storage_container.status', STORAGE_CONTAINER_STATUS_ACTIVE)
     ->fields('storage_container')
     ->execute();
@@ -72,7 +72,7 @@ function _storage_container_maintenance() {
 
 function _storage_destroy_containers() {
 
-  $result = db_select('storage_container', NULL, array('fetch' => PDO::FETCH_ASSOC))
+  $result = db_select('storage_container', NULL, ['fetch' => PDO::FETCH_ASSOC])
     ->condition('storage_container.status', STORAGE_CONTAINER_STATUS_DESTROY)
     ->fields('storage_container')
     ->execute();
@@ -84,7 +84,7 @@ function _storage_destroy_containers() {
       $container->delete();
     }
     catch (StorageException $e) {
-      
+
     }
   }
 }

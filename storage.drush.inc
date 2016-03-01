@@ -9,77 +9,77 @@
  * Implements hook_drush_command().
  */
 function storage_drush_command() {
-  $items['storage-cron'] = array(
+  $items['storage-cron'] = [
     'description' => 'Performs the entire storage API cron.',
-  );
+  ];
 
-  $items['storage-sync-files'] = array(
+  $items['storage-sync-files'] = [
     'description' => 'Performs synchornizations of all files.',
-  );
+  ];
 
-  $items['storage-sync-migrations'] = array(
+  $items['storage-sync-migrations'] = [
     'description' => 'Performs synchornizations of migrations.',
-  );
+  ];
 
-  $items['storage-list-containers'] = array(
+  $items['storage-list-containers'] = [
     'description' => 'List all containers defined.',
-  );
+  ];
 
-  $items['storage-list-classes'] = array(
+  $items['storage-list-classes'] = [
     'description' => 'Lists all classes defined.',
-  );
+  ];
 
-  $items['storage-list-container-classes'] = array(
+  $items['storage-list-container-classes'] = [
     'description' => 'Lists all containers that have been placed in classes.',
-  );
+  ];
 
-  $items['storage-create-container'] = array(
+  $items['storage-create-container'] = [
     'description' => 'Creates a storage container.',
-    'arguments' => array(
+    'arguments' => [
       'service_id' => 'The storage service id.',
       'name' => 'The human readable name.',
-    ),
-    'options' => array(
+    ],
+    'options' => [
       'access' => 'Defines that access control is enabled.',
       'exists' => 'Defines that the container itself already exists.',
-    ),
+    ],
     'allow-additional-options' => TRUE,
-  );
+  ];
 
-  $items['storage-modify-container'] = array(
+  $items['storage-modify-container'] = [
     'description' => 'Modifies a storage container',
-    'arguments' => array(
+    'arguments' => [
       'service_id' => 'The storage service id.',
       'name' => 'The human readable name.',
-    ),
+    ],
     'allow-additional-options' => TRUE,
-  );
+  ];
 
-  $items['storage-destroy-container'] = array(
+  $items['storage-destroy-container'] = [
     'description' => 'Destroys a storage container.',
-    'arguments' => array(
+    'arguments' => [
       'service_id' => 'The storage service id.',
       'name' => 'The human readable name.',
-    ),
-    'options' => array(
+    ],
+    'options' => [
       'delete' => 'Indicates only the database records are meant to be deleted.',
-    ),
-  );
+    ],
+  ];
 
-  $items['storage-container-class'] = array(
+  $items['storage-container-class'] = [
     'description' => 'Adds, removes or modifies a storage container from a class.',
-    'arguments' => array(
+    'arguments' => [
       'service_id' => 'The storage service id.',
       'name' => 'The human readable name.',
-    ),
-    'options' => array(
+    ],
+    'options' => [
       'class' => 'The class ID (numeric) the container is being updated against.',
       'command' => 'The command to perform regarding the container and the class, can be one of "add", "remove", "modify".',
       'propagate' => 'Changes the value of propagate.',
       'serve' => 'Changes the value of serving.',
       'weight' => 'Changes the value of weighting.',
-    ),
-  );
+    ],
+  ];
 
   return $items;
 }
@@ -149,7 +149,7 @@ function _storage_drush_help_containers() {
  */
 function _storage_drush_container($service_id) {
   $class = storage_container_class($service_id);
-  return new $class(array('service_id' => $service_id, 'settings' => array()));
+  return new $class(['service_id' => $service_id, 'settings' => []]);
 }
 
 /**
@@ -216,10 +216,14 @@ function drush_storage_list_container_classes() {
   $query->join('storage_container', NULL, 'storage_class_container.container_id = storage_container.container_id');
   $query->join('storage_class', NULL, 'storage_class_container.class_id = storage_class.class_id');
 
-  $results = $query->fields('storage_container', array('container_id', 'name', 'service_id'))
+  $results = $query->fields('storage_container', [
+    'container_id',
+    'name',
+    'service_id',
+  ])
     ->fields('storage_class_container')
-    ->fields('storage_container', array('name'))
-    ->fields('storage_class', array('name'))
+    ->fields('storage_container', ['name'])
+    ->fields('storage_class', ['name'])
     ->orderBy('storage_class_container.weight')
     ->orderBy('storage_container.container_id')
     ->execute();
@@ -262,7 +266,7 @@ function _drush_storage_get_container($service_id, $name, $required = FALSE) {
   }
 
   // Get the settings.
-  $settings = array();
+  $settings = [];
   $class = _storage_drush_container($service_id);
   $options = $class->serviceSettingsDefault();
   $form = $class->serviceSettingsForm(TRUE);
@@ -287,7 +291,7 @@ function _drush_storage_get_container($service_id, $name, $required = FALSE) {
       }
     }
     elseif ($required) {
-      drush_log(dt('Missing the required setting %setting.', array('%setting' => $key)), 'error');
+      drush_log(dt('Missing the required setting %setting.', ['%setting' => $key]), 'error');
       return FALSE;
     }
   }
@@ -310,14 +314,18 @@ function _drush_storage_get_container($service_id, $name, $required = FALSE) {
 function _drush_storage_load_container($service_id, $name) {
   // Locate the appropriate container.
   $results = db_select('storage_container', 's')
-    ->fields('s', array('container_id'))
+    ->fields('s', ['container_id'])
     ->condition('service_id', $service_id, '=')
     ->condition('name', $name, '=')
     ->execute()
     ->fetchCol();
 
   if (empty($results)) {
-    drush_log(t('Unable to locate %container with service ID %service.', array('%container', $name, '%service' => $service_id)), 'error');
+    drush_log(t('Unable to locate %container with service ID %service.', [
+      '%container',
+      $name,
+      '%service' => $service_id,
+    ]), 'error');
     return FALSE;
   }
 
@@ -341,13 +349,13 @@ function drush_storage_create_container($service_id, $name) {
   }
 
   // Setup the $form_state to match what would be passed normally.
-  $form_state['storage'] = array(
+  $form_state['storage'] = [
     'service_id' => $service_id,
     'name' => $name,
     'access control' => drush_get_option('access'),
     'already exists' => drush_get_option('exists'),
-    'settings' => array(),
-  );
+    'settings' => [],
+  ];
   $form_state['values']['step'] = 1;
   $form_state['values']['settings'] = $settings;
 
@@ -377,14 +385,14 @@ function drush_storage_manage_container($service_id, $name) {
   }
 
   // Programmatically submitting the storage container form.
-  $form_values['values'] = array(
+  $form_values['values'] = [
     'name' => $container->name,
     'external' => $container->external,
     'settings' => $settings,
-  );
+  ];
 
   // Add the container argument for the form.
-  $form_state['build_info']['args'] = array(&$container);
+  $form_state['build_info']['args'] = [&$container];
 
   // Call the submit function for this behaviour.
   module_load_include('inc', 'storage', 'container.admin');
@@ -436,7 +444,7 @@ function drush_storage_container_class($service_id, $name) {
 
   // Ensure valid operation against the container and class.
   $command = drush_get_option('command');
-  if (!in_array($command, array('add', 'remove', 'modify'))) {
+  if (!in_array($command, ['add', 'remove', 'modify'])) {
     drush_log(dt('Unknown command specified.'), 'error');
     return;
   }
@@ -448,7 +456,7 @@ function drush_storage_container_class($service_id, $name) {
 
   // Search for matching class ID.
   $results = db_select('storage_class')
-    ->fields('storage_class', array('class_id'))
+    ->fields('storage_class', ['class_id'])
     ->condition('class_id', drush_get_option('class'))
     ->execute()
     ->fetchAssoc();
@@ -469,11 +477,15 @@ function drush_storage_container_class($service_id, $name) {
   }
 
   // Locate all the class containers that match the given requirements.
-  $query = db_select('storage_class_container', NULL, array('fetch' => PDO::FETCH_ASSOC));
+  $query = db_select('storage_class_container', NULL, ['fetch' => PDO::FETCH_ASSOC]);
   $query->join('storage_container', NULL, 'storage_class_container.container_id = storage_container.container_id');
 
   // Gets the storage_containers that match the class and the service ID.
-  $result = $query->fields('storage_container', array('container_id', 'name', 'service_id'))
+  $result = $query->fields('storage_container', [
+    'container_id',
+    'name',
+    'service_id',
+  ])
     ->fields('storage_class_container')
     ->condition('storage_class_container.class_id', $class->class_id)
     ->orderBy('storage_class_container.weight')
@@ -481,10 +493,10 @@ function drush_storage_container_class($service_id, $name) {
     ->execute();
 
   // Setup the values for the class to be processed for the submit.
-  $form_state['values'] = array(
+  $form_state['values'] = [
     'name' => $class->name,
     'initial_container_id' => $class->options['initial_container_id'],
-  );
+  ];
   // Checkboxes require either some value or NULL to correctly set their value.
   foreach ($class->options as $key => $value) {
     $form_state['values']['options'][$key] = $value ? $value : NULL;
@@ -500,11 +512,11 @@ function drush_storage_container_class($service_id, $name) {
   }
 
   // Setup map of key to form_values key.
-  $map = array(
+  $map = [
     'serve' => 'servings',
     'propagate' => 'propagates',
-    'weight' => 'weights'
-  );
+    'weight' => 'weights',
+  ];
 
   // Map settings into the form values.
   foreach ($map as $key => $map_key) {
@@ -520,7 +532,7 @@ function drush_storage_container_class($service_id, $name) {
   }
 
   // Add the class argument for the form.
-  $form_state['build_info']['args'] = array(&$class);
+  $form_state['build_info']['args'] = [&$class];
 
   // Call the submit function for this behaviour.
   module_load_include('inc', 'storage', 'class.admin');

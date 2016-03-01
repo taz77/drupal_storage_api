@@ -46,11 +46,11 @@ class BadImageStyleStorageException extends StorageException {
  * Implements hook_permission().
  */
 function storage_permission() {
-  return array(
-    'administer storage' => array(
+  return [
+    'administer storage' => [
       'title' => t('Administer storage'),
-    ),
-  );
+    ],
+  ];
 }
 
 /**
@@ -58,156 +58,156 @@ function storage_permission() {
  */
 function storage_menu() {
 
-  $items['system/storage/serve/%storage_menu'] = array(
+  $items['system/storage/serve/%storage_menu'] = [
     'type' => MENU_CALLBACK,
     'page callback' => 'storage_serve',
-    'page arguments' => array(3),
+    'page arguments' => [3],
     'access callback' => 'storage_access',
-    'access arguments' => array(3),
-  );
+    'access arguments' => [3],
+  ];
 
-  $items['admin/structure/storage'] = array(
+  $items['admin/structure/storage'] = [
     'title' => "File storage",
-    'access arguments' => array('administer storage'),
+    'access arguments' => ['administer storage'],
     'description' => "Manage classes and containers for file storage and serving.",
     'page callback' => 'storage_admin',
     'file' => 'storage.admin.inc',
-  );
+  ];
 
-  $items['admin/structure/storage/list'] = array(
+  $items['admin/structure/storage/list'] = [
     'title' => 'Classes and containers',
     'type' => MENU_DEFAULT_LOCAL_TASK,
     'weight' => 1,
-  );
+  ];
 
-  $items['admin/structure/storage/create-class'] = array(
+  $items['admin/structure/storage/create-class'] = [
     'title' => "Create class",
-    'access arguments' => array('administer storage'),
+    'access arguments' => ['administer storage'],
     'type' => MENU_LOCAL_ACTION,
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('storage_create_class_form'),
+    'page arguments' => ['storage_create_class_form'],
     'weight' => 1,
     'file' => 'class.admin.inc',
-  );
+  ];
 
-  $items['admin/structure/storage-ajax/%/%/stats'] = array(
+  $items['admin/structure/storage-ajax/%/%/stats'] = [
     'title' => "AJAX Callback",
     'page callback' => 'storage_class_ajax_stats',
-    'access arguments' => array('administer storage'),
-    'page arguments' => array(3, 4, 6, 7),
+    'access arguments' => ['administer storage'],
+    'page arguments' => [3, 4, 6, 7],
     'type' => MENU_CALLBACK,
     'file' => 'class.admin.inc',
-  );
+  ];
 
-  $items['admin/structure/storage/class/%storage_class_menu'] = array(
+  $items['admin/structure/storage/class/%storage_class_menu'] = [
     'title callback' => 'storage_class_title',
-    'title arguments' => array(4),
-    'access arguments' => array('administer storage'),
+    'title arguments' => [4],
+    'access arguments' => ['administer storage'],
     'page callback' => 'storage_class',
-    'page arguments' => array(4),
+    'page arguments' => [4],
     'file' => 'class.admin.inc',
-  );
+  ];
 
-  $items['admin/structure/storage/class/%storage_class_menu/view'] = array(
+  $items['admin/structure/storage/class/%storage_class_menu/view'] = [
     'title' => "View",
-    'access arguments' => array('administer storage'),
+    'access arguments' => ['administer storage'],
     'type' => MENU_DEFAULT_LOCAL_TASK,
     'weight' => 0,
     'file' => 'class.admin.inc',
-  );
+  ];
 
-  $items['admin/structure/storage/class/%storage_class_menu/edit'] = array(
+  $items['admin/structure/storage/class/%storage_class_menu/edit'] = [
     'title' => "Edit",
-    'access arguments' => array('administer storage'),
+    'access arguments' => ['administer storage'],
     'type' => MENU_LOCAL_TASK,
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('storage_class_edit_form', 4),
+    'page arguments' => ['storage_class_edit_form', 4],
     'weight' => 1,
     'file' => 'class.admin.inc',
-  );
+  ];
 
-  $items['admin/structure/storage/class/%storage_class_menu/delete'] = array(
+  $items['admin/structure/storage/class/%storage_class_menu/delete'] = [
     'title' => "Delete",
-    'access arguments' => array('administer storage'),
+    'access arguments' => ['administer storage'],
     'type' => MENU_LOCAL_TASK,
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('storage_class_delete_form', 4),
+    'page arguments' => ['storage_class_delete_form', 4],
     'weight' => 2,
     'file' => 'class.admin.inc',
-  );
+  ];
 
-  $items['admin/structure/storage/class/%storage_class_menu/add'] = array(
+  $items['admin/structure/storage/class/%storage_class_menu/add'] = [
     'title' => "Add container",
-    'access arguments' => array('administer storage'),
+    'access arguments' => ['administer storage'],
     'type' => MENU_LOCAL_ACTION,
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('storage_class_add_container_form', 4),
+    'page arguments' => ['storage_class_add_container_form', 4],
     'weight' => 2,
     'file' => 'class.admin.inc',
-  );
+  ];
 
-  $items['admin/structure/storage/create-container'] = array(
+  $items['admin/structure/storage/create-container'] = [
     'title' => "Create container",
-    'access arguments' => array('administer storage'),
+    'access arguments' => ['administer storage'],
     'type' => MENU_LOCAL_ACTION,
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('storage_create_container_form'),
+    'page arguments' => ['storage_create_container_form'],
     'weight' => 1,
     'file' => 'container.admin.inc',
-  );
+  ];
 
-  $items['admin/structure/storage/container/%storage_container_menu'] = array(
+  $items['admin/structure/storage/container/%storage_container_menu'] = [
     'title callback' => 'storage_container_title',
-    'title arguments' => array(4),
-    'access arguments' => array('administer storage'),
+    'title arguments' => [4],
+    'access arguments' => ['administer storage'],
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('storage_container_form', 4),
+    'page arguments' => ['storage_container_form', 4],
     'file' => 'container.admin.inc',
-  );
+  ];
 
-  $items['admin/structure/storage/container/%storage_container_menu/view'] = array(
+  $items['admin/structure/storage/container/%storage_container_menu/view'] = [
     'title' => "View",
-    'access arguments' => array('administer storage'),
+    'access arguments' => ['administer storage'],
     'type' => MENU_DEFAULT_LOCAL_TASK,
     'weight' => 0,
     'file' => 'container.admin.inc',
-  );
+  ];
 
-  $items['admin/structure/storage/container/%storage_container_menu/edit'] = array(
+  $items['admin/structure/storage/container/%storage_container_menu/edit'] = [
     'title' => "Edit",
-    'access arguments' => array('administer storage'),
+    'access arguments' => ['administer storage'],
     'type' => MENU_LOCAL_TASK,
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('storage_container_edit_form', 4),
+    'page arguments' => ['storage_container_edit_form', 4],
     'weight' => 2,
     'file' => 'container.admin.inc',
-  );
+  ];
 
-  $items['admin/structure/storage/container/%storage_container_menu/destroy'] = array(
+  $items['admin/structure/storage/container/%storage_container_menu/destroy'] = [
     'title' => "Destroy",
-    'access arguments' => array('administer storage'),
+    'access arguments' => ['administer storage'],
     'type' => MENU_LOCAL_TASK,
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('storage_container_destroy_form', 4),
+    'page arguments' => ['storage_container_destroy_form', 4],
     'weight' => 3,
     'file' => 'container.admin.inc',
-  );
+  ];
 
-  $items['admin/structure/storage/container/%storage_container_menu/suspend'] = array(
-    'access arguments' => array('administer storage'),
+  $items['admin/structure/storage/container/%storage_container_menu/suspend'] = [
+    'access arguments' => ['administer storage'],
     'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('storage_container_suspend_form', 4),
+    'page arguments' => ['storage_container_suspend_form', 4],
     'file' => 'container.admin.inc',
-  );
+  ];
 
-  $items['admin/structure/storage/container/%storage_container_menu/unsuspend'] = array(
-    'access arguments' => array('administer storage'),
+  $items['admin/structure/storage/container/%storage_container_menu/unsuspend'] = [
+    'access arguments' => ['administer storage'],
     'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('storage_container_unsuspend_form', 4),
+    'page arguments' => ['storage_container_unsuspend_form', 4],
     'file' => 'container.admin.inc',
-  );
+  ];
 
   return $items;
 }
@@ -414,12 +414,12 @@ function storage_class_title(StorageClass $class) {
  */
 function storage_unserialize_class_options(&$options) {
   $options = unserialize($options);
-  $options += array(
+  $options += [
     'redirect' => FALSE,
     'serve_source_uri' => FALSE,
     'data_uri' => FALSE,
     'initial_container_id' => NULL,
-  );
+  ];
 }
 
 /**
@@ -434,37 +434,37 @@ function storage_selector($arg0, $arg1 = NULL) {
  */
 function storage_storage_services() {
 
-  $services = array(
-    'db' => array(
+  $services = [
+    'db' => [
       'name' => t('Database'),
       'class' => 'StorageDB',
       'serve' => FALSE,
-    ),
-    'fs' => array(
+    ],
+    'fs' => [
       'name' => t('Filesystem'),
       'class' => 'StorageFS',
       'htaccess' => TRUE,
-    ),
-    'ftp' => array(
+    ],
+    'ftp' => [
       'name' => t('FTP'),
       'class' => 'StorageFTP',
       'htaccess' => TRUE,
-    ),
-    'rackspace' => array(
+    ],
+    'rackspace' => [
       'name' => t('Rackspace Cloud Files'),
       'class' => 'StorageRackspace',
-    ),
-    's3' => array(
+    ],
+    's3' => [
       'name' => t('Amazon S3'),
       'class' => 'StorageS3',
       'copy' => TRUE,
       'serve_secure' => TRUE,
-    ),
-    'google' => array(
+    ],
+    'google' => [
       'name' => t('Google Cloud Storage'),
       'class' => 'StorageGoogle',
-    ),
-  );
+    ],
+  ];
 
   return $services;
 }
@@ -473,32 +473,32 @@ function storage_storage_services() {
  * Implements hook_libraries_info().
  */
 function storage_libraries_info() {
-  $libraries = array();
+  $libraries = [];
 
-  $libraries['php-cloudfiles'] = array(
+  $libraries['php-cloudfiles'] = [
     'name' => 'php-cloudfiles',
     'vendor url' => 'https://github.com/rackerlabs/php-cloudfiles',
     'download url' => 'https://github.com/rackerlabs/php-cloudfiles/releases',
     'version' => 'whatever',
-    'files' => array(
-      'php' => array(
+    'files' => [
+      'php' => [
         'cloudfiles.php',
-      ),
-    ),
-  );
+      ],
+    ],
+  ];
 
-  $libraries['google-api-php-client'] = array(
+  $libraries['google-api-php-client'] = [
     'name' => 'google-api-php-client',
     'vendor url' => 'https://github.com/google/google-api-php-client',
     'download url' => 'https://github.com/google/google-api-php-client/releases',
     'path' => 'src/Google',
     'version' => 'whatever',
-    'files' => array(
-      'php' => array(
+    'files' => [
+      'php' => [
         'autoload.php',
-      ),
-    ),
-  );
+      ],
+    ],
+  ];
 
   return $libraries;
 }
@@ -507,7 +507,7 @@ function storage_libraries_info() {
  * Implements hook_storage_service_check_SERVICE_ID().
  */
 function storage_storage_service_check_rackspace() {
-  $items = array();
+  $items = [];
 
   if (module_exists('libraries') && function_exists('libraries_detect')) {
     $library = libraries_detect('php-cloudfiles');
@@ -517,15 +517,15 @@ function storage_storage_service_check_rackspace() {
     }
   }
   else {
-    $items[] = t('Enable') . ' ' . link('Libraries API 7.x-2.x', 'https://www.drupal.org/project/libraries', array('attributes' => array('target' => '_blank')));
+    $items[] = t('Enable') . ' ' . link('Libraries API 7.x-2.x', 'https://www.drupal.org/project/libraries', ['attributes' => ['target' => '_blank']]);
   }
 
-  $message = t('Download <a href="!download_url" target="_blank">php-cloudfiles</a>, decompress it, rename the directory to <em>php-cloudfiles</em> and put it in <em>sites/all/libraries</em>.<br />Alternatively you can use <a href="http://git-scm.com/" target="_blank">Git</a>:', array('!download_url' => 'https://github.com/rackerlabs/php-cloudfiles/releases'));
+  $message = t('Download <a href="!download_url" target="_blank">php-cloudfiles</a>, decompress it, rename the directory to <em>php-cloudfiles</em> and put it in <em>sites/all/libraries</em>.<br />Alternatively you can use <a href="http://git-scm.com/" target="_blank">Git</a>:', ['!download_url' => 'https://github.com/rackerlabs/php-cloudfiles/releases']);
   $message .= '<br /><code>git clone git://github.com/rackerlabs/php-cloudfiles.git</code>';
 
   $items[] = $message;
 
-  throw new StorageException(theme('item_list', array('items' => $items)));
+  throw new StorageException(theme('item_list', ['items' => $items]));
 }
 
 /**
@@ -535,17 +535,17 @@ function storage_storage_service_check_rackspace() {
  *   An array of storage service info.
  */
 function storage_service_info() {
-  $services = array();
+  $services = [];
 
   foreach (module_implements('storage_services') as $module) {
     foreach (module_invoke($module, 'storage_services') as $name => $info) {
       // Add defaults.
-      $info += array(
+      $info += [
         'htaccess' => FALSE,
         'copy' => FALSE,
         'serve' => TRUE,
         'serve_secure' => FALSE,
-      );
+      ];
 
       $services[$module . ':' . $name] = $info;
     }
@@ -670,11 +670,11 @@ function _storage_file_id($uri, $filename = NULL, &$new_file = NULL) {
     $filename = drupal_basename(file_uri_target($uri));
   }
 
-  $whirlpool = md5( $whirlpool );
+  $whirlpool = md5($whirlpool);
 
   $transaction = db_transaction();
   $file_id = db_select('storage_file')
-    ->fields('storage_file', array('file_id'))
+    ->fields('storage_file', ['file_id'])
     ->condition('whirlpool', $whirlpool)
     ->condition('filename', $filename)
     ->execute()
@@ -682,13 +682,13 @@ function _storage_file_id($uri, $filename = NULL, &$new_file = NULL) {
 
   if ($file_id === FALSE) {
 
-    $file = array(
+    $file = [
       'whirlpool' => $whirlpool,
       'filename' => $filename,
       'size' => $fileinfo['size'],
       'mimetype' => storage_mime_detect($uri, $filename),
       'md5' => hash_file('md5', $uri, TRUE),
-    );
+    ];
 
     drupal_write_record('storage_file', $file);
 
@@ -715,14 +715,14 @@ function _storage_acquire_from_url($url) {
   $temp_uri = new StorageTempURI();
   $fp = fopen($temp_uri, "w");
 
-  $options = array(
+  $options = [
     CURLOPT_FOLLOWLOCATION => TRUE,
     CURLOPT_AUTOREFERER => TRUE,
     CURLOPT_CONNECTTIMEOUT => 30,
     CURLOPT_LOW_SPEED_LIMIT => 256,
     CURLOPT_LOW_SPEED_TIME => 60,
     CURLOPT_FILE => $fp,
-  );
+  ];
 
   // This seems to keep everyone happy.
   $ch = curl_init(str_replace(' ', '+', $url));
@@ -778,7 +778,7 @@ function _storage_delete_file_if_unrequired($file_id) {
  *   The list of service names.
  */
 function _storage_get_service_names() {
-  $names = array();
+  $names = [];
 
   foreach (storage_service_info() as $service_id => $info) {
     $names[$service_id] = $info['name'];
@@ -801,7 +801,7 @@ function _storage_get_service_names() {
  *   A human readable representation of the byte count.
  */
 function storage_format_byte_count($count) {
-  $units = array('B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB');
+  $units = ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
 
   foreach ($units as $unit) {
     if ($count < 1000) {
@@ -819,40 +819,40 @@ function storage_format_byte_count($count) {
  */
 function storage_theme($existing, $type, $theme, $path) {
 
-  return array(
-    'storage_class_edit_form' => array(
+  return [
+    'storage_class_edit_form' => [
       'render element' => 'form',
-    ),
-    'storage_info_table' => array(
+    ],
+    'storage_info_table' => [
       'render element' => 'info',
-    ),
-  );
+    ],
+  ];
 }
 
 /**
  * Theme function for info table.
  */
 function theme_storage_info_table(array $variables) {
-  $rows = array();
+  $rows = [];
 
   foreach ($variables['info'] as $key => $value) {
     if ($value === '') {
       continue;
     }
 
-    $rows[] = array(
-      array(
+    $rows[] = [
+      [
         'data' => $key . ':',
         'style' => 'font-weight: bold',
-      ),
+      ],
       $value,
-    );
+    ];
   }
 
-  return theme('table', array(
+  return theme('table', [
     'rows' => $rows,
-    'attributes' => array('style' => 'width: auto;'),
-  ));
+    'attributes' => ['style' => 'width: auto;'],
+  ]);
 }
 
 /**
@@ -897,15 +897,16 @@ class StorageLock {
     $this->driver = $databases['default']['default']['driver'];
 
     if ($this->driver == 'mysql') {
-      $success = db_query('SELECT GET_LOCK(:name, 86400)', array(':name' => $this->id))
+      $success = db_query('SELECT GET_LOCK(:name, 86400)', [':name' => $this->id])
         ->fetchField();
-    } elseif ($this->driver == 'pgsql') {
+    }
+    elseif ($this->driver == 'pgsql') {
       $this->id = '12345';
-      $success  = db_query('SELECT pg_advisory_lock(:id)', array(':id' => $this->id))
+      $success = db_query('SELECT pg_advisory_lock(:id)', [':id' => $this->id])
         ->fetchField();
     }
 
-    if (!$success){
+    if (!$success) {
       throw new StorageException();
     }
   }
@@ -915,10 +916,11 @@ class StorageLock {
    */
   public function __destruct() {
 
-    if ($this->driver == 'mysql' ){
-      db_query('DO RELEASE_LOCK(:name)', array(':name' => $this->id));
-    } elseif ($this->driver == 'pgsql') {
-      db_query('SELECT pg_advisory_unlock(:id)', array(':id' => $this->id))
+    if ($this->driver == 'mysql') {
+      db_query('DO RELEASE_LOCK(:name)', [':name' => $this->id]);
+    }
+    elseif ($this->driver == 'pgsql') {
+      db_query('SELECT pg_advisory_unlock(:id)', [':id' => $this->id])
         ->fetchField();
     }
   }
@@ -1016,7 +1018,7 @@ function storage_test_theme_image_data_uri() {
  */
 function storage_data_uri_doc_link() {
   $data_uri_doc_url = 'https://www.drupal.org/node/1405018';
-  return l($data_uri_doc_url, $data_uri_doc_url, array('attributes' => array('target' => '_blank')));
+  return l($data_uri_doc_url, $data_uri_doc_url, ['attributes' => ['target' => '_blank']]);
 }
 
 /**
@@ -1049,7 +1051,7 @@ function storage_modules_uninstalled($modules) {
 
     // Find this module's selectors.
     $selector_ids = db_select('storage_selector')
-      ->fields('storage_selector', array('selector_id'))
+      ->fields('storage_selector', ['selector_id'])
       ->condition('selector_id', $module . ':%', 'LIKE')
       ->distinct()
       ->execute()
@@ -1080,9 +1082,9 @@ function _storage_variable_override(&$fields) {
     if ($serial_settings != $fields['settings']) {
       $query = db_update('storage_container')
         ->fields(
-          array(
+          [
             'settings' => $serial_settings,
-          )
+          ]
         )
         ->condition('container_id', $container_id, '=')
         ->execute();
