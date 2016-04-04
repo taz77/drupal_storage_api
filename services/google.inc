@@ -26,6 +26,8 @@ class StorageGoogle extends StorageContainer implements StorageContainerInterfac
    * @throws \StorageException
    */
   private function init() {
+    //@todo make libraries optional. @see https://www.drupal.org/node/2700007
+
     if (module_exists('libraries') && function_exists('libraries_load')) {
       $library = libraries_load('google-api-php-client');
     }
