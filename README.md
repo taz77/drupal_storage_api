@@ -47,4 +47,11 @@ Google's [product](https://cloud.google.com/storage/) page for more details.
 Additionally you must have the Google API PHP Client library installed. You can
 download the library on [GitHub](https://github.com/google/google-api-php-client)
 
+In order to install this library without the use of Libraries module or Composer
+follow Google's [instructions](https://github.com/google/google-api-php-client#download-the-release) for downloading the package.
+You will then have to include the file by editing services/google.inc and uncomment
+the line for the require once and alter the path to the downloaded zip package.
+The package will have to be somewhere in your Drupal installation. The code to
+edit is contained in the `private function init()` function. 
+
 
