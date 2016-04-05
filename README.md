@@ -44,14 +44,22 @@ Google Cloud Storage Service
 This service requires an account with the external service provider. Visit
 Google's [product](https://cloud.google.com/storage/) page for more details.
 
-Additionally you must have the Google API PHP Client library installed. You can
-download the library on [GitHub](https://github.com/google/google-api-php-client)
+Additionally you must have the Google API PHP Client library installed. The
+easiest way to do this is to use Composer and [Composer Manager](https://www.drupal.org/project/composer_manager) module for Drupal.
 
+If you are using Composer Manager. Simply use Drush to enable the module and
+Composer Manager will load everything you need.
+
+###Manual Installation###
+####Downloading Files####
 In order to install this library without the use of Libraries module or Composer
 follow Google's [instructions](https://github.com/google/google-api-php-client#download-the-release) for downloading the package.
 You will then have to include the file by editing services/google.inc and uncomment
 the line for the require once and alter the path to the downloaded zip package.
 The package will have to be somewhere in your Drupal installation. The code to
 edit is contained in the `private function init()` function. 
-
+####Libraries Module####
+Download the latest release of [the PHP api](https://github.com/google/google-api-php-client) and place the file in
+your libraries folder under the folder named `google-api-php-client`. An example
+path would be /sites/all/libraries/google-api-php-client.
 
