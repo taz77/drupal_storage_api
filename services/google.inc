@@ -27,6 +27,14 @@ class StorageGoogle extends StorageContainer implements StorageContainerInterfac
    */
   private function init() {
 
+    // There must be a private file system. Check for it's existence.
+    if (!empty(variable_get('file_private_path'))) {
+      watchdog('storage_google', 'No private file system has been created', [], WATCHDOG_ERROR);
+      if (user_access('administer storage')) {
+        drupal_set_message(t('No private file system has been created. Please configure a private file system before proceeding.'), 'error');
+      }
+      throw new StorageException();
+    }
     // If you want to use this service without the Libraries module or Composer
     // require_once '/path/to/google-api-php-client/vendor/autoload.php';
 
