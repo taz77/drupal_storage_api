@@ -44,6 +44,11 @@ Google Cloud Storage Service
 This service requires an account with the external service provider. Visit
 Google's [product](https://cloud.google.com/storage/) page for more details.
 
+To use this service you must have a private filesystem established in your
+Drupal installation. The private file system is used to store your service
+credentials and for security should this should not reside in the public file
+system.
+
 Additionally you must have the Google API PHP Client library installed. The
 easiest way to do this is to use Composer and [Composer Manager](https://www.drupal.org/project/composer_manager) module for Drupal.
 
