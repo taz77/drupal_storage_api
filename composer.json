@@ -1,7 +1,6 @@
 {
   "name": "drupal/contrib/storage_api",
   "description": "Agnostic storage servies for Drupal installations.",
-  "version": "7.x-1.x",
   "homepage": "https://www.drupal.org/project/storage_api",
   "license": "GNU",
   "keywords": [
