@@ -379,3 +379,10 @@ function storage_update_7100(array &$sandbox) {
     $container->htaccessCreate();
   }
 }
+
+/**
+ * Remove deprecated Google Service variables
+ */
+function storage_update_7101() {
+  
+}
