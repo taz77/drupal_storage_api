@@ -67,21 +67,23 @@ abstract class StorageContainer {
     }
   }
 
+  /**
+   * Creates an htaccess file in the container.
+   * @throws \StorageException
+   */
   public function htaccessCreate() {
 
     if (!function_exists('file_htaccess_lines')) {
-      $msg = "Unable to create .htaccess file before updating to latest Drupal Core";
+      $msg = 'Unable to create .htaccess file before updating to latest Drupal Core';
       watchdog('storage', $msg, [], WATCHDOG_ERROR);
       throw new StorageException(t($msg));
     }
     $lines = file_htaccess_lines($this->access_control);
     if (!$this->access_control) {
-      $lines .= <<<EOF
-
-<IfModule mod_headers.c>
-  Header set Content-Disposition "attachment"
-</IfModule>
-EOF;
+      $lines .= "\n";
+      $lines .= '<IfModule mod_headers.c>
+      Header set Content-Disposition "attachment"
+      </IfModule>';
     }
 
     $temp_uri = new StorageTempURI();
@@ -101,7 +103,7 @@ EOF;
    * Creates a storage container.
    *
    * @throws StorageException
-   *   When it wasn't possible to create the container.
+   *   When it was not possible to create the container.
    */
   public function create($already_exists = FALSE) {
 
@@ -139,6 +141,11 @@ EOF;
     return 'admin/structure/storage/container/' . $this->container_id;
   }
 
+  /**
+   * Returns an HTML formatted link.
+   *
+   * @return mixed
+   */
   public function link() {
     return l($this->name(), $this->path());
   }
@@ -256,6 +263,8 @@ EOF;
    *
    * @param $storage
    *   The storage that there must be an instance of.
+   *
+   * @return bool
    *
    * @throws StorageException
    *   When it isn't possible to ensure that the instance exists.
@@ -416,6 +425,11 @@ EOF;
     }
   }
 
+  /**
+   * Returns all classes configured for the current container.
+   *
+   * @return array
+   */
   public function classes() {
     $classes = [];
 
@@ -433,7 +447,7 @@ EOF;
   }
 
   /**
-   * Delete container.
+   * Delete the current container.
    */
   public function delete() {
 
@@ -453,7 +467,7 @@ EOF;
   }
 
   /**
-   * Destroy container.
+   * Destroy the current container.
    */
   public function destroy() {
 
@@ -481,7 +495,7 @@ EOF;
    *
    * @param $reference
    *   The reference to look for.
-   * @return
+   * @return bool
    *   Whether the reference exists in the container.
    */
   public function referenceExists($reference) {
@@ -505,7 +519,7 @@ EOF;
    *
    * @param $filename
    *   Desired filename.
-   * @return
+   * @return string
    *   Unique filename.
    */
   public function uniqueFilename($filename) {
@@ -533,6 +547,12 @@ EOF;
     return $filename;
   }
 
+  /**
+   * Returns a formatted string for logging information about the current
+   * container.
+   *
+   * @return string
+   */
   public function logInfo() {
 
     $info = 'container: ' . check_plain($this->name()) . ', <br />';
@@ -541,7 +561,9 @@ EOF;
   }
 
   /**
-   * Default implementations.
+   * Default implementations of a service manifest.
+   *
+   * @return array
    */
   public function serviceManifest(array &$sandbox, &$finished) {
 
@@ -595,10 +617,12 @@ EOF;
   }
 
   /**
-   * Get information about an instance.
+   * Get information about an instance and return it as an array.
    *
    * @param $reference
    *   The reference of the instance the be examined.
+   *
+   * @return array
    *
    * @throws StorageException
    *   When it isn't possible to get information about the instance.
@@ -632,34 +656,60 @@ EOF;
   }
 
   /**
-   * Optional implementations.
+   * Optional implementation.
+   *
+   * @return array
    */
   public function serviceSettingsDefault() {
     return [];
   }
 
+  /**
+   * Optional implementation.
+   */
   public function servicePostCreate() {
 
   }
 
+  /**
+   * Optional implementation.
+   */
   public function serviceUpdate() {
 
   }
 
+  /**
+   * Optional implementation.
+   */
   public function serviceMaintenance() {
 
   }
 
+  /**
+   * Optional implementation.
+   */
   public function serviceListReferences() {
     throw new StorageException();
   }
 
+  /**
+   * Optional implementation.
+   *
+   * @param $storage
+   * @param $source_container
+   */
   public function serviceInstanceCopy(Storage $storage, StorageContainerInterface $source_container) {
 
   }
 
 }
 
+/**
+ * Interface StorageContainerInterface
+ *
+ * All of the methods that must be included in a class for creating container
+ * services.
+ */
 interface StorageContainerInterface {
 
   public function __construct(array $fields);
