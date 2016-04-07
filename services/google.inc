@@ -89,7 +89,7 @@ class StorageGoogle extends StorageContainer implements StorageContainerInterfac
 
       watchdog('storage_google', 'No private file system has been created', [], WATCHDOG_ERROR);
       if (user_access('administer storage')) {
-        drupal_set_message(t('No private file system has been created. Please configure a private file system before proceeding.'), 'error');
+        drupal_set_message(t('No private file system has been created. Please') . ' ' . l('configure', 'admin/config/media/file-system') . ' ' . t('a private file system before proceeding.', ['@url']), 'error');
       }
       return $items;
     }
