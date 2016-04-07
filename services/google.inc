@@ -28,7 +28,7 @@ class StorageGoogle extends StorageContainer implements StorageContainerInterfac
   private function init() {
 
     // There must be a private file system. Check for it's existence.
-    if (!empty(variable_get('file_private_path'))) {
+    if (empty(variable_get('file_private_path'))) {
       watchdog('storage_google', 'No private file system has been created', [], WATCHDOG_ERROR);
       if (user_access('administer storage')) {
         drupal_set_message(t('No private file system has been created. Please configure a private file system before proceeding.'), 'error');
@@ -81,6 +81,20 @@ class StorageGoogle extends StorageContainer implements StorageContainerInterfac
    * {@inheritdoc}
    */
   public function serviceSettingsForm($already_exists) {
+    // There must be a private file system. Check for it's existence.
+    if (empty(variable_get('file_private_path'))) {
+      $items['storage_error'] = [
+        '#markup' => '<p>' . t('You have not specified a private file system.') . '</p>',
+      ];
+
+      watchdog('storage_google', 'No private file system has been created', [], WATCHDOG_ERROR);
+      if (user_access('administer storage')) {
+        drupal_set_message(t('No private file system has been created. Please configure a private file system before proceeding.'), 'error');
+      }
+      return $items;
+    }
+
+
     $items['credentials_info'] = [
       '#markup' => '<p>' . t('Credentials for your Service account (server-to-server)') . '</p>',
     ];
@@ -90,13 +104,13 @@ class StorageGoogle extends StorageContainer implements StorageContainerInterfac
       '#title' => t('Service JSON'),
       '#progress_message' => t('Please wait...'),
       '#progress_indicator' => 'bar',
-      '#description' => t('Upload the Service JSON file that Google generated for your to download.'),
+      '#description' => t('Upload the Service JSON file that Google generated for your to download. WARNING: Do not upload a file containing spaces. This will cause problems.'),
       '#required' => TRUE,
       '#default_value' => $this->settings['service_json'],
       '#upload_validators' => [
         'file_validate_extensions' => ['json'],
       ],
-      '#upload_location' => 'private://google_service_json/',
+      '#upload_location' => 'private://',
     ];
 
     $items['bucket'] = [
