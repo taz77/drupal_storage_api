@@ -4,14 +4,49 @@
  * @file
  * Container class file for Storage API.
  */
+
 abstract class StorageContainer {
 
+  /**
+   * Container ID number.
+   * @var int
+   */
   public $container_id;
+
+  /**
+   * Service ID number.
+   * @var int
+   */
   public $service_id;
+
+  /**
+   * Container name.
+   * @var string
+   */
   public $name;
+
+  /**
+   * Flag to determine access control is on or of for a container.
+   * @var bool
+   */
   public $access_control;
+
+  /**
+   * Flag to determine if the container is external or not.
+   * @var bool
+   */
   public $external;
+
+  /**
+   * Current status of the container.
+   * @var string
+   */
   public $status;
+
+  /**
+   * Array of settings for a container.
+   * @var array
+   */
   public $settings;
 
   public function __construct(array $fields) {
@@ -27,6 +62,11 @@ abstract class StorageContainer {
     return storage_service_load($this->service_id);
   }
 
+  /**
+   * Count the number of storage instances for a the current container.
+   *
+   * @return int
+   */
   public function count() {
 
     return db_select('storage_instance')
@@ -50,6 +90,11 @@ abstract class StorageContainer {
     return $format ? storage_format_byte_count($size) : $size;
   }
 
+  /**
+   * Return the status of the current container.
+   *
+   * @return string
+   */
   public function status() {
 
     switch ($this->status) {
