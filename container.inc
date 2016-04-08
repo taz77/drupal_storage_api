@@ -815,6 +815,12 @@ interface StorageContainerInterface {
 
   public function servicePostCreate();
 
+  /**
+   * Add additional data about a service beyond the standard information fields.
+   * This information is used on the container view page.
+   * 
+   * @return array
+   */
   public function serviceInfo();
 
   public function serviceUpdate();
