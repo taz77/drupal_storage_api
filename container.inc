@@ -811,14 +811,22 @@ interface StorageContainerInterface {
 
   public function serviceSettingsValidate($already_exists);
 
+  /**
+   * Perform additional tasks when a container service is created. This augments
+   * the Storage core processes. This is useful for performing service specific
+   * operations.
+   *
+   * @return mixed
+   */
   public function serviceCreate();
 
   public function servicePostCreate();
 
   /**
    * Add additional data about a service beyond the standard information fields.
-   * This information is used on the container view page.
-   * 
+   * This information is used on the container view page. This does not override
+   * the defaults but adds to the defaults.
+   *
    * @return array
    */
   public function serviceInfo();
