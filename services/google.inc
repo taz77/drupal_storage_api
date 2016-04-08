@@ -47,7 +47,7 @@ class StorageGoogle extends StorageContainer implements StorageContainerInterfac
 
     // Check for the class again. If it is still not available we fail.
     if (!class_exists('Google_Client')) {
-      watchdog('storage_google', 'google-api-php-client not found', [], WATCHDOG_ERROR);
+      watchdog('storage_google', 'google-api-php-client not found. Download the client on ' . l('Github', 'https://github.com/google/google-api-php-client#download-the-release', ['external' => TRUE]) . '. Then please consult the README on how to install the library.', [], WATCHDOG_ERROR);
 
       if (user_access('administer storage')) {
         drupal_set_message(t('google-api-php-client not found. Check the <a href="!path">status report</a>.', ['!path' => url('admin/reports/status')]), 'error');
@@ -90,6 +90,26 @@ class StorageGoogle extends StorageContainer implements StorageContainerInterfac
       watchdog('storage_google', 'No private file system has been created', [], WATCHDOG_ERROR);
       if (user_access('administer storage')) {
         drupal_set_message(t('No private file system has been created. Please') . ' ' . l('configure', 'admin/config/media/file-system') . ' ' . t('a private file system before proceeding.', ['@url']), 'error');
+      }
+      return $items;
+    }
+
+    // Check to see if class is loaded if not we attempt to load with libraries.
+    if (!class_exists('Google_Client')) {
+      if (module_exists('libraries') && function_exists('libraries_load')) {
+        $library = libraries_load('google-api-php-client');
+      }
+    }
+
+    // Check for the class again. If it is still not available we fail.
+    if (!class_exists('Google_Client')) {
+      $items['storage_error'] = [
+        '#markup' => '<p>' . t('You have not loaded the Google API PHP Client library.') . '</p>',
+      ];
+      watchdog('storage_google', 'google-api-php-client not found. Download the client on ' . l('Github', 'https://github.com/google/google-api-php-client#download-the-release', ['external' => TRUE]) . '. Then please consult the README on how to install the library.', [], WATCHDOG_ERROR);
+
+      if (user_access('administer storage')) {
+        drupal_set_message(t('Google API PHP Client library not found. Check the <a href="!path">status report</a>.', ['!path' => url('admin/reports/status')]), 'error');
       }
       return $items;
     }
