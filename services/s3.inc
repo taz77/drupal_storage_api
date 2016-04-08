@@ -89,6 +89,7 @@ class StorageS3 extends StorageContainer implements StorageContainerInterface {
    *   The request result.
    */
   private function request($op, $bucket = NULL, $object_name = NULL, Storage $storage = NULL, $uri = NULL, array $query = []) {
+    // @todo Convert to use Guzzle 6.x
     $result = [];
     $date = date(DATE_RFC1123, time());
 
