@@ -769,6 +769,11 @@ interface StorageContainerInterface {
 
   public function create($already_exists = FALSE);
 
+  /**
+   * Prepend the name of every instance of the service created.
+   *
+   * @return string
+   */
   public function name();
 
   public function path();
@@ -805,10 +810,28 @@ interface StorageContainerInterface {
 
   public function uniqueFilename($filename);
 
+  /**
+   * Add additional logging inforomation beyond Stroage core.
+   *
+   * @return string
+   */
   public function logInfo();
 
+  /**
+   * This must return a FAPI array of items that will be the service
+   * configuration form.
+   *
+   * @param $already_exists
+   * @return array
+   */
   public function serviceSettingsForm($already_exists);
 
+  /**
+   * Form validation for serviceSettingsForm().
+   *
+   * @param $already_exists
+   * @return array
+   */
   public function serviceSettingsValidate($already_exists);
 
   /**
