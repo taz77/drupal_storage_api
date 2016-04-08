@@ -130,7 +130,7 @@ class StorageGoogle extends StorageContainer implements StorageContainerInterfac
       '#upload_validators' => [
         'file_validate_extensions' => ['json'],
       ],
-      '#upload_location' => 'private://',
+      '#upload_location' => 'public://',
     ];
 
     $items['bucket'] = [
@@ -174,7 +174,6 @@ class StorageGoogle extends StorageContainer implements StorageContainerInterfac
    */
   public function serviceInfo() {
     $info = [
-      t('Email') => $this->settings['client_email'],
       t('Bucket') => $this->settings['bucket'],
     ];
 
