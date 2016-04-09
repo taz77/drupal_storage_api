@@ -4,7 +4,6 @@
  * @file
  * Storage Selector Class file for Storage API.
  */
-
 class StorageSelector {
 
   /**
@@ -67,7 +66,7 @@ class StorageSelector {
   }
 
   /**
-   * Returns the name of the selector.
+   * Returns the module name of the selector.
    * @return string
    */
   public function module() {
@@ -139,13 +138,15 @@ class StorageSelector {
    * The element's class selector is updated to point at the class selected.
    * Migration of files to the new class is initiated.
    *
-   * @param $form_item
+   * @param array $form_item
    *   The form value of a submitted class selector FAPI element.
+   *
+   * @return bool
    */
   public function submit(array $form_item) {
     // Has the class been changed?
     if ($form_item['current_class_id'] == $form_item['class_id']) {
-      return;
+      return TRUE;
     }
 
     db_merge('storage_selector')
@@ -189,7 +190,6 @@ class StorageSelector {
       watchdog('storage', $message, NULL);
     }
     else {
-
       db_delete('storage_selector')
         ->condition('selector_id', $this->selector_id)
         ->condition('class_id', $form_item['current_class_id'])
@@ -197,6 +197,9 @@ class StorageSelector {
     }
   }
 
+  /**
+   * @return \StorageClass
+   */
   public function storageClass() {
 
     return storage_class_load(db_select('storage_selector')
@@ -207,6 +210,11 @@ class StorageSelector {
       ->fetchField());
   }
 
+  /**
+   * Check the status of of a selector migration. If it has been migrated the
+   * class it was assigned to is deleted. Writes information to Drupal logs if
+   * the migration is complete.
+   */
   public function checkMigration() {
     // Is the selector fully migrated?
     $migrated = !db_select('storage')
@@ -236,7 +244,7 @@ class StorageSelector {
    * If the selector's class has an initial container, then an instance of the
    * storage will be created there.
    *
-   * @param $options
+   * @param array $options
    *   An associative array of additional options, with the following keys:
    *     - 'source_uri'
    *       URI to get the file from.
@@ -254,11 +262,11 @@ class StorageSelector {
    *     - 'data'
    *       An array of data about the file.
    *
-   * @return
-   *   Storage of the added file.
+   * @return object \Storage
+   *   Storage class of the added file.
    *
-   * @throws StorageException
-   *   When it isn't possible to add the storage to the selector.
+   * @throws \StorageException
+   *   When it is not possible to add the storage to the selector.
    */
   public function storageAdd(array $options = []) {
     // Add defaults.
@@ -281,7 +289,7 @@ class StorageSelector {
 
     if ($options['source_uri']) {
       if ($initial_container) {
-        $source_uri = $options['source_uri'];   // TODO: Make this URI local.
+        $source_uri = $options['source_uri'];   // @TODO: Make this URI local.
 
         if (!$options['file_id']) {
           $options['file_id'] = _storage_file_id($source_uri, $options['filename'], $new_file);
@@ -333,5 +341,4 @@ class StorageSelector {
 
     return $storage;
   }
-
 }
