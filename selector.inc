@@ -6,6 +6,11 @@
  */
 class StorageSelector {
 
+  /**
+   * Selector ID string.
+   * @see storage_selector field in database.
+   * @var string
+   */
   public $selector_id;
 
   public function __construct($arg0, $arg1 = NULL) {
@@ -22,7 +27,6 @@ class StorageSelector {
    * Creates a new class selector.
    */
   public function create($class_id = NULL) {
-
     if (!$class_id) {
       $class_id = db_select('storage_class')
         ->fields('storage_class', ['class_id'])
@@ -45,7 +49,6 @@ class StorageSelector {
    * Deletes a class selector.
    */
   public function destroy() {
-
     db_update('storage')
       ->fields([
         'status' => STORAGE_STATUS_PROCESS_CRON,
@@ -60,6 +63,10 @@ class StorageSelector {
       ->execute();
   }
 
+  /**
+   * Returns the module name of the selector.
+   * @return string
+   */
   public function module() {
     return strtok($this->selector_id, ':');
   }
@@ -74,7 +81,7 @@ class StorageSelector {
    *   The title of the select element.
    * @param $description
    *   The description of the select element (optional).
-   * @return
+   * @return array
    *   The select element.
    */
   public function formItem($title = NULL, $description = NULL) {
@@ -129,13 +136,15 @@ class StorageSelector {
    * The element's class selector is updated to point at the class selected.
    * Migration of files to the new class is initiated.
    *
-   * @param $form_item
+   * @param array $form_item
    *   The form value of a submitted class selector FAPI element.
+   *
+   * @return bool
    */
   public function submit(array $form_item) {
     // Has the class been changed?
     if ($form_item['current_class_id'] == $form_item['class_id']) {
-      return;
+      return TRUE;
     }
 
     db_merge('storage_selector')
@@ -179,7 +188,6 @@ class StorageSelector {
       watchdog('storage', $message, NULL);
     }
     else {
-
       db_delete('storage_selector')
         ->condition('selector_id', $this->selector_id)
         ->condition('class_id', $form_item['current_class_id'])
@@ -187,8 +195,12 @@ class StorageSelector {
     }
   }
 
+  /**
+   * Returns the Storage class of the current selector.
+   * 
+   * @return \StorageClass
+   */
   public function storageClass() {
-
     return storage_class_load(db_select('storage_selector')
       ->fields('storage_selector', ['class_id'])
       ->condition('selector_id', $this->selector_id)
@@ -197,6 +209,11 @@ class StorageSelector {
       ->fetchField());
   }
 
+  /**
+   * Check the status of of a selector migration. If it has been migrated the
+   * class it was assigned to is deleted. Writes information to Drupal logs if
+   * the migration is complete.
+   */
   public function checkMigration() {
     // Is the selector fully migrated?
     $migrated = !db_select('storage')
@@ -226,7 +243,7 @@ class StorageSelector {
    * If the selector's class has an initial container, then an instance of the
    * storage will be created there.
    *
-   * @param $options
+   * @param array $options
    *   An associative array of additional options, with the following keys:
    *     - 'source_uri'
    *       URI to get the file from.
@@ -244,11 +261,11 @@ class StorageSelector {
    *     - 'data'
    *       An array of data about the file.
    *
-   * @return
-   *   Storage of the added file.
+   * @return \Storage
+   *   Storage class of the added file.
    *
-   * @throws StorageException
-   *   When it isn't possible to add the storage to the selector.
+   * @throws \StorageException
+   *   When it is not possible to add the storage to the selector.
    */
   public function storageAdd(array $options = []) {
     // Add defaults.
@@ -271,7 +288,7 @@ class StorageSelector {
 
     if ($options['source_uri']) {
       if ($initial_container) {
-        $source_uri = $options['source_uri'];   // TODO: Make this URI local.
+        $source_uri = $options['source_uri'];   // @TODO: Make this URI local.
 
         if (!$options['file_id']) {
           $options['file_id'] = _storage_file_id($source_uri, $options['filename'], $new_file);
@@ -323,5 +340,4 @@ class StorageSelector {
 
     return $storage;
   }
-
 }
