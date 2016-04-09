@@ -4,6 +4,7 @@
  * @file
  * Class file for Storage API.
  */
+
 class Storage {
 
   /**
@@ -792,8 +793,9 @@ class Storage {
   }
 
   /**
+   * Destroy all instances that are no long required.
    * @throws StorageException
-   *   When not all unrequired instances could be destroyed.
+   *   When not all unused instances could be destroyed.
    */
   public function destroyUnrequiredInstances(array $container_ids) {
 

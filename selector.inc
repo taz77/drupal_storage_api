@@ -4,8 +4,14 @@
  * @file
  * Storage Selector Class file for Storage API.
  */
+
 class StorageSelector {
 
+  /**
+   * Selector ID string.
+   * @see storage_selector field in database.
+   * @var string
+   */
   public $selector_id;
 
   public function __construct($arg0, $arg1 = NULL) {
@@ -60,6 +66,10 @@ class StorageSelector {
       ->execute();
   }
 
+  /**
+   * Returns the name of the selector.
+   * @return string
+   */
   public function module() {
     return strtok($this->selector_id, ':');
   }
@@ -74,7 +84,7 @@ class StorageSelector {
    *   The title of the select element.
    * @param $description
    *   The description of the select element (optional).
-   * @return
+   * @return array
    *   The select element.
    */
   public function formItem($title = NULL, $description = NULL) {
