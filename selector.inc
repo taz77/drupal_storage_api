@@ -27,7 +27,6 @@ class StorageSelector {
    * Creates a new class selector.
    */
   public function create($class_id = NULL) {
-
     if (!$class_id) {
       $class_id = db_select('storage_class')
         ->fields('storage_class', ['class_id'])
@@ -50,7 +49,6 @@ class StorageSelector {
    * Deletes a class selector.
    */
   public function destroy() {
-
     db_update('storage')
       ->fields([
         'status' => STORAGE_STATUS_PROCESS_CRON,
@@ -198,10 +196,11 @@ class StorageSelector {
   }
 
   /**
+   * Returns the Storage class of the current selector.
+   * 
    * @return \StorageClass
    */
   public function storageClass() {
-
     return storage_class_load(db_select('storage_selector')
       ->fields('storage_selector', ['class_id'])
       ->condition('selector_id', $this->selector_id)
@@ -262,7 +261,7 @@ class StorageSelector {
    *     - 'data'
    *       An array of data about the file.
    *
-   * @return object \Storage
+   * @return \Storage
    *   Storage class of the added file.
    *
    * @throws \StorageException
