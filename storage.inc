@@ -73,6 +73,10 @@ class Storage {
     drupal_write_record('storage', $this, 'storage_id');
   }
 
+  /**
+   * Duplicate the existing Storage object and write to DB.
+   * @return \Storage
+   */
   public function duplicate() {
     $storage = clone $this;
     unset($storage->storage_id);
@@ -84,16 +88,30 @@ class Storage {
     return $storage;
   }
 
+  /**
+   * Returns a new selector ID string.
+   *
+   * @return \StorageSelector
+   */
   public function selector() {
 
     return storage_selector($this->selector_id);
   }
 
+  /**
+   * Returns the module name from the selector.
+   *
+   * @return string
+   */
   public function module() {
 
     return $this->selector()->module();
   }
 
+  /**
+   * Loads the storage object of the parent Storage.
+   * @return \Storage
+   */
   public function parent() {
 
     return storage_load($this->parent_id);
@@ -127,7 +145,7 @@ class Storage {
   /**
    * Determine whether the user has access to a file.
    *
-   * @return
+   * @return bool
    *   Boolean TRUE if the current user has access to the file.
    */
   public function access() {
@@ -158,10 +176,10 @@ class Storage {
   /**
    * Selects a container instance.
    *
-   * @param $serving
+   * @param bool $serving
    *   Set to TRUE if the instance is to be served.
    *
-   * @return
+   * @return object $container
    *   The container instance.
    *
    * @throws StorageException
@@ -221,7 +239,7 @@ class Storage {
   /**
    * Generates the storage.
    *
-   * @return
+   * @return object $container
    *   The initial container instance.
    *
    * @throws StorageException
