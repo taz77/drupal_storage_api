@@ -391,7 +391,7 @@ class Storage {
    *   Whether the URL should use the HTTPS scheme. If NULL it is inherited from
    *   the request currently being handled. Defaults to NULL.
    *
-   * @return
+   * @return string
    *   The generated URL.
    */
   public function serveURL($absolute = FALSE, $https = NULL) {
@@ -447,10 +447,20 @@ class Storage {
     ]);
   }
 
+  /**
+   * Returns the path of the current storage.
+   *
+   * @return string
+   */
   public function path() {
     return 'system/storage/serve/' . $this->storage_id . ($this->filename ? ('/' . drupal_basename($this->filename)) : '');
   }
 
+  /**
+   * Returns a string formatted for logging with information about the object
+   * including name, storage class, storage ID, file ID, file size.
+   * @return string
+   */
   public function logInfo() {
 
     $info = 'class: ' . $this->name . ', <br />';
@@ -462,6 +472,11 @@ class Storage {
     return $info;
   }
 
+  /**
+   * Returns a string formatted for logging with infomration about the file
+   * including file id and file size.
+   * @return string
+   */
   public function fileLogInfo() {
 
     $info = 'file_id: ' . $this->file_id . ', ';
@@ -470,14 +485,21 @@ class Storage {
     return $info;
   }
 
+  /**
+   * Returns the human readable size of the byte count of the storage.
+   *
+   * @see storage_format_byte_count()
+   * @return string
+   */
   public function size() {
     return storage_format_byte_count($this->size);
   }
 
   /**
-   * Schedule a storage for complete removal from the system.
+   * Schedule a storage for complete removal from the system. All instances of
+   * the storage will be removed during cron.
    *
-   * All instances of the storage will be removed during cron.
+   * @param bool $recursive
    */
   public function remove($recursive = TRUE) {
 
@@ -508,7 +530,7 @@ class Storage {
   /**
    * Generate HTTP headers for serving this storage.
    *
-   * @return
+   * @return array
    *   An array of HTTP headers.
    */
   public function HTTPHeaders() {
@@ -527,6 +549,8 @@ class Storage {
 
   /**
    * Output directly the correct HTTP headers for a specific file.
+   *
+   * @return array
    */
   public function setHTTPHeaders() {
 
@@ -539,11 +563,17 @@ class Storage {
     }
   }
 
+  /**
+   * @todo determine what this does.
+   *
+   * @return bool|void|string
+   * @throws \StorageException
+   */
   private function acquireFromSourceURL() {
     $time = time();
 
     if ($time < $this->data['next_acquire_time']) {
-      return;
+      return TRUE;
     }
 
     $uri = _storage_acquire_from_url($this->source_uri);
@@ -566,7 +596,7 @@ class Storage {
         $this->update();
 
         // we need to reload $storage to get the filesize, etc
-//          $this = storage_load($this->storage_id);
+        // $this = storage_load($this->storage_id);
         $this->new_file = $new_file;    // _storage_ensure_instance_exists() will make use of this
 
         $message = 'Acquired file from url: ' . $this->source_uri . ' . <br />';
@@ -614,7 +644,7 @@ class Storage {
    *
    * The file will be made available locally (this may involve downloading it or generating it).
    *
-   * @return
+   * @return string
    *   A URI where the file can be accessed.
    *
    * @throws StorageException
