@@ -298,6 +298,8 @@ class Storage {
 
   /**
    * Serve the specified file, either directly or by an HTTP 302 redirect.
+   *
+   * @return bool
    */
   public function serve() {
     $container = NULL;
@@ -356,7 +358,7 @@ class Storage {
 
     if (!isset($url)) {
       _storage_service_unavailable();
-      return;
+      return FALSE;
     }
 
     // This will not return.
