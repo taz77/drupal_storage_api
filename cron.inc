@@ -52,8 +52,10 @@ function _storage_check_files() {
   }
 }
 
+/**
+ * Find selectors that are being migrated and check their status.
+ */
 function _storage_check_migrations() {
-
   // Find selectors that are being migrated.
   $selector_ids = db_select('storage_selector', NULL, ['fetch' => PDO::FETCH_ASSOC])
     ->fields('storage_selector', ['selector_id'])
@@ -68,6 +70,9 @@ function _storage_check_migrations() {
   }
 }
 
+/**
+ * Check active containers for their maintenance status.
+ */
 function _storage_container_maintenance() {
 
   $result = db_select('storage_container', NULL, ['fetch' => PDO::FETCH_ASSOC])
@@ -80,6 +85,9 @@ function _storage_container_maintenance() {
   }
 }
 
+/**
+ * Destroy containers marked for destruction. Then delete the container.
+ */
 function _storage_destroy_containers() {
 
   $result = db_select('storage_container', NULL, ['fetch' => PDO::FETCH_ASSOC])
