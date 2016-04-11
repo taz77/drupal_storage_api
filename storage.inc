@@ -777,7 +777,7 @@ class Storage {
       if ($count) {
         $this->status = STORAGE_STATUS_IDLE;
         $this->update();
-        return;
+        return TRUE;
       }
     }
 
@@ -844,6 +844,8 @@ class Storage {
 
   /**
    * Destroy all instances that are no long required.
+   * 
+   * @param array $container_ids
    * @throws StorageException
    *   When not all unused instances could be destroyed.
    */
