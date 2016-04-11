@@ -755,6 +755,8 @@ class Storage {
   }
 
   /**
+   * @todo deterimine what this does.
+   * 
    * @throws StorageException
    *   When the storage is unable to be correctly propagated.
    */
@@ -844,7 +846,7 @@ class Storage {
 
   /**
    * Destroy all instances that are no long required.
-   * 
+   *
    * @param array $container_ids
    * @throws StorageException
    *   When not all unused instances could be destroyed.
