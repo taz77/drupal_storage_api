@@ -4,6 +4,12 @@
  * @file
  * Cron functions for Storage API.
  */
+
+/**
+ * Remove containers marked for removal.
+ *
+ * @throws \StorageException
+ */
 function _storage_remove_containers() {
 
   $result = db_select('storage_class_container', NULL, ['fetch' => PDO::FETCH_ASSOC])
@@ -19,11 +25,15 @@ function _storage_remove_containers() {
       $class->removeContainer($container);
     }
     catch (StorageException $e) {
-
+      watchdoc('storage', t('Error thrown in Cron while removing containers.' . ' ' . $e), 'error');
     }
   }
 }
 
+/**
+ * Check that Storage can be loaded by the ID number. Throw error into logs if
+ * it cannot be loaded.
+ */
 function _storage_check_files() {
 
   $result = db_select('storage')
@@ -37,7 +47,7 @@ function _storage_check_files() {
       storage_load($storage_id)->check();
     }
     catch (StorageException $e) {
-
+      watchdoc('storage', t('Error thrown in Cron while checking files. Please check the storage configurations. Was unable to load storage. See Error:' . ' ' . $e), 'error');
     }
   }
 }
@@ -84,11 +94,14 @@ function _storage_destroy_containers() {
       $container->delete();
     }
     catch (StorageException $e) {
-
+      watchdoc('storage', t('Error thrown in Cron while destroying containers.' . ' ' . $e), 'error');
     }
   }
 }
 
+/**
+ * Helper function to run all cron jobs.
+ */
 function _storage_cron() {
   _storage_remove_containers();
   _storage_check_files();
