@@ -184,10 +184,19 @@ abstract class StorageContainer {
     watchdog('storage', $msg, ['!container' => check_plain($this->name())], WATCHDOG_NOTICE, l(t('view'), $this->path()));
   }
 
+  /**
+   * Return the name of the service.
+   *
+   * @return string
+   */
   public function name() {
     return $this->service()->name . ($this->name ? (' - ' . $this->name) : '');
   }
 
+  /**
+   * Returns the path to the admin UI for the current container.
+   * @return string
+   */
   public function path() {
     return 'admin/structure/storage/container/' . $this->container_id;
   }
