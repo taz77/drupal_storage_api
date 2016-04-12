@@ -77,6 +77,12 @@ abstract class StorageContainer {
       ->fetchField();
   }
 
+  /**
+   * Return the file size of the entire container, summing all file sizes.
+   *
+   * @param bool $format
+   * @return int|string
+   */
   public function size($format = FALSE) {
 
     $query = db_select('storage_instance');
@@ -294,6 +300,7 @@ abstract class StorageContainer {
         $this->instanceCopy($storage, $source_container);
       }
       catch (StorageException $e) {
+        watchdog('storage', t('Instance copy failed.') . ' ' . $e, 'error');
         continue;
       }
 
