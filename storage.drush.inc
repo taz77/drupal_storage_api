@@ -144,7 +144,7 @@ function _storage_drush_help_containers() {
  * @param string $service_id
  *   A valid service identifier.
  *
- * @return StorageContainerInterface
+ * @return \StorageContainerInterface
  *   The container class for the service.
  */
 function _storage_drush_container($service_id) {
@@ -308,7 +308,7 @@ function _drush_storage_get_container($service_id, $name, $required = FALSE) {
  * @param string $name
  *   The name the storage container is listed as.
  *
- * @return StorageContainerInterface|FALSE
+ * @return \StorageContainerInterface|bool
  *   The container or FALSE.
  */
 function _drush_storage_load_container($service_id, $name) {

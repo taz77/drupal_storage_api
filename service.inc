@@ -6,12 +6,52 @@
  */
 class StorageService {
 
+  /**
+   * Service ID string.
+   * @var string
+   */
   public $service_id;
+
+  /**
+   * This is unused.
+   * @todo consider deleting.
+   * @var string
+   */
   public $name;
+
+  /**
+   * This is unused.
+   * @todo consider deleting.
+   * @var
+   */
   public $class;
+
+  /**
+   * This is unused.
+   * @todo consider deleting.
+   * @var
+   */
   public $htaccess;
+
+  /**
+   * This is unused.
+   * @todo consider deleting.
+   * @var
+   */
   public $copy;
+
+  /**
+   * This is unused.
+   * @todo consider deleting.
+   * @var
+   */
   public $serve;
+
+  /**
+   * This is unused.
+   * @todo consider deleting.
+   * @var
+   */
   public $serve_secure;
 
   public function __construct($service_id) {
@@ -23,6 +63,11 @@ class StorageService {
     }
   }
 
+  /**
+   * Invoice all service specific hooks
+   *
+   * @see /services directory
+   */
   public function check() {
     list($module, $service) = explode(':', $this->service_id);
     module_invoke($module, 'storage_service_check_' . $service);

@@ -4,6 +4,14 @@
  * @file
  * Admin UI functions for Storage API.
  */
+
+/**
+ * Helper function to return themed table of classes files and sizes. Returns
+ * renderabled HTML.
+ *
+ * @return string
+ */
+
 function storage_admin_classes() {
   $header = [
     t('Class'),
@@ -46,6 +54,12 @@ function storage_admin_classes() {
   ]);
 }
 
+/**
+ * Helper function to returned themed table of containers. Returns renderable
+ * HTML
+ *
+ * @return string
+ */
 function storage_admin_containers() {
   $header = [
     t('Container'),
@@ -90,6 +104,13 @@ function storage_admin_containers() {
     'attributes' => ['style' => 'width: auto;'],
   ]);
 }
+
+/**
+ * Helper function to return tabled classes and tabled containers. Returns
+ * rendabled HTML.
+ * 
+ * @return string
+ */
 
 function storage_admin() {
   return storage_admin_classes() . storage_admin_containers();
