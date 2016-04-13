@@ -210,10 +210,17 @@ abstract class StorageContainer {
     return l($this->name(), $this->path());
   }
 
+  /**
+   * Update the container information of the current container.
+   */
   public function update() {
     drupal_write_record('storage_container', $this, 'container_id');
   }
 
+  /**
+   * Flush Serving Container.
+   * @todo needs more investigation.
+   */
   public function flushServingContainer() {
 
     $selector_subquery = db_select('storage_class_container');
@@ -230,6 +237,14 @@ abstract class StorageContainer {
     cache_clear_all();
   }
 
+  /**
+   *
+   *
+   * @param \Storage $storage
+   * @param string $uri
+   * @return mixed
+   * @throws \StorageException
+   */
   public function instanceCreate(Storage $storage, $uri) {
 
     if ($this->status == STORAGE_CONTAINER_STATUS_SUSPENDED || $this->external) {
