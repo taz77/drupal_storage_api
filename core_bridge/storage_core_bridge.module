@@ -578,7 +578,12 @@ class DrupalStorageStreamWrapper implements DrupalStreamWrapperInterface {
           ->execute();
       }
       catch (StorageException $e) {
-
+        watchdog('storage_core_bridge', 'Exception in @function. (options: <pre>!options</pre>) (message: @message)', [
+          '!options' => print_r($options, TRUE),
+          '@function' => __FUNCTION__,
+          '@message' => $e->getMessage(),
+        ]);
+        throw $e;
       }
     }
   }
