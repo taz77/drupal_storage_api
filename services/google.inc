@@ -28,7 +28,8 @@ class StorageGoogle extends StorageContainer implements StorageContainerInterfac
   private function init() {
 
     // There must be a private file system. Check for it's existence.
-    if (empty(variable_get('file_private_path'))) {
+    $file_private_path = variable_get('file_private_path');
+    if (empty($file_private_path)) {
       watchdog('storage_google', 'No private file system has been created', [], WATCHDOG_ERROR);
       if (user_access('administer storage')) {
         drupal_set_message(t('No private file system has been created. Please configure a private file system before proceeding.'), 'error');
@@ -56,9 +57,15 @@ class StorageGoogle extends StorageContainer implements StorageContainerInterfac
       throw new StorageException();
     }
 
+    // Define the required scope(s)
+    $scopes = implode(' ', array(
+      Google_Service_Storage::DEVSTORAGE_READ_WRITE,
+    ));
+
     $this->client = new Google_Client();
     $file = file_load($this->settings['service_json']);
     $this->client->setAuthConfig($file->uri);
+    $this->client->setScopes($scopes);
     if ($this->client->isAccessTokenExpired()) {
       $this->client->refreshTokenWithAssertion();
     }
