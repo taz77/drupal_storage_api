@@ -324,7 +324,7 @@ abstract class StorageContainer {
         $this->instanceCopy($storage, $source_container);
       }
       catch (StorageException $e) {
-        watchdog('storage', t('Instance copy failed.') . ' ' . $e, 'error');
+        watchdog('storage', t('Instance copy failed.') . ' ' . $e, [], WATCHDOG_ERROR);
         continue;
       }
 

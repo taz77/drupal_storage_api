@@ -25,7 +25,7 @@ function _storage_remove_containers() {
       $class->removeContainer($container);
     }
     catch (StorageException $e) {
-      watchdog('storage', t('Error thrown in Cron while removing containers.' . ' ' . $e), 'error');
+      watchdog('storage', t('Error thrown in Cron while removing containers.') . ' ' . $e, [], WATCHDOG_ERROR);
     }
   }
 }
@@ -47,7 +47,7 @@ function _storage_check_files() {
       storage_load($storage_id)->check();
     }
     catch (StorageException $e) {
-      watchdog('storage', t('Error thrown in Cron while checking files. Please check the storage configurations. Was unable to load storage. See Error:' . ' ' . $e), 'error');
+      watchdog('storage', t('Error thrown in Cron while checking files. Please check the storage configurations. Was unable to load storage. See Error:') . ' ' . $e, [], WATCHDOG_ERROR);
     }
   }
 }
@@ -102,7 +102,7 @@ function _storage_destroy_containers() {
       $container->delete();
     }
     catch (StorageException $e) {
-      watchdog('storage', t('Error thrown in Cron while destroying containers.' . ' ' . $e), 'error');
+      watchdog('storage', t('Error thrown in Cron while destroying containers.') . ' ' . $e, [], WATCHDOG_ERROR);
     }
   }
 }
