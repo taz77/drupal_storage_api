@@ -1027,8 +1027,8 @@ function storage_data_uri_doc_link() {
  * @return bool
  *   TRUE if using HTTPS.
  */
-function storage_is_request_https() {gs
-  return (!empty($_SERVER['HTTPS'])) || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https');
+function storage_is_request_https() {
+  return (drupal_is_https()) || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https');
 }
 
 /**
