@@ -670,8 +670,6 @@ function _storage_file_id($uri, $filename = NULL, &$new_file = NULL) {
     $filename = drupal_basename(file_uri_target($uri));
   }
 
-  $whirlpool = md5($whirlpool);
-
   $transaction = db_transaction();
   $file_id = db_select('storage_file')
     ->fields('storage_file', ['file_id'])
